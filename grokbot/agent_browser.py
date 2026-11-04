@@ -147,13 +147,24 @@ _SNAPSHOT_JS = """(maxElements) => {
   try { out.text = (document.body ? document.body.innerText : '') || ''; } catch (e) { out.text = ''; }
   const candidates = document.querySelectorAll(
     'a[href], button, input, select, textarea, summary, [role="button"], [role="link"], [onclick]');
-  let n = 0;
+  // Elements on screen come first: the cap used to fill up with links from the top of the
+  // document, so after browse_scroll the elements the screenshot shows were often not listed.
+  const viewH = window.innerHeight || document.documentElement.clientHeight;
+  const viewW = window.innerWidth || document.documentElement.clientWidth;
+  const onScreen = [], offScreen = [];
   for (const el of candidates) {
-    if (n >= maxElements) break;
+    if (onScreen.length >= maxElements) break;
     const r = el.getBoundingClientRect();
     if (!r || r.width < 1 || r.height < 1) continue;
+    const inView = r.bottom > 0 && r.top < viewH && r.right > 0 && r.left < viewW;
+    if (!inView && offScreen.length >= maxElements) continue;
     const style = getComputedStyle(el);
     if (style.visibility === 'hidden' || style.display === 'none') continue;
+    (inView ? onScreen : offScreen).push(el);
+  }
+  let n = 0;
+  for (const el of onScreen.concat(offScreen)) {
+    if (n >= maxElements) break;
     n += 1;
     el.setAttribute('data-grokref', String(n));
     let text = (el.innerText || el.value || el.getAttribute('aria-label') || el.getAttribute('title') || '').trim();

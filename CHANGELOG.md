@@ -77,6 +77,10 @@ Reliability pack: real cancellation, per-run log, backup/restore, optional edit 
 
 ### Fixed
 
+- Agent browser snapshots list the elements on screen first. The 40-element cap used to fill with links
+  from the top of the document, so after `browse_scroll` the buttons and links the screenshot showed were
+  often missing from the list and could not be clicked by index. Off-screen elements still fill the
+  remaining slots.
 - Docs: `preview_page`'s route guard does not see redirect hops (Playwright does not route them); it is safe
   only because the preview server never answers 3xx. Its docstrings, docs/SECURITY.md and the README's web
   browsing paragraph no longer claim per-hop checks.
