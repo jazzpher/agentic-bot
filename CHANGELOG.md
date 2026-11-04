@@ -90,6 +90,12 @@ Reliability pack: real cancellation, per-run log, backup/restore, optional edit 
   `chrome-error://` page used to send the user back to the last approved page - including an unrelated
   network error on an approved site. Now only the refusal's own late-committing error page does, and a
   regression test simulates the late commit (no real Chromium needed).
+- Take-over refused-navigation recovery now expires. A refused click whose `chrome-error://` page never
+  committed left the recovery armed, so an unrelated error page minutes later (e.g. a network error on an
+  approved site) still sent the user back to the last approved page. The recovery now only applies within
+  `TAKEOVER_REFUSED_WINDOW` (2.5 seconds) of the refusal, in the loop and in the final check before the
+  snapshot; a failed put-back is retried while the window is open. Regression tests cover the expiry and
+  the retry.
 - Agent browser snapshots list the elements on screen first. The 40-element cap used to fill with links
   from the top of the document, so after `browse_scroll` the buttons and links the screenshot showed were
   often missing from the list and could not be clicked by index. Off-screen elements still fill the
