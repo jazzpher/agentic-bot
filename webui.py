@@ -29,6 +29,7 @@ import model_discovery
 import grokbot
 from grokbot import agent as agent_core, compaction, config as gconfig, netguard, providers as provider_client, sandbox as sandbox_mod
 from grokbot.approvals import ApprovalBroker, PolicyStore, SandboxPolicy, MODES as SANDBOX_MODES, APPROVALS as APPROVAL_MODES
+from grokbot.takeover import TakeoverBroker
 from grokbot.conversations import ConversationStore
 from grokbot.memory import MemoryStore
 from grokbot.scheduler import Scheduler, ScheduleError
@@ -951,6 +952,7 @@ def set_key():
 REGISTRY = default_registry()
 POLICIES = PolicyStore(WORKSPACES)
 APPROVALS = ApprovalBroker(POLICIES)
+TAKEOVERS = TakeoverBroker()                    # live browser take-overs (request_takeover), owner-scoped
 CONVERSATIONS = None
 conversations_lock = threading.Lock()
 agent_stream_fn = provider_client.stream_chat   # tests may monkeypatch this
@@ -1107,7 +1109,8 @@ def run_owner_turn(owner, workspace, cid, text, *, emit, stop, images=None, uplo
     mcp_manager()
     ctx_extras = {'json_mode': json_mode, 'owner': owner, 'memory': memory_store(), 'conversations': store,
                   'scheduler': scheduler(), 'uploads': list(uploads or []), 'unattended': unattended,
-                  'run_source': 'scheduled' if unattended else 'agent', 'conversation_id': cid}
+                  'run_source': 'scheduled' if unattended else 'agent', 'conversation_id': cid,
+                  'takeovers': TAKEOVERS}
     ctx_extras.update(extras or {})
     ctx = ToolContext(workspace=workspace, session_id=owner, policy=policy, approvals=APPROVALS, stop=stop, extras=ctx_extras)
     kept = []
@@ -1208,7 +1211,7 @@ class AgentRun:
         with self.lock:
             if len(self.events) < AGENT_EVENT_LOG:
                 self.events.append(event)
-            elif event['type'] in ('approval_required', 'approval', 'done', 'error'):
+            elif event['type'] in ('approval_required', 'approval', 'takeover_required', 'takeover', 'done', 'error'):
                 self.events.append(event)
 
 
@@ -1302,11 +1305,14 @@ def agent_current():
     if run is None:
         return json_response({'running': False})
     pending = {p['id'] for p in APPROVALS.list_pending(session['sid'])}
+    takeovers = {t['id'] for t in TAKEOVERS.list_active(session['sid'])}
     events = []
     with run.lock:
         for e in run.events:
             if e['type'] == 'approval_required':
                 e = dict(e, resolved=e['id'] not in pending)
+            elif e['type'] == 'takeover_required':
+                e = dict(e, resolved=e['id'] not in takeovers)
             events.append(e)
     return json_response({'running': not run.done.is_set(), 'conversation_id': run.cid, 'events': events})
 
@@ -1324,6 +1330,41 @@ def agent_approve():
 @app.route('/agent/pending')
 def agent_pending():
     return json_response(APPROVALS.list_pending(session['sid']))
+
+
+# Browser take-over (request_takeover): the live view polls frames and posts the user's input. Owner-scoped;
+# frames and input never enter the turn's event log, the conversation store or the model's context.
+@app.route('/agent/takeover/<tid>/frame')
+def takeover_frame(tid):
+    takeover = TAKEOVERS.get(tid, session['sid'])
+    if takeover is None:
+        return Response('No such take-over (it may have ended).', status=404)
+    frame = takeover.get_frame()
+    if frame is None:
+        return Response(status=204)
+    return Response(frame[0], content_type='image/jpeg', headers={'X-Frame-Seq': str(frame[1])})
+
+
+@app.route('/agent/takeover/<tid>/input', methods=['POST'])
+def takeover_input(tid):
+    if request.content_length and request.content_length > 8192:
+        return Response('Input too large.', status=413)
+    try:
+        queued = TAKEOVERS.send_input(tid, session['sid'], request.get_json(silent=True))
+    except ValueError as exc:
+        return Response(str(exc), status=400)
+    if queued is None:
+        return Response('No such take-over (it may have ended).', status=404)
+    if not queued:
+        return Response('Too many inputs waiting; try again in a moment.', status=429)
+    return json_response({'ok': True})
+
+
+@app.route('/agent/takeover/<tid>/done', methods=['POST'])
+def takeover_done(tid):
+    if not TAKEOVERS.finish(tid, session['sid']):
+        return Response('No such take-over (it may have ended).', status=404)
+    return json_response({'ok': True})
 
 
 @app.route('/policy', methods=['GET', 'POST'])

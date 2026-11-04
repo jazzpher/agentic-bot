@@ -222,7 +222,11 @@ keep it off unless you are testing it (see docs/LIMITATIONS.md).
 There is no typing: the agent can read, scroll and click only, in an ephemeral
 context with no cookies, profile or saved logins, and downloads are never saved.
 Chromium is killed when the turn ends. Page content is untrusted data; the agent
-is instructed never to follow instructions found on a page.
+is instructed never to follow instructions found on a page. When a page needs a
+person (a login, a captcha, a payment), the agent calls `request_takeover`: the
+web UI shows a live view of its browser where you click, type and scroll, then
+tap Done. The agent only sees the page afterwards, never what you typed; it
+waits up to `GROK_AGENT_BROWSER_TAKEOVER_TIMEOUT` seconds (default 600).
 
 **UI preview** (`preview_page`) lets the interactive agent SEE the HTML it
 writes: opt in with `GROK_PREVIEW=on` (separate from `GROK_BROWSER_ENABLED`;
