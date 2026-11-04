@@ -86,6 +86,10 @@ Reliability pack: real cancellation, per-run log, backup/restore, optional edit 
 
 ### Fixed
 
+- Take-over refused-navigation recovery is one-shot per refusal. After any refused click, every later
+  `chrome-error://` page used to send the user back to the last approved page - including an unrelated
+  network error on an approved site. Now only the refusal's own late-committing error page does, and a
+  regression test simulates the late commit (no real Chromium needed).
 - Agent browser snapshots list the elements on screen first. The 40-element cap used to fill with links
   from the top of the document, so after `browse_scroll` the buttons and links the screenshot showed were
   often missing from the list and could not be clicked by index. Off-screen elements still fill the
