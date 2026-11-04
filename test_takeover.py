@@ -397,6 +397,77 @@ class RefusedErrorPageTests(unittest.TestCase):
         self.assertEqual(page.url, error_url)                  # the later error page is left alone
         self.assertIn('site-b.test', state.get('blocked_hosts', []))
 
+    def _run(self, page, script, window):
+        """Drive session.takeover on ``page`` while ``script(session, handle)`` plays the browser's part,
+        with TAKEOVER_REFUSED_WINDOW patched to ``window`` seconds."""
+        session = agent_browser.AgentBrowserSession()
+        session._page = page
+        session._state = lambda approved, images=True: {'snapshot': {'url': page.url}, 'image': None}
+        handle = _FakeHandle()
+        thread = threading.Thread(target=script, args=(session, handle), daemon=True)
+        thread.start()
+        with mock.patch.object(agent_browser, 'TAKEOVER_REFUSED_WINDOW', window), \
+                mock.patch.object(agent_browser, 'request_allowed',
+                                  side_effect=lambda url: url.startswith('http://site-a.test/')):
+            state = session.takeover(handle, {'site-a.test'}, images=False)
+        thread.join(5)
+        return state
+
+    def test_refusal_without_error_page_expires(self):
+        """A refusal whose error page never commits must not arm the recovery forever: an unrelated
+        chrome-error:// page after the window (a network error on the approved site) is left alone."""
+        error_url = 'chrome-error://chromewebdata/'
+        page = _FakePage('http://site-a.test/home')
+
+        def script(session, handle):
+            time.sleep(0.15)                                   # the loop settles on the approved page
+            session._blocked = ('unapproved', 'site-b.test')   # refused, but NO error page ever commits
+            time.sleep(0.2)
+            page.url = 'http://site-a.test/other'              # the user keeps browsing the approved site
+            time.sleep(0.6)                                    # ... well past the (patched) 0.3 s window
+            page.url = error_url                               # an unrelated network error on site A
+            time.sleep(0.4)
+            handle.done.set()
+
+        state = self._run(page, script, window=0.3)
+        self.assertEqual(state['status'], 'done')
+        self.assertEqual(page.gotos, [], 'an error page after the window is not the refusal\'s own')
+        self.assertEqual(page.url, error_url)
+        self.assertIn('site-b.test', state.get('blocked_hosts', []))
+
+    def test_failed_put_back_is_retried_within_window(self):
+        """When putting the user back fails (the page still shows chrome-error://), the loop retries while
+        the refusal's window is open, then stops: a later unrelated error page is left alone."""
+        approved_url = 'http://site-a.test/home'
+        error_url = 'chrome-error://chromewebdata/'
+
+        class _FlakyGotoPage(_FakePage):
+            failures = 1
+
+            def goto(self, url, **kwargs):
+                self.gotos.append(url)
+                if self.failures:
+                    self.failures -= 1                          # first attempt fails: still the error page
+                    return
+                self.url = url
+
+        page = _FlakyGotoPage(approved_url)
+
+        def script(session, handle):
+            time.sleep(0.15)
+            session._blocked = ('unapproved', 'site-b.test')
+            time.sleep(0.2)
+            page.url = error_url                               # the refusal's error page commits late
+            time.sleep(0.5)                                    # first put-back fails, the retry succeeds
+            page.url = error_url                               # a later, unrelated error on site A
+            time.sleep(0.4)
+            handle.done.set()
+
+        state = self._run(page, script, window=2.0)
+        self.assertEqual(state['status'], 'done')
+        self.assertEqual(page.gotos, [approved_url, approved_url], 'one failed attempt, one retry, no more')
+        self.assertEqual(page.url, error_url)
+
 
 class _TakeoverHandler(test_agent_browse._Handler):
     def do_GET(self):
