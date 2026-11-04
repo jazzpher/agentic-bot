@@ -559,6 +559,10 @@ class AgentBrowserSession:
                 self._back_from_refused(page, last_ok, refused_nav)
             elif self._location_ok(page.url, approved_hosts):
                 last_ok = page.url
+            elif refused_nav and page.url.startswith('chrome-error://'):
+                # A refused navigation's error page can commit AFTER the refusal was already handled
+                # (Chromium commits chrome-error:// asynchronously): put the user back.
+                self._goto(page, last_ok)
             now = time.monotonic()
             if now - last_frame >= TAKEOVER_FRAME_INTERVAL:
                 last_frame = now
@@ -576,6 +580,8 @@ class AgentBrowserSession:
         page.wait_for_timeout(SETTLE_MS)
         if self._blocked is not None:
             self._back_from_refused(page, last_ok, refused_nav)
+        elif refused_nav and page.url.startswith('chrome-error://'):
+            self._goto(page, last_ok)
         state = self._state(approved_hosts, images)
         if refused_nav:
             state['blocked_hosts'] = sorted(set(state.get('blocked_hosts') or []) | refused_nav)
@@ -599,11 +605,18 @@ class AgentBrowserSession:
             page.go_back(timeout=5000)
         except Exception:
             pass
-        if not self._location_ok(page.url, self._approved) and last_ok and last_ok != 'about:blank':
-            try:
-                page.goto(last_ok, timeout=_cfg.BROWSER_TIMEOUT * 1000, wait_until='domcontentloaded')
-            except Exception:
-                pass
+        if not self._location_ok(page.url, self._approved):
+            self._goto(page, last_ok)
+
+    @staticmethod
+    def _goto(page, url):
+        """Best-effort navigation back to the last approved page."""
+        if not url or url == 'about:blank':
+            return
+        try:
+            page.goto(url, timeout=_cfg.BROWSER_TIMEOUT * 1000, wait_until='domcontentloaded')
+        except Exception:
+            pass
 
     @staticmethod
     def _replay(page, event):
