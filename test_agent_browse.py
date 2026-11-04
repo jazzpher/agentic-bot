@@ -248,6 +248,12 @@ PAGE_INDEX = ('<html><head><title>Browse Test</title></head><body>'
               '</body></html>')
 PAGE_TWO = '<html><head><title>Second</title></head><body><h1>Page two loaded</h1></body></html>'
 PAGE_OTHER = '<html><head><title>Other site</title></head><body><h1>Beta page</h1></body></html>'
+# More links at the top than MAX_ELEMENTS, then one button far below the fold.
+PAGE_MANY = ('<html><head><title>Many links</title></head><body>'
+             + ''.join('<a href="/two?n=%d" style="display:block">Top link %d</a>' % (i, i) for i in range(60))
+             + '<div style="height:4000px"></div>'
+             '<button id="bottom">Bottom button</button>'
+             '</body></html>')
 
 
 class _Handler(http.server.BaseHTTPRequestHandler):
@@ -261,6 +267,8 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             body = PAGE_TWO.encode()
         elif self.path == '/other':
             body = PAGE_OTHER.encode()
+        elif self.path == '/many':
+            body = PAGE_MANY.encode()
         elif self.path == '/busy':
             body = b'<html><body>busy<script>setTimeout(() => { while (true) {} }, 2000)</script></body></html>'
         elif self.path == '/redir-loop':
@@ -366,6 +374,20 @@ class LiveChromiumTests(unittest.TestCase):
         after = self.session.click(index, None, approved)['snapshot']
         self.assertEqual(after['title'], 'Second')
         self.assertIn('Page two loaded', after['text'])
+
+    def test_snapshot_lists_on_screen_elements_first(self):
+        # The element cap used to fill with links from the top of the document, so after scrolling
+        # the elements on screen (the ones the screenshot shows) were missing from the list.
+        approved = {self.A}
+        snap = self.session.open(self.base_a + '/many', approved, False)['snapshot']
+        self.assertEqual(len(snap['elements']), agent_browser.MAX_ELEMENTS)
+        self.assertNotIn('Bottom button', [e['text'] for e in snap['elements']])
+        snap = self.session.scroll('bottom', approved, False)['snapshot']
+        self.assertGreater(snap['scroll_y'], 0)
+        self.assertLessEqual(len(snap['elements']), agent_browser.MAX_ELEMENTS)
+        self.assertEqual(snap['elements'][0]['text'], 'Bottom button')
+        after = self.session.click(snap['elements'][0]['index'], None, approved, False)['snapshot']
+        self.assertEqual(after['title'], 'Many links')
 
     def test_cross_domain_navigation_blocked_until_approved(self):
         approved = {self.A}
