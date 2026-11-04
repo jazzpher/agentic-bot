@@ -1,4 +1,4 @@
-"""browse_open / browse_see / browse_scroll / browse_click for the interactive agent.
+"""browse_open / browse_see / browse_scroll / browse_click / request_takeover for the interactive agent.
 
 Off by default (GROK_AGENT_BROWSER=on), separate from GROK_BROWSER_ENABLED (durable
 /task loop) and GROK_PREVIEW (workspace HTML). The agent opens PUBLIC web pages in a
@@ -10,6 +10,11 @@ Safety shape (see grokbot/agent_browser.py for the details): public netguard on 
 request and redirect hop, per-domain user approval for documents, no typing, an
 ephemeral cookie/login-free context, no downloads, at most GROK_AGENT_BROWSER_MAX_ACTIONS
 (default 8) actions per turn, and Chromium is killed when the turn ends.
+
+request_takeover hands the open page to the user (captcha, login, payment): the turn pauses, the
+web UI shows a live view the user can click, type and scroll in, and the agent goes on after they
+tap Done with a fresh snapshot only. The agent itself still cannot type, and nothing the user types
+reaches the model. See grokbot/takeover.py.
 """
 import threading
 
@@ -81,6 +86,13 @@ def _pack(ctx, name, arguments, state, images):
     return ToolResult(name, arguments, text, True, 0.0, meta=meta)
 
 
+def _takeover_broker(ctx):
+    """The host's TakeoverBroker when a person can watch this run live (web UI turns only), else None."""
+    if ctx.extras.get('unattended') or ctx.extras.get('run_source', 'agent') != 'agent':
+        return None
+    return ctx.extras.get('takeovers')
+
+
 def close_turn_session(ctx):
     """Kill the turn's Chromium, if any. Called by the agent loop's finally."""
     session = ctx.extras.pop('agent_browser_session', None)
@@ -144,3 +156,49 @@ def register(registry):
     def browse_click(ctx, index=None, selector=None):
         state, images = _run(ctx, _session(ctx).click, index, selector)
         return _pack(ctx, 'browse_click', {'index': index, 'selector': selector}, state, images)
+
+    @registry.tool('request_takeover',
+                   'Hand the open browser page to the user and wait until they tap Done. Use it when the page needs a '
+                   'person: a captcha, a login, a payment, or a consent screen. Say in reason what they should do. The '
+                   'user sees the live page and can click, type and scroll in it; you never see what they type. Returns '
+                   'a fresh view of the page afterwards. Never ask the user to paste passwords or codes into the chat - '
+                   'use this instead. Only works while the user is watching in the web UI.',
+                   {'type': 'object', 'properties': {
+                       'reason': {'type': 'string', 'description': 'What the user should do, in one short sentence'}},
+                    'required': ['reason'], 'additionalProperties': False},
+                   category='browse', parallel_safe=False, available=_browse_enabled)
+    def request_takeover(ctx, reason):
+        reason = ' '.join(str(reason).split())[:300]
+        if not reason:
+            raise ToolError('request_takeover needs a reason: say what the user should do on the page.')
+        broker = _takeover_broker(ctx)
+        if broker is None:
+            raise ToolError('Take-over needs the user watching in the web UI, and this run has no live view. '
+                            'Tell the user in your answer what needs their hands instead.')
+        session = ctx.extras.get('agent_browser_session')
+        if session is None or not session.has_page():
+            raise ToolError('No page is open. Call browse_open first, then request_takeover.')
+        _spend_action(ctx)
+        images = config.AGENT_BROWSER_IMAGES
+        handle = broker.start(ctx.session_id, ctx.turn_id, reason, agent_browser.VIEWPORT)
+        ctx.emit({'type': 'takeover_required', 'id': handle.id, 'reason': reason,
+                  'viewport': dict(agent_browser.VIEWPORT)})
+        status = 'error'
+        try:
+            state = session.takeover(handle, _approved_hosts(ctx), images, ctx.stop)
+            status = state.get('status', 'done')
+        except BrowserError as exc:
+            raise ToolError(str(exc)) from exc
+        finally:
+            broker.end(handle.id)
+            ctx.emit({'type': 'takeover', 'id': handle.id, 'status': status})
+        if status == 'stopped':
+            raise ToolError('Stopped by the user.')
+        arguments = {'reason': reason}
+        text, meta = agent_browser.result_payload(state, 'request_takeover', arguments, images)
+        if status == 'timeout':
+            head = ('The take-over timed out after %d seconds without Done; this is the page as the user left '
+                    'it.' % config.AGENT_BROWSER_TAKEOVER_TIMEOUT)
+        else:
+            head = 'The user finished the take-over and tapped Done. This is the page now.'
+        return ToolResult('request_takeover', arguments, head + '\n' + text, True, 0.0, meta=meta)

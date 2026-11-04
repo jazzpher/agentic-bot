@@ -129,6 +129,86 @@ function approvalCard(ev) {
   scrollChat();
   return card;
 }
+/* ---------------- browser take-over (request_takeover live view) ---------------- */
+// The agent paused and handed its browser to the user. Frames come from /agent/takeover/<id>/frame (same origin,
+// so CSP img-src 'self' covers them); clicks, keys, text and scrolls go back as input events. Nothing typed here
+// reaches the model: the agent only gets a fresh page snapshot after Done.
+const takeovers = new Map();
+function takeoverCard(ev) {
+  if (takeovers.has(ev.id)) return takeovers.get(ev.id);
+  const vp = ev.viewport || {width: 1280, height: 800};
+  const base = '/agent/takeover/' + encodeURIComponent(ev.id);
+  const card = el('div', 'approval takeover');
+  card.appendChild(el('b', '', 'Your turn in the browser'));
+  card.appendChild(el('span', '', ' — ' + (ev.reason || '')));
+  card.appendChild(el('div', 'muted', 'Click the page to use it, type below, then press Done. The agent does not see what you type. Pages on domains you have not approved will not load here.'));
+  const msg = el('div', 'muted', '');
+  const post = async (path, body) => {
+    const res = await fetch(base + path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body || {})});
+    if (!res.ok) throw new Error(await res.text());
+  };
+  const send = body => post('/input', body).then(() => { msg.textContent = ''; }, e => { msg.textContent = 'Could not send: ' + e.message; });
+  const img = document.createElement('img');
+  img.className = 'liveview'; img.alt = 'Live view of the agent browser';
+  let alive = true, misses = 0;
+  const refresh = () => { if (alive) img.src = base + '/frame?t=' + Date.now(); };
+  img.addEventListener('load', () => { misses = 0; setTimeout(refresh, 400); });
+  img.addEventListener('error', () => { if (++misses > 60) { alive = false; return; } setTimeout(refresh, 1000); });
+  img.addEventListener('click', e => {
+    const w = img.clientWidth || vp.width, h = img.clientHeight || vp.height;
+    send({type: 'click', x: Math.max(0, Math.min(vp.width, Math.round(e.offsetX * vp.width / w))),
+          y: Math.max(0, Math.min(vp.height, Math.round(e.offsetY * vp.height / h)))});
+  });
+  img.addEventListener('wheel', e => {
+    if (e.preventDefault) e.preventDefault();
+    send({type: 'scroll', dy: Math.max(-3000, Math.min(3000, Math.round(e.deltaY || 0)))});
+  });
+  card.appendChild(img);
+  const field = el('input', 'takeover-text');
+  field.type = 'password'; field.autocomplete = 'off'; field.placeholder = 'Type here (hidden), then Send';
+  const typeText = async () => {
+    const text = field.value; if (!text) return;
+    field.value = '';
+    for (let i = 0; i < text.length; i += 500) await send({type: 'type', text: text.slice(i, i + 500)});
+  };
+  field.addEventListener('keydown', async e => {
+    if (e.key !== 'Enter') return;
+    if (e.preventDefault) e.preventDefault();
+    await typeText(); send({type: 'key', key: 'Enter'});
+  });
+  const row = el('div', 'btns');
+  const btn = (label, fn, cls) => { const b = el('button', cls || '', label); b.addEventListener('click', fn); row.appendChild(b); return b; };
+  row.appendChild(field);
+  btn('Send', typeText);
+  const show = btn('Show', () => { field.type = field.type === 'password' ? 'text' : 'password'; show.textContent = field.type === 'password' ? 'Show' : 'Hide'; });
+  btn('Enter', () => send({type: 'key', key: 'Enter'}));
+  btn('Tab', () => send({type: 'key', key: 'Tab'}));
+  btn('⌫', () => send({type: 'key', key: 'Backspace'}));
+  btn('Scroll ↑', () => send({type: 'scroll', dy: -600}));
+  btn('Scroll ↓', () => send({type: 'scroll', dy: 600}));
+  const done = btn('Done', async () => {
+    done.disabled = true;
+    try { await post('/done'); card._finish('done'); }
+    catch (e) { done.disabled = false; msg.textContent = 'Could not finish: ' + e.message; }
+  }, 'allow');
+  card.appendChild(row);
+  card.appendChild(msg);
+  card._finish = status => {
+    if (card._ended) return;
+    alive = false; card._ended = true; field.value = '';
+    card.classList && card.classList.add('resolved');
+    card.appendChild(el('div', 'muted', status === 'done' ? 'Handed back to the agent.' : 'Take-over ended (' + status + ').'));
+  };
+  takeovers.set(ev.id, card);
+  chat.appendChild(card);
+  scrollChat();
+  refresh();
+  return card;
+}
+function finishTakeover(ev) {
+  const card = takeovers.get(ev.id);
+  if (card && !card._ended) card._finish(ev.status || 'ended');
+}
 function renderEntry(entry) {
   if (entry.role === 'user') { add('you', entry.content); return; }
   const events = entry.events || [];
@@ -371,6 +451,8 @@ async function send() {
         case 'preview_image': previewImageCard(ev); break;
         case 'command_start': status.textContent = 'Running: ' + (ev.description || ev.command).slice(0, 60); break;
         case 'approval_required': approvalCard(ev); status.textContent = 'Waiting for your approval'; break;
+        case 'takeover_required': if (current) finalizeBubble(); takeoverCard(ev); status.textContent = 'Waiting for you in the browser'; break;
+        case 'takeover': finishTakeover(ev); status.textContent = 'Reading the page'; break;
         case 'approval': if (ev.id === undefined) note('Approval: ' + ev.tool + ' → ' + ev.decision + ' (' + (ev.reason || '') + ')'); break;
         case 'compaction': note('Context compacted (' + ev.method + '): ' + ev.before_tokens + ' → ' + ev.after_tokens + ' tokens'); break;
         case 'usage': updateMeter(ev); break;
@@ -419,7 +501,10 @@ async function attachCurrentTurn() {
     const data = await res.json();
     if (!data.running) return;
     setRunning(true);
-    for (const ev of data.events || []) if (ev.type === 'approval_required' && !ev.resolved) approvalCard(ev);
+    for (const ev of data.events || []) {
+      if (ev.type === 'approval_required' && !ev.resolved) approvalCard(ev);
+      else if (ev.type === 'takeover_required' && !ev.resolved) takeoverCard(ev);
+    }
     const poll = async () => {
       const r = await fetch('/agent/current'); const d = await r.json();
       if (d.running) { setTimeout(poll, 1500); return; }

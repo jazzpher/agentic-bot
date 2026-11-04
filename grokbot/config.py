@@ -130,6 +130,9 @@ AGENT_BROWSER_ENABLED = _choice('GROK_AGENT_BROWSER', 'off', ('on', 'off')) == '
 AGENT_BROWSER_IMAGES = _choice('GROK_AGENT_BROWSER_IMAGES', 'on', ('on', 'off')) == 'on'
 # Total browse actions (open/see/scroll/click) allowed per turn.
 AGENT_BROWSER_MAX_ACTIONS = _int('GROK_AGENT_BROWSER_MAX_ACTIONS', 8, 1)
+# Seconds the agent waits for the user to finish a browser take-over (request_takeover) before it goes on
+# with the page as the user left it.
+AGENT_BROWSER_TAKEOVER_TIMEOUT = _int('GROK_AGENT_BROWSER_TAKEOVER_TIMEOUT', 600, 30)
 
 # Secrets protection. Every child process (approved shell commands on the subprocess backend, MCP servers, the
 # browser) runs as the same uid as this process, and a scrubbed child env does not help: /proc/<ppid>/environ

@@ -8,6 +8,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **Browser take-over with a live view (`request_takeover`).** When a page needs a person
+  (a login, a captcha, a payment, a consent screen) the agent can hand its browser to you: the turn
+  pauses like an approval, the web UI shows a live view of the page (JPEG frames polled from
+  `/agent/takeover/<id>/frame`), and your clicks, typing, keys and scrolls are replayed in Chromium
+  until you tap Done. The agent then gets a fresh snapshot only, never what you typed. Owner-scoped,
+  validated and capped input, same host approval and vetting-proxy rules while you drive, web UI turns
+  only, and bounded by Done, Stop, the end of the turn or `GROK_AGENT_BROWSER_TAKEOVER_TIMEOUT`
+  (default 600 seconds). New module `grokbot/takeover.py`; tests in `test_takeover.py`.
+
 - **Memory supersession (bitemporal corrections).** Memories can carry a fact key
   (subject/environment/attribute), `effective_from` (when the fact became true) and `recorded_at`
   (when it was learned). `save(..., supersedes=<id>)` and a new `supersede_memory` tool replace a

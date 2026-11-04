@@ -56,10 +56,15 @@
   (plus `GROK_BROWSER_INTERACT=on` for click/type) and run through the legacy task harness (`/task`). The
   interactive agent (`POST /agent`) does not expose them yet; Playwright is an optional dependency
   (`pip install playwright && playwright install chromium`).
-- **Interactive browsing is read-and-click only.** `browse_open/see/scroll/click` (`GROK_AGENT_BROWSER=on`)
-  have no typing, no downloads and an ephemeral per-turn context, so logins, paywalls, cookie banners that need
-  text and any form that needs input are out of reach; pages that need JavaScript-heavy interaction may not work
-  with click-only. The 8-action cap per turn bounds long research sessions. Domain approval covers the top-level
+- **Interactive browsing is read-and-click only for the agent.** `browse_open/see/scroll/click`
+  (`GROK_AGENT_BROWSER=on`) have no typing, no downloads and an ephemeral per-turn context. When a page needs text
+  (a login, a captcha, a form), the agent can call `request_takeover`: the web UI shows a live view (JPEG frames
+  about twice a second, not video) where the user clicks, types and scrolls, then taps Done. Limits: web UI turns
+  only (not Telegram, the CLI or scheduled runs); clicks, text, scrolling and a short key list only (no drag,
+  hover, right-click, file pickers or key chords); a page on a host that is not approved still will not load,
+  including login redirects to another domain (the agent has to `browse_open` that host first); and a login
+  lasts only until the turn ends, because the context is still thrown away. Pages that need JavaScript-heavy
+  interaction may not work with click-only. The 8-action cap per turn bounds long research sessions. Domain approval covers the top-level
   document; subresource hosts are netguard-checked but not individually approved. Live-tested on Linux Chromium
   only - Windows/macOS and real-model end-to-end runs are untested.
 - **`GROK_AGENT_BROWSER` is experimental, Linux-only, and stays off by default.** On this branch Chromium runs
