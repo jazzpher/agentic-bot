@@ -554,6 +554,7 @@ class AgentBrowserSession:
             self._proxy.drain_denials()
         limit = time.monotonic() + _cfg.AGENT_BROWSER_TAKEOVER_TIMEOUT
         refused_nav = set()
+        refused_pending = False                     # a refusal whose chrome-error:// page is still outstanding
         last_ok = page.url
         last_frame = 0.0
         status = 'done'
@@ -567,13 +568,16 @@ class AgentBrowserSession:
             for event in handle.drain():
                 self._replay(page, event)
             if self._blocked is not None:                 # the user clicked toward a refused host
-                self._back_from_refused(page, last_ok, refused_nav)
+                refused_pending = self._back_from_refused(page, last_ok, refused_nav)
             elif self._location_ok(page.url, approved_hosts):
                 last_ok = page.url
-            elif refused_nav and page.url.startswith('chrome-error://'):
+            elif refused_pending and page.url.startswith('chrome-error://'):
                 # A refused navigation's error page can commit AFTER the refusal was already handled
-                # (Chromium commits chrome-error:// asynchronously): put the user back.
+                # (Chromium commits chrome-error:// asynchronously): put the user back. One shot per
+                # refusal - an unrelated later error page (e.g. a network error on an approved site)
+                # must NOT send the user back.
                 self._goto(page, last_ok)
+                refused_pending = False
             now = time.monotonic()
             if now - last_frame >= TAKEOVER_FRAME_INTERVAL:
                 last_frame = now
@@ -590,9 +594,10 @@ class AgentBrowserSession:
             pass
         page.wait_for_timeout(SETTLE_MS)
         if self._blocked is not None:
-            self._back_from_refused(page, last_ok, refused_nav)
-        elif refused_nav and page.url.startswith('chrome-error://'):
+            refused_pending = self._back_from_refused(page, last_ok, refused_nav)
+        if refused_pending and page.url.startswith('chrome-error://'):
             self._goto(page, last_ok)
+            refused_pending = False
         state = self._state(approved_hosts, images)
         if refused_nav:
             state['blocked_hosts'] = sorted(set(state.get('blocked_hosts') or []) | refused_nav)
@@ -605,19 +610,24 @@ class AgentBrowserSession:
 
     def _back_from_refused(self, page, last_ok, refused_nav):
         """A take-over click was refused by the route guard (Chromium now shows its error page): note an
-        unapproved host for the agent, and put the user back on the last approved page."""
+        unapproved host for the agent, and put the user back on the last approved page. Returns True when
+        a chrome-error:// page for this refusal is still outstanding - either it has not committed yet
+        (Chromium commits it asynchronously, while the old page still shows) or recovery failed and the
+        take-over loop should retry. The caller treats that as a one-shot flag: only the next error page
+        is the refusal's own."""
         kind, host = self._blocked
         self._blocked = None
         if kind == 'unapproved' and host:
             refused_nav.add(host)
         if self._location_ok(page.url, self._approved):
-            return
+            return True                                 # the error page has not committed yet
         try:
             page.go_back(timeout=5000)
         except Exception:
             pass
         if not self._location_ok(page.url, self._approved):
             self._goto(page, last_ok)
+        return page.url.startswith('chrome-error://')
 
     @staticmethod
     def _goto(page, url):

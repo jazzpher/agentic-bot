@@ -319,6 +319,85 @@ PAGE_LOGIN = ('<html><head><title>Login</title></head><body style="margin:0">'
               '</body></html>')
 
 
+class _FakeHandle:
+    """Minimal take-over handle for the session loop: no broker, no frames."""
+
+    def __init__(self):
+        self.done = threading.Event()
+
+    def drain(self):
+        return []
+
+    def set_frame(self, frame):
+        pass
+
+
+class _FakePage:
+    """Playwright page double: a settable url, recorded navigations, fast waits."""
+
+    def __init__(self, url):
+        self.url = url
+        self.gotos = []
+        self.go_backs = 0
+        self.mouse = mock.Mock()
+        self.keyboard = mock.Mock()
+
+    def wait_for_timeout(self, ms):
+        time.sleep(min(ms / 1000.0, 0.02))
+
+    def wait_for_load_state(self, *args, **kwargs):
+        pass
+
+    def screenshot(self, **kwargs):
+        return FAKE_JPEG
+
+    def go_back(self, **kwargs):
+        self.go_backs += 1
+
+    def goto(self, url, **kwargs):
+        self.gotos.append(url)
+        self.url = url
+
+
+class RefusedErrorPageTests(unittest.TestCase):
+    """The refused-navigation recovery is one-shot per refusal: a refusal's chrome-error:// page can
+    commit late and must put the user back on the last approved page, but a LATER chrome-error:// page
+    (e.g. a plain network error on an approved site) must not send the user back again. Regression test
+    for the late-commit race - no real Chromium needed."""
+
+    def test_late_error_page_is_put_back_once(self):
+        approved_url = 'http://site-a.test/home'
+        error_url = 'chrome-error://chromewebdata/'
+        page = _FakePage(approved_url)
+        session = agent_browser.AgentBrowserSession()
+        session._page = page
+        session._state = lambda approved, images=True: {'snapshot': {'url': page.url}, 'image': None}
+        handle = _FakeHandle()
+
+        def script():
+            time.sleep(0.15)                                   # the loop settles on the approved page
+            session._blocked = ('unapproved', 'site-b.test')   # the route guard refuses the user's click
+            time.sleep(0.4)                                    # refusal handled while the old page still shows
+            page.url = error_url                               # Chromium commits the error page LATE
+            time.sleep(0.5)                                    # the loop navigates back, once
+            page.url = error_url                               # a later, unrelated error on the approved site
+            time.sleep(0.4)
+            handle.done.set()
+
+        thread = threading.Thread(target=script, daemon=True)
+        thread.start()
+        with mock.patch.object(agent_browser, 'request_allowed',
+                               side_effect=lambda url: url.startswith('http://site-a.test/')):
+            state = session.takeover(handle, {'site-a.test'}, images=False)
+        thread.join(5)
+
+        self.assertEqual(state['status'], 'done')
+        self.assertEqual(page.gotos, [approved_url],           # put back for the refusal's error page,
+                         'but not again for the unrelated one')
+        self.assertEqual(page.url, error_url)                  # the later error page is left alone
+        self.assertIn('site-b.test', state.get('blocked_hosts', []))
+
+
 class _TakeoverHandler(test_agent_browse._Handler):
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
