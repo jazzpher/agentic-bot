@@ -125,6 +125,9 @@ BROWSER_TIMEOUT = _int('GROK_BROWSER_TIMEOUT', 30, 1)
 # Separate from GROK_BROWSER_ENABLED (durable /task loop) and GROK_PREVIEW (workspace HTML):
 # this lets the interactive agent open public web pages and SEE them. Off by default.
 AGENT_BROWSER_ENABLED = _choice('GROK_AGENT_BROWSER', 'off', ('on', 'off')) == 'on'
+# Linux always requires bubblewrap. Windows/macOS must explicitly opt into the
+# weaker, Chromium-proxy-enforced transport (not an OS sandbox).
+AGENT_BROWSER_ISOLATION = _choice('GROK_AGENT_BROWSER_ISOLATION', 'namespace', ('namespace', 'proxy'))
 # Attach screenshots as images for the model (needs a vision-capable model); 'off' keeps the
 # text snapshot only, for text-only models.
 AGENT_BROWSER_IMAGES = _choice('GROK_AGENT_BROWSER_IMAGES', 'on', ('on', 'off')) == 'on'
