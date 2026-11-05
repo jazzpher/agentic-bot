@@ -216,7 +216,11 @@ hop, which Playwright does not route - must pass a fail-closed vetting proxy:
 approved hosts only, public IPs only (resolved and pinned by the proxy, so DNS
 rebinding flips nothing), ports 80/443. An unapproved host is refused before any
 request fires and is named back to you for approval. WebSockets are refused
-entirely (read/click-only). This is EXPERIMENTAL and Linux-only; the measured
+entirely (read/click-only). This is EXPERIMENTAL. On Windows/macOS there is no
+namespace: the browser refuses to start unless you set
+`GROK_AGENT_BROWSER_ISOLATION=proxy`, a weaker mode where Chromium's own proxy
+switches (checked by a startup self-test) send everything through the same
+vetting proxy, with no OS sandbox behind it. The measured
 security boundary and its open edges are in docs/AGENT_BROWSER_VETPROXY.md -
 keep it off unless you are testing it (see docs/LIMITATIONS.md).
 There is no typing: the agent can read, scroll and click only, in an ephemeral

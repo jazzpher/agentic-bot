@@ -292,7 +292,7 @@ class _Server(socketserver.ThreadingTCPServer):
     daemon_threads = True
 
 
-from test_vetproxy import _cap_gate, _LIVE, _REQUIRE_CAPS
+from test_vetproxy import _cap_gate, _LIVE, _REQUIRE_CAPS, _TEST_ISOLATION
 
 
 @_cap_gate(_LIVE, 'live Chromium test needs playwright + chromium installed')
@@ -322,7 +322,7 @@ class LiveChromiumTests(unittest.TestCase):
 
     def setUp(self):
         from grokbot import browser_isolation
-        if not browser_isolation.available():
+        if _TEST_ISOLATION != 'proxy' and not browser_isolation.available():
             if _REQUIRE_CAPS:
                 self.fail('required live-browse capability missing: bubblewrap (bwrap)')
             self.skipTest('isolated browsing needs bubblewrap (bwrap)')
@@ -350,7 +350,7 @@ class LiveChromiumTests(unittest.TestCase):
         # 127.0.0.2 plays the forbidden internal target.
         ip_check = lambda ip: ipaddress.ip_address(ip) == ipaddress.ip_address('127.0.0.2')
         self.session = AgentBrowserSession(resolver=resolver, allowed_ports=(80, 443, self.server.port),
-                                           ip_check=ip_check)
+                                           ip_check=ip_check, isolation=_TEST_ISOLATION)
         self.addCleanup(self.session.close)
 
     def test_open_see_scroll_click_roundtrip(self):

@@ -8,6 +8,20 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **Agent browser and take-over on Windows and macOS (opt-in proxy mode).** New
+  `GROK_AGENT_BROWSER_ISOLATION` (`namespace` default, `proxy`). Linux always uses the bubblewrap
+  namespace and ignores the setting. Windows/macOS still refuse by default; `proxy` runs the vetting
+  proxy on a random loopback TCP port, forces Chromium through it with hardened switches, refuses args
+  that would reroute traffic, and fails closed unless a startup probe really reached the proxy. Weaker
+  than the namespace (no OS sandbox), documented in docs/AGENT_BROWSER_VETPROXY.md. Process cleanup is
+  cross-platform (`ps` on macOS, `taskkill /T` on Windows). Tests: `test_browser_platform.py`, the live
+  suites in both modes (`GROK_TEST_BROWSER_ISOLATION=proxy`), and a Windows/macOS CI job.
+
+### Fixed
+
+- Docs: SECURITY.md still said redirect hops are not vetted and the agent browser should wait for a
+  vetting-proxy fix; the vetting proxy is in, and the row now matches LIMITATIONS.md.
+
 - **Browser take-over with a live view (`request_takeover`).** When a page needs a person
   (a login, a captcha, a payment, a consent screen) the agent can hand its browser to you: the turn
   pauses like an approval, the web UI shows a live view of the page (JPEG frames polled from

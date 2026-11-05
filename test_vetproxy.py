@@ -11,6 +11,7 @@ import shutil
 import socket
 import socketserver
 import subprocess
+import sys
 import tempfile
 import time
 import threading
@@ -34,6 +35,34 @@ _REQUIRE_CAPS = os.environ.get('GROK_REQUIRE_LIVE_BROWSE_CAPS') == '1'
 # GROK_REQUIRE_LIVE_BROWSE_CAPS=1 (set by jobs that install the capabilities on purpose)
 # implies the live suite and turns every capability skip below into a hard failure.
 _LIVE = os.environ.get('GROK_LIVE_BROWSE_TESTS') == '1' or _REQUIRE_CAPS
+# GROK_TEST_BROWSER_ISOLATION=proxy runs the live sessions in the explicit Windows/macOS
+# proxy-enforced mode (on any OS, via the constructor seam); unset = the platform default.
+_TEST_ISOLATION = os.environ.get('GROK_TEST_BROWSER_ISOLATION') or None
+# The bubblewrap namespace (wrapper, relay, /proc checks) only exists on Linux.
+_linux_only = unittest.skipUnless(sys.platform.startswith('linux'), 'bubblewrap namespace is Linux-only')
+
+
+def _command_lines():
+    """Every process's command line: /proc on Linux, ps on macOS, CIM on Windows."""
+    if sys.platform == 'win32':
+        out = subprocess.run(['powershell', '-NoProfile', '-Command',
+                              '(Get-CimInstance Win32_Process).CommandLine'],
+                             capture_output=True, text=True, timeout=60).stdout
+        return [line.replace('\\', '/') for line in out.splitlines() if line.strip()]
+    if sys.platform == 'darwin':
+        out = subprocess.run(['ps', '-axww', '-o', 'command='], capture_output=True, text=True,
+                             timeout=30).stdout
+        return out.splitlines()
+    lines = []
+    for pid in os.listdir('/proc'):
+        if not pid.isdigit():
+            continue
+        try:
+            with open('/proc/%s/cmdline' % pid, 'rb') as fh:
+                lines.append(fh.read().decode(errors='replace'))
+        except OSError:
+            pass
+    return lines
 
 
 def _cap_gate(condition, reason):
@@ -270,6 +299,7 @@ class WebSocketGateTests(unittest.TestCase):
                 self.assertEqual(ws.closed[0], 1008, url)
 
 
+@_linux_only
 class IsolationWrapperTests(unittest.TestCase):
     @_cap_gate(browser_isolation.available(), 'needs bubblewrap')
     def test_no_direct_egress_inside_namespace(self):
@@ -415,7 +445,7 @@ class LiveIsolatedBrowseTests(unittest.TestCase):
 
         from grokbot.agent_browser import AgentBrowserSession, BrowserError
         self.session = AgentBrowserSession(resolver=resolver, allowed_ports=(80, 443, self.port),
-                                           ip_check=_test_ip_check)
+                                           ip_check=_test_ip_check, isolation=_TEST_ISOLATION)
         self.addCleanup(self.session.close)
 
     def hosts_hit(self):
@@ -608,7 +638,8 @@ class LiveH2CoalescingTests(unittest.TestCase):
 
         from grokbot.agent_browser import AgentBrowserSession
         session = AgentBrowserSession(resolver=resolver, allowed_ports=(80, 443, self.port),
-                                      extra_args=extra_args, ip_check=_test_ip_check)
+                                      extra_args=extra_args, ip_check=_test_ip_check,
+                                      isolation=_TEST_ISOLATION)
         self.addCleanup(session.close)
         return session
 
@@ -630,6 +661,13 @@ class LiveH2CoalescingTests(unittest.TestCase):
         origin must STILL get its own vetoed CONNECT, never a ride on the approved tunnel."""
         session = self._session(['--ignore-certificate-errors',
                                  '--host-resolver-rules=MAP *.coal.test 127.0.0.1'])
+        if _TEST_ISOLATION == 'proxy':
+            # No namespace behind proxy mode: a resolver override is refused before launch.
+            with self.assertRaises(BrowserError) as ctx:
+                session.open('https://%s:%d/' % (self.A, self.port), {self.A})
+            self.assertIn('--host-resolver-rules', str(ctx.exception))
+            self.assertFalse(self.hits, 'no request may fire when the browser is refused')
+            return
         state = session.open('https://%s:%d/' % (self.A, self.port), {self.A})
         self.assertEqual(state['snapshot']['title'], 'Coalesce Test')
         self.assertFalse(self._hits_for(self.B),
@@ -819,6 +857,7 @@ def _start_h2_server(cert, key, host_a, host_b):
     return port, hits, stop
 
 
+@_linux_only
 @_cap_gate(_LIVE, 'live wrapper test needs bwrap')
 class LiveWrapperTests(unittest.TestCase):
     """The PRODUCTION wrapper itself (browser_isolation.write_wrapper), not a hand-rolled
@@ -1014,17 +1053,8 @@ class ResourceLifecycleTests(unittest.TestCase):
             browser_isolation.available(refresh=True)
 
     def _proc_count(self, needle):
-        count = 0
-        for pid in os.listdir('/proc'):
-            if not pid.isdigit():
-                continue
-            try:
-                with open('/proc/%s/cmdline' % pid, 'rb') as fh:
-                    if needle in fh.read().decode(errors='replace'):
-                        count += 1
-            except OSError:
-                pass
-        return count
+        """Processes whose command line contains needle (path separators normalised to /)."""
+        return sum(1 for cmd in _command_lines() if needle in cmd)
 
     @_cap_gate(_playwright_importable(), 'needs playwright installed')
     def test_session_refusal_leaves_no_resources(self):
@@ -1071,7 +1101,7 @@ class ResourceLifecycleTests(unittest.TestCase):
 
         chromium_before = self._proc_count('chromium')
         session = AgentBrowserSession(resolver=resolver, allowed_ports=(80, 443, self._port()),
-                                      ip_check=_test_ip_check)
+                                      ip_check=_test_ip_check, isolation=_TEST_ISOLATION)
         session.open('http://%s:%d/' % (GOOD, self._port()), {GOOD})
         session.close()
         time.sleep(0.5)
@@ -1218,6 +1248,7 @@ class DenialSplitTests(unittest.TestCase):
                             'rebinding must never be reported as approval-fixable')
 
 
+@_linux_only
 @_cap_gate(browser_isolation.available(), 'needs bubblewrap')
 class LiveSandboxHardeningTests(unittest.TestCase):
     """Measured hardening properties of the PRODUCTION wrapper: effective capabilities,
