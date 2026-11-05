@@ -65,16 +65,19 @@
   including login redirects to another domain (the agent has to `browse_open` that host first); and a login
   lasts only until the turn ends, because the context is still thrown away. Pages that need JavaScript-heavy
   interaction may not work with click-only. The 8-action cap per turn bounds long research sessions. Domain approval covers the top-level
-  document; subresource hosts are netguard-checked but not individually approved. Live-tested on Linux Chromium
-  only - Windows/macOS and real-model end-to-end runs are untested.
-- **`GROK_AGENT_BROWSER` is experimental, Linux-only, and stays off by default.** On this branch Chromium runs
+  document; subresource hosts are netguard-checked but not individually approved. Live-tested on Linux Chromium in
+  both isolation modes, and in proxy mode on Windows and macOS in CI; real-model end-to-end runs are untested.
+- **`GROK_AGENT_BROWSER` is experimental and stays off by default.** On this branch Chromium runs
   inside a mandatory bubblewrap network namespace (no bwrap, no browser) behind a fail-closed vetting proxy:
   approved hosts only, public pinned IPs, ports 80/443, redirect hops and subresources vetted the same way,
   WebSockets refused entirely. Measured edges and open gaps (HTTP/2 coalescing tested-not-reproduced but
   version-dependent, host-scoped not URL-scoped policy) are in docs/AGENT_BROWSER_VETPROXY.md. On hosts whose
   PID 1 does not reap children, isolated-browser runs can accumulate zombie processes until the subprocess
   sandbox's RLIMIT_NPROC makes command checks fail; run tests via tools_reaprun.py there. Windows/macOS have
-  no isolation path, so the browser refuses to start there.
+  no namespace: the browser refuses to start there unless `GROK_AGENT_BROWSER_ISOLATION=proxy` opts into the
+  weaker proxy-enforced mode (same vetting proxy via Chromium's own proxy switches, rerouting args refused,
+  fail-closed startup self-test). It has no OS sandbox behind it, so a compromised renderer could still reach
+  the network directly; prefer Linux + bubblewrap for anything but testing. The setting is ignored on Linux.
 - **Preview is render-only, single page, per turn.** `preview_page` (`GROK_PREVIEW=on`) screenshots workspace
   HTML for the interactive agent: no clicking/typing/scrolling, one page per call (desktop or mobile viewport),
   screenshots are clipped at 2000px height and capped at 3 previews per turn, and the image only helps when the

@@ -1,7 +1,8 @@
 # Agent browser: vetting proxy + network isolation (experimental branch)
 
 Status: EXPERIMENTAL, branch `exp/agent-browser-vetproxy` only. Not merged,
-not enabled anywhere by default. Linux only. Do not enable
+not enabled anywhere by default. Linux + bubblewrap by default; Windows/macOS only in
+the explicit, weaker proxy mode (see Platform scope). Do not enable
 `GROK_AGENT_BROWSER` on a real installation while the open gaps below stand.
 
 ## Threat model
@@ -169,6 +170,26 @@ isolated browsers on such hosts need the same treatment.
 
 ## Platform scope
 
-Linux + bubblewrap only. There is no Windows or macOS isolation path; on
-those platforms the browser refuses to start under this branch. A WSL2 or
-Docker-based path is a separate, undecided piece of work.
+- **Linux: `namespace` (always).** Chromium inside the bubblewrap network
+  namespace described above. `GROK_AGENT_BROWSER_ISOLATION` is ignored, so a
+  Linux install can never be downgraded by config.
+- **Windows/macOS: refused by default.** With `GROK_AGENT_BROWSER_ISOLATION=proxy`
+  the session runs the same `VettingProxy` on `127.0.0.1:<random port>` and
+  launches Chromium (fresh temporary profile, never a personal one) with
+  `--proxy-server` pointing at it plus, appended after any operator/test args:
+  `--proxy-bypass-list=<-loopback>` (loopback goes through the proxy too),
+  `--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1` (Chromium does no
+  DNS of its own), `--disable-quic`,
+  `--force-webrtc-ip-handling-policy=disable_non_proxied_udp` and background
+  networking/sync/component updates off. Any `BROWSER_ARGS`/extra arg that
+  reroutes traffic (`--proxy-server`, `--proxy-pac-url`, `--proxy-bypass-list`,
+  `--no-proxy-server`, `--host-resolver-rules`, `--proxy-auto-detect`,
+  `--winhttp-proxy-resolver`) is refused before launch. After launch a unique
+  `*.invalid` probe is opened in a throwaway context with no route guard; the
+  browser is refused unless the proxy itself recorded refusing that probe.
+- **What proxy mode is not.** Enforcement lives in Chromium's network stack, not
+  the OS: a compromised browser process can open its own sockets, and there is
+  no filesystem or process sandbox. The live suites run in both modes
+  (`GROK_TEST_BROWSER_ISOLATION=proxy` picks proxy mode in tests, on any OS) and
+  CI runs proxy mode on Windows and macOS. A WSL2 or Docker-based path that
+  restores real isolation there is separate, undecided work.
