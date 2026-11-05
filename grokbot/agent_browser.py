@@ -17,8 +17,10 @@ This module reaches the PUBLIC web, so the rules are different:
   navigation, subresource, WebSocket and every redirect hop, which Playwright
   does not route - must pass through a fail-closed vetting proxy
   (``grokbot/vetproxy.py``) before any byte is sent. Isolation is mandatory:
-  without bubblewrap the session refuses to start rather than fall back to an
-  unproxied browser.
+  on Linux, without bubblewrap the session refuses to start. Windows/macOS
+  can explicitly opt into a weaker proxy-enforced transport with
+  GROK_AGENT_BROWSER_ISOLATION=proxy. This is NOT an OS namespace, filesystem
+  sandbox, or protection against a compromised browser; no silent fallback.
 * The proxy allows a connection only when the destination host is in the
   approved set AND resolves (resolved and pinned by the proxy, so Chromium
   never does DNS and rebinding flips nothing) to public internet addresses -
@@ -55,6 +57,9 @@ import functools
 import os
 import re
 import signal
+import subprocess
+import sys
+import uuid
 import threading
 import time
 import urllib.parse
@@ -113,26 +118,104 @@ def _action_deadline():
 
 
 def _descendants(pid):
-    """PIDs of every descendant of pid (Linux /proc), deepest last."""
+    """PIDs of descendants, parents before children. Linux keeps the /proc path."""
     children = {}
     try:
-        for entry in os.listdir('/proc'):
-            if not entry.isdigit():
-                continue
-            try:
-                with open('/proc/%s/stat' % entry) as fh:
-                    ppid = int(fh.read().rsplit(')', 1)[1].split()[1])
-            except (OSError, ValueError, IndexError):
-                continue
-            children.setdefault(ppid, []).append(int(entry))
-    except OSError:
+        if sys.platform == 'darwin':
+            result = subprocess.run(['ps', '-axo', 'pid=,ppid='], capture_output=True,
+                                    text=True, timeout=5, check=True)
+            for line in result.stdout.splitlines():
+                child, parent = map(int, line.split())
+                children.setdefault(parent, []).append(child)
+        elif sys.platform == 'win32':
+            # taskkill /T handles the tree natively; no /proc or POSIX signals on Windows.
+            return []
+        else:
+            for entry in os.listdir('/proc'):
+                if not entry.isdigit():
+                    continue
+                try:
+                    with open('/proc/%s/stat' % entry) as fh:
+                        ppid = int(fh.read().rsplit(')', 1)[1].split()[1])
+                except (OSError, ValueError, IndexError):
+                    continue
+                children.setdefault(ppid, []).append(int(entry))
+    except (OSError, ValueError, subprocess.SubprocessError):
         return []
-    out, todo = [], [pid]
+    out, todo, seen = [], [pid], {pid}
     while todo:
         for child in children.get(todo.pop(), []):
-            out.append(child)
-            todo.append(child)
+            if child not in seen:
+                seen.add(child)
+                out.append(child)
+                todo.append(child)
     return out
+
+
+def _kill_process_tree(pid):
+    if sys.platform == 'win32':
+        try:
+            subprocess.run(['taskkill', '/PID', str(pid), '/T', '/F'],
+                           capture_output=True, timeout=10, check=True)
+        except (OSError, subprocess.SubprocessError):
+            # The driver may already have exited. Never use Unix signals here.
+            pass
+        return
+    for victim in list(reversed(_descendants(pid))) + [pid]:
+        try:
+            os.kill(victim, signal.SIGKILL)
+        except OSError:
+            pass
+    for _ in range(20):
+        try:
+            if os.waitpid(pid, os.WNOHANG)[0]:
+                break
+        except (ChildProcessError, OSError):
+            break
+        threading.Event().wait(0.05)
+
+
+def _isolation_mode(override=None):
+    """Never silently downgrade Linux or a namespace-only installation.
+
+    `override` is a constructor-only test seam (never read from env/config) so the
+    proxy-mode code path can be exercised on a Linux CI runner too.
+    """
+    if override is not None:
+        if override not in ('namespace', 'proxy'):
+            raise BrowserError('Unknown agent browser isolation mode: %r' % (override,))
+        return override
+    if sys.platform.startswith('linux'):
+        return 'namespace'
+    if sys.platform in ('win32', 'darwin') and _cfg.AGENT_BROWSER_ISOLATION == 'proxy':
+        return 'proxy'
+    raise BrowserError('This platform has no bubblewrap network namespace. Windows/macOS '
+                       'can explicitly set GROK_AGENT_BROWSER_ISOLATION=proxy for the weaker '
+                       'proxy-enforced mode. It is not an OS security boundary; see '
+                       'docs/AGENT_BROWSER_VETPROXY.md, or run the server on Linux with bubblewrap.')
+
+
+# These are appended AFTER operator/test args so a stray bypass flag cannot override them.
+_PROXY_ARGS = ('--disable-quic', '--proxy-bypass-list=<-loopback>',
+               '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1',
+               '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
+               '--disable-background-networking', '--disable-component-update',
+               '--disable-sync', '--no-first-run')
+
+
+# In proxy mode nothing but the vetting proxy may decide where Chromium connects.
+_PROXY_REROUTING_SWITCHES = ('--proxy-server', '--proxy-pac-url', '--proxy-bypass-list',
+                             '--no-proxy-server', '--host-resolver-rules', '--proxy-auto-detect',
+                             '--winhttp-proxy-resolver')
+
+
+def _refuse_rerouting_args(args):
+    """Proxy mode has no namespace behind it, so an arg that reroutes traffic is refused outright."""
+    for arg in args:
+        name = str(arg).split('=', 1)[0].strip().lower()
+        if name in _PROXY_REROUTING_SWITCHES:
+            raise BrowserError('Browser arg %s would bypass the vetting proxy; refused in '
+                               'GROK_AGENT_BROWSER_ISOLATION=proxy mode.' % name)
 
 
 def host_of(url):
@@ -246,7 +329,7 @@ def _on_worker(fn, deadline=None):
 class AgentBrowserSession:
     """One headless Chromium page for one turn: public web only, ephemeral context."""
 
-    def __init__(self, extra_args=None, resolver=None, allowed_ports=None, ip_check=None):
+    def __init__(self, extra_args=None, resolver=None, allowed_ports=None, ip_check=None, isolation=None):
         self._pw = None
         self._browser = None
         self._context = None
@@ -259,6 +342,7 @@ class AgentBrowserSession:
         self._ip_check = ip_check
         self._resolver = resolver                         # test seam for the vetting proxy's DNS
         self._allowed_ports = allowed_ports               # test seam: ephemeral test-server ports
+        self._isolation_override = isolation              # test seam: 'namespace' | 'proxy' (never from env)
         self._proxy = None
         self._isolation = None
 
@@ -277,11 +361,15 @@ class AgentBrowserSession:
             except AttributeError:
                 self._driver_pid = None
             from grokbot import browser_isolation, vetproxy
-            if not browser_isolation.available():
+            mode = _isolation_mode(self._isolation_override)
+            if mode == 'proxy':
+                _refuse_rerouting_args(list(_cfg.BROWSER_ARGS) + self._extra_args)
+            if mode == 'namespace' and not browser_isolation.available():
                 raise BrowserError('Isolated browsing needs bubblewrap (bwrap) installed; without '
                                    'enforceable network isolation the agent browser stays disabled. '
                                    'Install bubblewrap or leave GROK_AGENT_BROWSER off.')
-            self._isolation = browser_isolation.BrowserIsolation()
+            if mode == 'namespace':
+                self._isolation = browser_isolation.BrowserIsolation()
             proxy_kwargs = {}
             if self._allowed_ports is not None:
                 proxy_kwargs['allowed_ports'] = self._allowed_ports
@@ -289,17 +377,23 @@ class AgentBrowserSession:
                 proxy_kwargs['ip_check'] = self._ip_check
             self._proxy = vetproxy.VettingProxy(allowed_hosts=lambda: set(self._approved),
                                                 resolver=self._resolver, **proxy_kwargs)
-            self._proxy.listen_unix(self._isolation.proxy_sock)
             chromium_path = _cfg.BROWSER_EXECUTABLE or self._pw.chromium.executable_path
-            kwargs = {'headless': _cfg.BROWSER_HEADLESS, 'env': scrubbed_env(),
-                      # --disable-quic: defence in depth; the namespace already blocks UDP egress.
-                      'args': (list(_cfg.BROWSER_ARGS) + self._extra_args + ['--disable-quic']),
-                      'executable_path': self._isolation.write_wrapper(chromium_path,
-                                                                       list(_cfg.BROWSER_ARGS)
-                                                                       + self._extra_args),
-                      'proxy': {'server': 'http://127.0.0.1:%d' % browser_isolation.RELAY_PORT}}
+            args = list(_cfg.BROWSER_ARGS) + self._extra_args
+            kwargs = {'headless': _cfg.BROWSER_HEADLESS, 'env': scrubbed_env()}
+            if mode == 'namespace':
+                self._proxy.listen_unix(self._isolation.proxy_sock)
+                kwargs.update(args=args + ['--disable-quic'],
+                              executable_path=self._isolation.write_wrapper(chromium_path, args),
+                              proxy={'server': 'http://127.0.0.1:%d' % browser_isolation.RELAY_PORT})
+            else:
+                # Launch() owns a fresh temporary user-data dir; never use a personal profile.
+                port = self._proxy.listen_tcp()
+                kwargs.update(args=args + list(_PROXY_ARGS), executable_path=chromium_path,
+                              proxy={'server': 'http://127.0.0.1:%d' % port})
             self._browser = self._pw.chromium.launch(**kwargs)
             self._proxy.drain_denials()                    # Chromium startup chatter, not page traffic
+            if mode == 'proxy':
+                self._verify_proxy_transport()
             # Ephemeral context: no profile, cookies or storage state carry over,
             # and downloads are never accepted (a click cannot save a file).
             self._context = self._browser.new_context(viewport=dict(VIEWPORT), accept_downloads=False,
@@ -322,6 +416,27 @@ class AgentBrowserSession:
                                'Check the Playwright installation: pip install playwright '
                                '&& playwright install chromium.') from exc
         return self._page
+
+    def _verify_proxy_transport(self):
+        """Refuse startup unless Chromium really sent a request to the vetting proxy.
+
+        No route guard on this throwaway context: the proxy itself must reject an
+        unapproved, unique .invalid host. Never approve or resolve the probe.
+        This catches ignored proxy switches; it is not proof of OS-level isolation.
+        """
+        host = 'grok-proxy-probe-' + uuid.uuid4().hex + '.invalid'
+        context = self._browser.new_context(service_workers='block', accept_downloads=False)
+        try:
+            page = context.new_page()
+            try:
+                page.goto('http://' + host + '/', timeout=5000)
+            except Exception:
+                pass                                   # expected HTTP 403 or navigation failure
+            denials = self._proxy.drain_denials()
+            if not any(h == host for h, _port, _reason in denials):
+                raise BrowserError('Chromium did not use the vetting proxy; browser startup refused.')
+        finally:
+            context.close()
 
     def _route(self, route):
         """Every request is netguarded, and a top-level navigation to a host the user has not approved is
@@ -359,18 +474,7 @@ class AgentBrowserSession:
         """Kill the Playwright driver and Chromium from outside the (wedged) worker thread."""
         pid = self._driver_pid
         if pid:
-            for victim in list(reversed(_descendants(pid))) + [pid]:
-                try:
-                    os.kill(victim, signal.SIGKILL)
-                except OSError:
-                    pass
-            for _ in range(20):                           # reap the driver (our child) so no zombie is left
-                try:
-                    if os.waitpid(pid, os.WNOHANG)[0]:
-                        break
-                except ChildProcessError:
-                    break
-                threading.Event().wait(0.05)
+            _kill_process_tree(pid)
         worker = self._worker
         self._worker = None
         if worker is not None:

@@ -203,13 +203,33 @@ class VettingProxy:
                 return None
         return data
 
-    def _handle(self, conn):
-        if not self._sema.acquire(blocking=False):
+    @staticmethod
+    def _refuse_busy(conn):
+        """503 an over-cap connection, then close it gracefully. Closing with the client's
+        request still unread makes Windows answer with a RST that destroys the 503 before
+        the client reads it, so half-close and drain briefly (bounded in time and bytes)."""
+        try:
+            conn.sendall(b'HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\n\r\n')
+            conn.shutdown(socket.SHUT_WR)
+            conn.settimeout(0.5)
+            deadline = time.monotonic() + 0.5
+            drained = 0
+            while drained < 65536 and time.monotonic() < deadline:
+                chunk = conn.recv(4096)
+                if not chunk:
+                    break
+                drained += len(chunk)
+        except OSError:
+            pass
+        finally:
             try:
-                conn.sendall(b'HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\n\r\n')
+                conn.close()
             except OSError:
                 pass
-            conn.close()
+
+    def _handle(self, conn):
+        if not self._sema.acquire(blocking=False):
+            self._refuse_busy(conn)
             return
         with self._lock:
             self._conns.add(conn)
