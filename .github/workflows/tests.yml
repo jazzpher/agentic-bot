@@ -35,6 +35,8 @@ jobs:
       # Live isolation suite with explicitly installed capabilities: a missing
       # capability here must FAIL (GROK_REQUIRE_LIVE_BROWSE_CAPS=1), never skip.
       - run: GROK_REQUIRE_LIVE_BROWSE_CAPS=1 python -m unittest test_vetproxy test_agent_browse -v
+      # The same live suites (plus take-over) in the explicit Windows/macOS proxy mode.
+      - run: GROK_TEST_BROWSER_ISOLATION=proxy GROK_REQUIRE_LIVE_BROWSE_CAPS=1 python -m unittest test_vetproxy test_agent_browse test_takeover test_browser_platform -v
       - run: python -m py_compile webui.py agent_loop.py bot.py task_harness.py grokbot/*.py grokbot/tools/*.py grokbot/gateway/*.py
       - run: for f in test_*.cjs; do node "$f" || exit 1; done
       - run: python -m grokbot exec --mock --workspace /tmp/ci-ws -q "smoke" | grep -q "(mock) got your message"
@@ -46,3 +48,27 @@ jobs:
           /tmp/pkgenv/bin/python -c "import grokbot.gateway.telegram, webui; c = webui.app.test_client(); assert c.get('/').status_code == 200; assert c.get('/static/app.js').status_code == 200; print('wheel smoke OK')"
       - run: |
           python -m grokbot exec --mock --workspace /tmp/ci-ws -q '!tool delegate {"task": "say hi", "max_steps": 1}' | grep -q "Sub-agent"
+
+  browser-cross-platform:
+    # Agent browser + take-over in GROK_AGENT_BROWSER_ISOLATION=proxy mode on real Windows and macOS.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt playwright h2
+      - run: python -m playwright install chromium
+      - name: loopback alias for the forbidden-internal test target (macOS)
+        if: runner.os == 'macOS'
+        run: sudo ifconfig lo0 alias 127.0.0.2 up
+      - run: python -m unittest test_browser_platform -v
+      - name: live browser suites in proxy mode
+        env:
+          GROK_TEST_BROWSER_ISOLATION: proxy
+          GROK_REQUIRE_LIVE_BROWSE_CAPS: '1'
+        run: python -m unittest test_vetproxy test_agent_browse test_takeover -v
