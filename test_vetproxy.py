@@ -1168,6 +1168,8 @@ class CloseActiveTunnelTests(ProxyTestBase):
                 if not chunk:
                     break
                 data += chunk
+        except (ConnectionResetError, ConnectionAbortedError):
+            pass  # Windows reports the torn-down tunnel as a reset rather than EOF.
         except socket.timeout:
             self.fail('proxy.close() did not end the active tunnel within 5s')
         # close() kills both ends: the upstream response is cut off promptly.
@@ -1300,6 +1302,7 @@ class LiveSandboxHardeningTests(unittest.TestCase):
                          'host SysV IPC visible inside the namespace')
 
 
+@_linux_only
 class RuntimeMountValidationTests(unittest.TestCase):
     """An operator-configured Chromium path must never widen into a broad host mount."""
 

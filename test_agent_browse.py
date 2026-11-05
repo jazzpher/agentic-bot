@@ -7,6 +7,7 @@ import http.server
 import shutil
 import socket
 import socketserver
+import sys
 import tempfile
 import threading
 import unittest
@@ -430,6 +431,7 @@ class LiveChromiumTests(unittest.TestCase):
         # The session recovers with a fresh browser on the next action.
         self.assertEqual(self.session.open(self.base_a + '/two', {self.A}, False)['snapshot']['title'], 'Second')
 
+    @unittest.skipUnless(sys.platform.startswith('linux'), 'reads /proc/<pid>/environ, Linux-only')
     def test_browser_processes_do_not_inherit_secrets(self):
         import os as _os
         with mock.patch.dict(_os.environ, {'GROK_CANARY_API_KEY': 'canary-31337'}):
