@@ -25,6 +25,11 @@ from grokbot.tools import ToolContext, ToolRegistry
 READ_ONLY_TOOLS = {'read_file', 'list_files', 'glob', 'grep', 'compare_files', 'web_search', 'fetch_url', 'list_skills',
                    'read_skill', 'calculate', 'current_time'}
 MAX_RETRIES = 3
+# Finish reasons that mean the reply was cut off before the model finished it.
+TRUNCATED_FINISH = {
+    'length': 'The model hit its output limit, so the reply is cut off. Say "continue" to get the rest.',
+    'interrupted': 'The provider stream ended before the reply finished, so it is cut off. Try again.',
+}
 RETRY_DELAY = 1.5
 
 SYSTEM_PROMPT = '''You are grok-bot, an AI agent working inside the user's workspace with real tools.
@@ -481,8 +486,10 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                         send({'type': 'text', 'delta': text})
             if not calls:
                 final_text = text
-                if finish == 'length':
-                    send({'type': 'status', 'text': 'The model hit its output limit; the reply may be cut off.'})
+                if finish in TRUNCATED_FINISH:
+                    # A cut-off reply is not a finished one: keep its text, but never report it as completed.
+                    status = 'error'
+                    send({'type': 'error', 'text': TRUNCATED_FINISH[finish]})
                 if finish == 'content_filter':
                     send({'type': 'error', 'text': 'The provider filtered the reply.'})
                     status = 'error'
@@ -579,7 +586,8 @@ def scrub_preview_images(convo):
 
 
 def _execute_calls(registry, ctx, calls, send):
-    """Run read-only calls in parallel, mutating ones sequentially, preserving result order."""
+    """Run the calls in the model's order. A run of consecutive read-only calls runs in parallel; a mutating
+    call runs alone and is a barrier, so a call that comes after a write in the same step sees that write."""
     def run(call):
         args = call.get('arguments', '')
         try:
@@ -603,21 +611,27 @@ def _execute_calls(registry, ctx, calls, send):
     def parallel_ok(name):
         spec = registry.get(name)
         return name in READ_ONLY_TOOLS or bool(spec is not None and spec.parallel_safe)
-    parallel = [i for i, c in enumerate(calls) if parallel_ok(c['name'])]
-    serial = [i for i in range(len(calls)) if i not in parallel]
-    if len(parallel) > 1:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=min(config.MAX_PARALLEL_TOOLS, len(parallel))) as pool:
-            for i, result in zip(parallel, pool.map(lambda i: run(calls[i]), parallel)):
-                results[i] = result
-    else:
-        for i in parallel:
-            results[i] = run(calls[i])
-    for i in serial:
-        if ctx.stop.is_set():
-            from grokbot.tools import ToolResult
-            results[i] = ToolResult(calls[i]['name'], {}, 'Tool error: stopped by user before this call ran.', False, 0.0)
+
+    i = 0
+    while i < len(calls):
+        if not parallel_ok(calls[i]['name']):
+            if ctx.stop.is_set():
+                from grokbot.tools import ToolResult
+                results[i] = ToolResult(calls[i]['name'], {}, 'Tool error: stopped by user before this call ran.', False, 0.0)
+            else:
+                results[i] = run(calls[i])
+            i += 1
             continue
-        results[i] = run(calls[i])
+        group = [i]
+        while group[-1] + 1 < len(calls) and parallel_ok(calls[group[-1] + 1]['name']):
+            group.append(group[-1] + 1)
+        if len(group) > 1:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(config.MAX_PARALLEL_TOOLS, len(group))) as pool:
+                for j, result in zip(group, pool.map(lambda j: run(calls[j]), group)):
+                    results[j] = result
+        else:
+            results[i] = run(calls[i])
+        i = group[-1] + 1
     return results
 
 
