@@ -33,6 +33,9 @@ MAX_READ_BYTES = _int('GROK_MAX_READ_BYTES', 2 * 1024 * 1024, 1024)
 MAX_STEPS = _int('GROK_MAX_STEPS', 50, 1)
 MAX_TOOL_OUTPUT_CHARS = _int('GROK_MAX_TOOL_OUTPUT', 20000, 500)
 MAX_PARALLEL_TOOLS = _int('GROK_MAX_PARALLEL_TOOLS', 8, 1)
+# Actual calls (not model steps); parallel batches cannot bypass these limits.
+MAX_TOOL_CALLS_PER_TURN = _int('GROK_MAX_TOOL_CALLS_PER_TURN', 120, 1)
+MAX_SEARCHES_PER_TURN = _int('GROK_MAX_SEARCHES_PER_TURN', 6, 1)
 MAX_SUBAGENT_DEPTH = _int('GROK_MAX_SUBAGENT_DEPTH', 1, 0)
 
 # MCP (Model Context Protocol) client: config file with {"mcpServers": {...}} (Codex/Claude layout)
