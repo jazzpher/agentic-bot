@@ -6,6 +6,7 @@ bounded, malformed SSE lines are skipped, and a provider that rejects the
 ``tools`` parameter raises ``ToolsUnsupported`` so the agent can fall back to
 the JSON protocol.
 """
+import copy
 import json
 import socket
 import threading
@@ -91,6 +92,29 @@ def _looks_like_tools_rejection(body):
     text = (body or '').lower()
     return 'tool' in text and ('not support' in text or 'unsupported' in text or 'invalid' in text or 'unknown parameter' in text
                                or 'unrecognized' in text or 'function' in text)
+
+
+def _merge_call_metadata(target, source):
+    """Keep opaque provider metadata, including Gemini's signed tool-call context.
+
+    Metadata may arrive in a late delta, separately from the name/arguments.
+    Merge nested objects but replace scalar values: signatures are opaque, not
+    token fragments to concatenate. Never synthesize a missing signature.
+    """
+    def merge(dst, src):
+        for key, value in src.items():
+            if isinstance(value, dict) and isinstance(dst.get(key), dict):
+                merge(dst[key], value)
+            else:
+                dst[key] = copy.deepcopy(value)
+    for key in ('extra_content', 'thought_signature'):
+        if key not in source:
+            continue
+        value = source[key]
+        if isinstance(value, dict) and isinstance(target.get(key), dict):
+            merge(target[key], value)
+        else:
+            target[key] = copy.deepcopy(value)
 
 
 def stream_chat(cfg, messages, tools=None, stop=None, timeout=DEFAULT_TIMEOUT, extra=None, include_usage=True, max_bytes=MAX_BODY_BYTES,
@@ -221,6 +245,7 @@ def stream_chat(cfg, messages, tools=None, stop=None, timeout=DEFAULT_TIMEOUT, e
                                 slot['name'] += name         # rare: name streamed in pieces
                         if isinstance(fn.get('arguments'), str):
                             slot['arguments'] += fn['arguments']
+                        _merge_call_metadata(slot, tc)
                 # Non-streaming style full message (some proxies send it once)
                 message = choice.get('message') if isinstance(choice.get('message'), dict) else None
                 if message:
@@ -231,6 +256,7 @@ def stream_chat(cfg, messages, tools=None, stop=None, timeout=DEFAULT_TIMEOUT, e
                             fn = tc.get('function') or {}
                             calls[('m', i)] = {'id': str(tc.get('id') or ''), 'name': str(fn.get('name') or ''),
                                                'arguments': fn.get('arguments') if isinstance(fn.get('arguments'), str) else json.dumps(fn.get('arguments') or {})}
+                            _merge_call_metadata(calls[('m', i)], tc)
                     finish = finish or 'stop'
                     complete = True
     except (requests.RequestException, OSError):
