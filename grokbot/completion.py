@@ -52,12 +52,18 @@ def attach(messages, requirements=None, resume=False):
         messages[0][KEY] = copy.deepcopy(contract)
     return contract
 
+def _visible_text(content):
+    """User text as the model sees it, ignoring the note a text-only resend appends to an image turn."""
+    text = _text(content)
+    cut = text.find(' [image not sent:')
+    return text[:cut] if cut >= 0 else text
+
 
 def prompt(contract, messages=()):
     """System-prompt addition. Empty for plain chat whose request is still visible verbatim."""
     requirements = contract.get('requirements') or []
     request = contract.get('request') or ''
-    visible = any(m.get('role') == 'user' and _text(m.get('content')) == request for m in messages)
+    visible = any(m.get('role') == 'user' and _visible_text(m.get('content')) == request for m in messages)
     parts = []
     if request and not visible:
         parts.append('Original request (verbatim; earlier context was compacted, this is not a summary): '
