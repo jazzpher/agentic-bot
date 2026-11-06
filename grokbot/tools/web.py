@@ -224,7 +224,9 @@ def register(registry):
         backend = search_backend()
         results = SEARCHERS[backend](query, max_results)
         if not results:
-            return 'No results from ' + backend + ' for: ' + query
+            raise ToolError('No results from ' + backend + ' for: ' + query +
+                            '. Do not keep rephrasing this search. Try a known source with fetch_url, '
+                            'browse if available, or report that search returned no evidence.')
         lines = ['Search backend: ' + backend]
         for i, r in enumerate(results[:max_results], 1):
             lines.append('[%d] %s\n    %s\n    %s' % (i, r.get('title') or '(untitled)', r.get('url', ''), (r.get('snippet') or '').strip()[:400]))
@@ -277,7 +279,7 @@ def _search_searxng(query, n):
     return [{'title': r.get('title'), 'url': r.get('url'), 'snippet': r.get('content')} for r in data.get('results', [])[:n]]
 
 
-_DDG_RESULT = re.compile(r'<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)</a>.*?(?:<a[^>]+class="result__snippet"[^>]*>(.*?)</a>|<td[^>]*class="result__snippet"[^>]*>(.*?)</td>)?', re.S)
+_DDG_RESULT = re.compile(r'<a(?=[^>]*class=["\'][^"\']*\bresult__a\b[^"\']*["\'])[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', re.S)
 
 
 def _search_duckduckgo(query, n):
@@ -286,10 +288,19 @@ def _search_duckduckgo(query, n):
                            headers={'User-Agent': USER_AGENT, 'Accept-Language': 'en'})
         res.raise_for_status()
         page = res.text
+        if res.status_code == 202 or re.search(r'anomaly\.js|anomaly-modal|challenge-form', page, re.I):
+            raise ToolError('DuckDuckGo returned a bot challenge, not search results. '
+                            'Do not retry with reworded queries. Use another configured backend, '
+                            'fetch a known source, or browse if available.')
     except requests.RequestException as exc:
         raise ToolError('DuckDuckGo search failed: ' + type(exc).__name__ + '. Configure TAVILY_API_KEY, BRAVE_API_KEY or SEARXNG_URL for a reliable backend.') from exc
     results = []
-    for href, title, snip_a, snip_b in _DDG_RESULT.findall(page):
+    for match in _DDG_RESULT.finditer(page):
+        href, title = match.groups()
+        next_result = _DDG_RESULT.search(page, match.end())
+        tail = page[match.end():next_result.start() if next_result else len(page)]
+        snippet = re.search(r'<(?:a|td)[^>]*class=["\'][^"\']*result__snippet[^"\']*["\'][^>]*>(.*?)</(?:a|td)>', tail, re.S)
+        snip = snippet.group(1) if snippet else ''
         url = html.unescape(href)
         if 'uddg=' in url:
             from urllib.parse import parse_qs, unquote
@@ -298,7 +309,7 @@ def _search_duckduckgo(query, n):
         if url.startswith('//'):
             url = 'https:' + url
         strip = lambda s: html.unescape(re.sub(r'<[^>]+>', '', s or '')).strip()
-        results.append({'title': strip(title), 'url': url, 'snippet': strip(snip_a or snip_b)})
+        results.append({'title': strip(title), 'url': url, 'snippet': strip(snip)})
         if len(results) >= n:
             break
     return results
