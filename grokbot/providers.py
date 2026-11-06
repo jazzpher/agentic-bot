@@ -117,6 +117,16 @@ def _merge_call_metadata(target, source):
             target[key] = copy.deepcopy(value)
 
 
+def wire_messages(messages):
+    """Remove private UI/runner annotations, retaining provider extension fields.
+
+    Copy each message: scrubbing must not erase local screenshot/contract markers.
+    Nested content and tool-call extras (e.g. Gemini signatures) stay intact.
+    """
+    return [{key: value for key, value in message.items() if not key.startswith('_')}
+            for message in messages]
+
+
 def stream_chat(cfg, messages, tools=None, stop=None, timeout=DEFAULT_TIMEOUT, extra=None, include_usage=True, max_bytes=MAX_BODY_BYTES,
                 total_timeout=None):
     """Yield events from a streaming chat completion. ``stop`` is an optional threading.Event.
@@ -127,7 +137,7 @@ def stream_chat(cfg, messages, tools=None, stop=None, timeout=DEFAULT_TIMEOUT, e
     ``timeout`` alone cannot bound a provider that keeps dribbling bytes.
     """
     key, url, model = cfg
-    payload = {'model': model, 'messages': messages, 'stream': True}
+    payload = {'model': model, 'messages': wire_messages(messages), 'stream': True}
     if include_usage:
         payload['stream_options'] = {'include_usage': True}
     if tools:
@@ -286,7 +296,7 @@ def stream_chat(cfg, messages, tools=None, stop=None, timeout=DEFAULT_TIMEOUT, e
 def complete_once(cfg, messages, timeout=(10, 120), extra=None, max_tokens=None):
     """Non-streaming helper for summaries/titles. Returns the text content."""
     key, url, model = cfg
-    payload = {'model': model, 'messages': messages, 'stream': False}
+    payload = {'model': model, 'messages': wire_messages(messages), 'stream': False}
     if max_tokens:
         payload['max_tokens'] = max_tokens
     if extra:

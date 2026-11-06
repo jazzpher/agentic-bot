@@ -18,7 +18,7 @@ from typing import Callable, Dict, List, Optional
 
 import requests
 
-from grokbot import compaction, config, providers, runlog, sandbox
+from grokbot import compaction, completion, config, providers, runlog, sandbox
 from grokbot.approvals import SandboxPolicy
 from grokbot.tools import ToolContext, ToolRegistry, ToolResult
 
@@ -64,7 +64,7 @@ Available tools:
 
 @dataclasses.dataclass
 class TurnResult:
-    status: str                      # completed | stopped | max_steps | error
+    status: str                      # completed | incomplete | stopped | max_steps | error
     text: str
     messages: List[dict]
     steps: int = 0
@@ -336,7 +336,8 @@ def _is_transient(exc):
 
 def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg, emit: Callable[[dict], None],
              *, max_steps=None, context_tokens=None, tool_mode=None, model_label='', system_extra='',
-             summarizer: Optional[Callable[[List[dict]], str]] = None, previous_summary='', stream_fn=None) -> TurnResult:
+             summarizer: Optional[Callable[[List[dict]], str]] = None, previous_summary='', stream_fn=None,
+             requirements=None, completion_verifier=None, completion_resume=False) -> TurnResult:
     """Run one user turn to completion. ``messages`` is the conversation without the system prompt
     and already includes the newest user message. Returns the updated conversation."""
     max_steps = max_steps or config.MAX_STEPS
@@ -352,7 +353,9 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
     ctx.extras.setdefault('depth', 0)
     ctx.extras.update({'registry': registry, 'cfg': cfg, 'stream_fn': stream_fn, 'summarizer': summarizer,
                        'context_tokens': context_tokens, 'model_label': model_label})
-    convo = list(messages)
+    convo = [dict(m) for m in messages]
+    contract = completion.attach(convo, requirements, resume=completion_resume)
+    completion_attempts = 0
     goal = ''
     for m in reversed(convo):
         if m.get('role') != 'user':
@@ -399,6 +402,7 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                 send({'type': 'status', 'text': 'Reached the step budget (%d). Say "continue" to keep going.' % max_steps})
                 break
             system = build_system_prompt(ctx, registry, policy, goal, model_label, system_extra, json_mode)
+            system += completion.prompt(contract, convo)
             request_messages = [{'role': 'system', 'content': system}, *convo]
             if compaction.needs_compaction(request_messages, context_tokens):
                 before = compaction.estimate_tokens(request_messages)
@@ -487,6 +491,21 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                         break
                     elif text:
                         send({'type': 'text', 'delta': text})
+            if not calls and finish not in TRUNCATED_FINISH and finish != 'content_filter':
+                verdict = completion.check(contract, completion_verifier, ctx)
+                if verdict is not None:
+                    send({'type': 'completion_check', **verdict})
+                    if not verdict['passed']:
+                        completion_attempts += 1
+                        # Retry within the same step/tool budgets, never in an unbounded loop.
+                        if completion_verifier is not None and completion_attempts < 3:
+                            convo.append({'role': 'assistant', 'content': text})
+                            convo.append({'role': 'user', 'content': completion.repair_note(verdict)})
+                            steps += 1
+                            continue
+                        status = 'incomplete'
+                        send({'type': 'status', 'text': 'Work remains unverified or incomplete: '
+                              + ', '.join(verdict['missing'])})
             if not calls:
                 final_text = text
                 if finish in TRUNCATED_FINISH:

@@ -6,6 +6,7 @@ the model (goal, progress, decisions, files, open questions, user preferences).
 If the summary call fails we fall back to deterministic truncation with an
 explicit note. Tool-call / tool-result pairs are never split.
 """
+import copy
 import json
 
 from grokbot import config
@@ -105,4 +106,8 @@ def compact(messages, summarizer=None, keep_recent=None, previous_summary=''):
     marker = {'role': 'user', 'content': '[Context compacted. Summary of the earlier conversation — treat as reliable notes, '
                                           'verify details with tools when it matters.]\n\n' + summary}
     ack = {'role': 'assistant', 'content': 'Understood. I will continue from the compacted summary.'}
+    # Keep the immutable request/checklist outside the model-authored summary.
+    anchor = next((m.get('_completion_contract') for m in messages if m.get('_completion_contract')), None)
+    if anchor is not None:
+        marker['_completion_contract'] = copy.deepcopy(anchor)
     return [marker, ack, *recent], summary, method
