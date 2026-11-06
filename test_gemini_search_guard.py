@@ -11,12 +11,12 @@ from test_tool_order_truncation import (LoopTestCase, FakeSSEResponse, final,
 
 
 class GeminiSignatureTests(LoopTestCase):
-    def events(self, *chunks):
+    def stream_events(self, *chunks):
         with patch('grokbot.providers.requests.post', return_value=FakeSSEResponse(sse(*chunks))):
             return list(providers.stream_chat(self.cfg, []))
 
     def test_late_metadata_is_kept_per_call_and_nested_fields_merged(self):
-        events = self.events(
+        events = self.stream_events(
             {'choices': [{'delta': {'tool_calls': [
                 {'index': 0, 'id': 'a', 'function': {'name': 'calculate', 'arguments': '{"expression":'},
                  'extra_content': {'google': {'other': 'keep'}}},
@@ -34,7 +34,7 @@ class GeminiSignatureTests(LoopTestCase):
         self.assertNotIn('thought_signature', calls[0])
 
     def test_full_message_proxy_preserves_metadata(self):
-        events = self.events({'choices': [{'message': {'role': 'assistant', 'tool_calls': [
+        events = self.stream_events({'choices': [{'message': {'role': 'assistant', 'tool_calls': [
             {'id': 'full', 'function': {'name': 'current_time', 'arguments': {}},
              'extra_content': {'google': {'thought_signature': 'full-signature'}}}]},
             'finish_reason': 'tool_calls'}]})
