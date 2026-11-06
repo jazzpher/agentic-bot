@@ -18,7 +18,7 @@ from typing import Callable, Dict, List, Optional
 
 import requests
 
-from grokbot import compaction, config, providers, runlog, sandbox
+from grokbot import compaction, completion, config, providers, runlog, sandbox
 from grokbot.approvals import SandboxPolicy
 from grokbot.tools import ToolContext, ToolRegistry, ToolResult
 
@@ -64,7 +64,7 @@ Available tools:
 
 @dataclasses.dataclass
 class TurnResult:
-    status: str                      # completed | stopped | max_steps | error
+    status: str                      # completed | incomplete | stopped | max_steps | error
     text: str
     messages: List[dict]
     steps: int = 0
@@ -334,9 +334,96 @@ def _is_transient(exc):
         return isinstance(exc, (requests.Timeout, requests.ConnectionError))
 
 
+# Text-only models (e.g. gpt-oss on Groq) answer HTTP 400 when a message carries image parts.
+_IMAGE_REJECTION = re.compile(
+    r"content must be a string|image[\w ]{0,40}(?:not supported|unsupported|not allowed|invalid)"
+    r"|(?:does not|doesn't|cannot) (?:support|accept|process) (?:image|vision)|vision[\w ]{0,40}not supported"
+    r"|unknown variant .?image_url", re.I)
+# Short provider rate limits (tokens per minute) are waited out; longer ones fail fast as before.
+RATE_LIMIT_WAIT_MAX = 30.0
+_DURATION = re.compile(r"(?:(\d+(?:\.\d+)?)h)?(?:(\d+(?:\.\d+)?)m(?!s))?(?:(\d+(?:\.\d+)?)s)?(?:(\d+(?:\.\d+)?)ms)?")
+
+
+def _response_text(exc):
+    response = getattr(exc, 'response', None)
+    if response is None:
+        return ''
+    try:
+        return response.text or ''
+    except Exception:  # noqa: BLE001
+        return ''
+
+
+def _images_rejected(exc):
+    """True when the provider refused the request because it carried image parts."""
+    response = getattr(exc, 'response', None)
+    if getattr(response, 'status_code', None) != 400:
+        return False
+    return bool(_IMAGE_REJECTION.search(_response_text(exc)[:4000]))
+
+
+def _has_image_parts(convo):
+    return any(isinstance(m.get('content'), list) and any(isinstance(p, dict) and p.get('type') == 'image_url' for p in m['content'])
+               for m in convo)
+
+
+def flatten_image_parts(convo):
+    """Make the conversation text-only, in place, for a model that accepts text only.
+
+    Screenshot-only preview messages are dropped: the tool result already carries the page text, and a
+    stray user turn makes some models restart or narrate instead of calling the next tool. Other image
+    parts (an image the user attached) become a text note so their words are kept.
+    """
+    kept = []
+    for message in convo:
+        content = message.get('content')
+        has_image = isinstance(content, list) and any(isinstance(p, dict) and p.get('type') == 'image_url' for p in content)
+        if not has_image:
+            kept.append(message)
+            continue
+        if message.get('_preview_image'):
+            continue
+        text = ' '.join(p.get('text', '') for p in content if isinstance(p, dict) and p.get('type') == 'text')
+        kept.append(dict(message, content=(text + ' [image not sent: this model accepts text only]').strip()))
+    convo[:] = kept
+
+
+def _parse_wait(value):
+    """Seconds from a Retry-After or x-ratelimit-reset value ('2', '585ms', '7.66s', '1m2s'), else None."""
+    value = str(value or '').strip().lower()
+    if not value:
+        return None
+    try:
+        return max(float(value), 0.0)
+    except ValueError:
+        pass
+    match = _DURATION.fullmatch(value)
+    if not match or not any(match.groups()):
+        return None
+    hours, minutes, seconds, millis = (float(g) if g else 0.0 for g in match.groups())
+    return hours * 3600 + minutes * 60 + seconds + millis / 1000
+
+
+def _rate_limit_wait(exc):
+    """Seconds to wait before retrying a 429 that resets soon, or None to fail now."""
+    response = getattr(exc, 'response', None)
+    if getattr(response, 'status_code', None) != 429:
+        return None
+    headers = getattr(response, 'headers', None) or {}
+    wait = _parse_wait(headers.get('retry-after'))
+    if wait is None:
+        if str(headers.get('x-ratelimit-remaining-requests', '')).strip() == '0':
+            return None
+        wait = _parse_wait(headers.get('x-ratelimit-reset-tokens'))
+    if wait is None or wait > RATE_LIMIT_WAIT_MAX:
+        return None
+    return wait + 0.25
+
+
 def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg, emit: Callable[[dict], None],
              *, max_steps=None, context_tokens=None, tool_mode=None, model_label='', system_extra='',
-             summarizer: Optional[Callable[[List[dict]], str]] = None, previous_summary='', stream_fn=None) -> TurnResult:
+             summarizer: Optional[Callable[[List[dict]], str]] = None, previous_summary='', stream_fn=None,
+             requirements=None, completion_verifier=None, completion_resume=False) -> TurnResult:
     """Run one user turn to completion. ``messages`` is the conversation without the system prompt
     and already includes the newest user message. Returns the updated conversation."""
     max_steps = max_steps or config.MAX_STEPS
@@ -352,7 +439,9 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
     ctx.extras.setdefault('depth', 0)
     ctx.extras.update({'registry': registry, 'cfg': cfg, 'stream_fn': stream_fn, 'summarizer': summarizer,
                        'context_tokens': context_tokens, 'model_label': model_label})
-    convo = list(messages)
+    convo = [dict(m) for m in messages]
+    contract = completion.attach(convo, requirements, resume=completion_resume)
+    completion_attempts = 0
     goal = ''
     for m in reversed(convo):
         if m.get('role') != 'user':
@@ -399,6 +488,7 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                 send({'type': 'status', 'text': 'Reached the step budget (%d). Say "continue" to keep going.' % max_steps})
                 break
             system = build_system_prompt(ctx, registry, policy, goal, model_label, system_extra, json_mode)
+            system += completion.prompt(contract, convo)
             request_messages = [{'role': 'system', 'content': system}, *convo]
             if compaction.needs_compaction(request_messages, context_tokens):
                 before = compaction.estimate_tokens(request_messages)
@@ -447,6 +537,18 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                 send({'type': 'error', 'text': str(exc)[:400]})
                 break
             except requests.RequestException as exc:
+                if not ctx.extras.get('images_unsupported') and _images_rejected(exc) and _has_image_parts(convo):
+                    # A text-only model refused screenshot parts: resend once with them as text notes.
+                    ctx.extras['images_unsupported'] = True
+                    flatten_image_parts(convo)
+                    send({'type': 'status', 'text': 'This model accepts text only; resending without screenshots (page text is kept).'})
+                    continue
+                wait = _rate_limit_wait(exc)
+                if wait is not None and retries < MAX_RETRIES and not ctx.stop.is_set():
+                    retries += 1
+                    send({'type': 'retry', 'text': 'Rate limit reached; waiting %.1f s, retrying %d of %d...' % (wait, retries, MAX_RETRIES)})
+                    ctx.stop.wait(wait)
+                    continue
                 if _is_transient(exc) and retries < MAX_RETRIES and not ctx.stop.is_set():
                     retries += 1
                     send({'type': 'retry', 'text': _friendly(exc, url).rstrip('.') + ', retrying %d of %d…' % (retries, MAX_RETRIES)})
@@ -487,6 +589,21 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                         break
                     elif text:
                         send({'type': 'text', 'delta': text})
+            if not calls and finish not in TRUNCATED_FINISH and finish != 'content_filter':
+                verdict = completion.check(contract, completion_verifier, ctx)
+                if verdict is not None:
+                    send({'type': 'completion_check', **verdict})
+                    if not verdict['passed']:
+                        completion_attempts += 1
+                        # Retry within the same step/tool budgets, never in an unbounded loop.
+                        if completion_verifier is not None and completion_attempts < 3:
+                            convo.append({'role': 'assistant', 'content': text})
+                            convo.append({'role': 'user', 'content': completion.repair_note(verdict)})
+                            steps += 1
+                            continue
+                        status = 'incomplete'
+                        send({'type': 'status', 'text': 'Work remains unverified or incomplete: '
+                              + ', '.join(verdict['missing'])})
             if not calls:
                 final_text = text
                 if finish in TRUNCATED_FINISH:
@@ -521,6 +638,9 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                     # not a filename. Marked so it is scrubbed from stored history at turn end.
                     send({'type': 'preview_image', 'data_url': img['data_url'], 'name': img.get('name', 'preview'),
                           'tool': call['name']})
+                    if ctx.extras.get('images_unsupported'):
+                        continue  # text-only model: the tool result text already carries the page
+
                     convo.append({'role': 'user', '_preview_image': True, 'content': [
                         {'type': 'text', 'text': _screenshot_note(call['name'])},
                         {'type': 'image_url', 'image_url': {'url': img['data_url'], 'detail': 'auto'}}]})
