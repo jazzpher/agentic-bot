@@ -150,10 +150,16 @@ function takeoverCard(ev) {
   const send = body => post('/input', body).then(() => { msg.textContent = ''; }, e => { msg.textContent = 'Could not send: ' + e.message; });
   const img = document.createElement('img');
   img.className = 'liveview'; img.alt = 'Live view of the agent browser';
-  let alive = true, misses = 0;
+  let alive = true, misses = 0, refreshTimer = null;
+  img.tabIndex = 0;
+  img.addEventListener('keydown', e => {
+    if (['Enter', 'Tab', 'Backspace', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault(); send({type: 'key', key: e.key});
+    }
+  });
   const refresh = () => { if (alive) img.src = base + '/frame?t=' + Date.now(); };
-  img.addEventListener('load', () => { misses = 0; setTimeout(refresh, 400); });
-  img.addEventListener('error', () => { if (++misses > 60) { alive = false; return; } setTimeout(refresh, 1000); });
+  img.addEventListener('load', () => { misses = 0; msg.textContent = 'Live browser connected'; refreshTimer = setTimeout(refresh, 400); });
+  img.addEventListener('error', () => { if (++misses > 10) { alive = false; msg.textContent = 'Live view disconnected. Retry to reconnect, or finish to return control.'; return; } msg.textContent = 'Reconnecting live view…'; refreshTimer = setTimeout(refresh, 1000); });
   img.addEventListener('click', e => {
     const w = img.clientWidth || vp.width, h = img.clientHeight || vp.height;
     send({type: 'click', x: Math.max(0, Math.min(vp.width, Math.round(e.offsetX * vp.width / w))),
@@ -179,6 +185,7 @@ function takeoverCard(ev) {
   const row = el('div', 'btns');
   const btn = (label, fn, cls) => { const b = el('button', cls || '', label); b.addEventListener('click', fn); row.appendChild(b); return b; };
   row.appendChild(field);
+  btn('Retry live view', () => { if (!card._ended) { clearTimeout(refreshTimer); alive = true; misses = 0; refresh(); } });
   btn('Send', typeText);
   const show = btn('Show', () => { field.type = field.type === 'password' ? 'text' : 'password'; show.textContent = field.type === 'password' ? 'Show' : 'Hide'; });
   btn('Enter', () => send({type: 'key', key: 'Enter'}));
@@ -195,7 +202,8 @@ function takeoverCard(ev) {
   card.appendChild(msg);
   card._finish = status => {
     if (card._ended) return;
-    alive = false; card._ended = true; field.value = '';
+    alive = false; clearTimeout(refreshTimer); card._ended = true; field.value = '';
+    row.querySelectorAll && row.querySelectorAll('button, input').forEach(control => { control.disabled = true; });
     card.classList && card.classList.add('resolved');
     card.appendChild(el('div', 'muted', status === 'done' ? 'Handed back to the agent.' : 'Take-over ended (' + status + ').'));
   };
@@ -209,6 +217,13 @@ function finishTakeover(ev) {
   const card = takeovers.get(ev.id);
   if (card && !card._ended) card._finish(ev.status || 'ended');
 }
+function completionNote(ev) {
+  const state = ev.status || (ev.passed ? 'verified' : 'incomplete');
+  const box = note('Verification: ' + state + '. ' + (ev.note || ''), ev.passed ? '' : 'err');
+  for (const check of ev.checks || []) box.appendChild(el('div', '', (check.passed ? '✓ ' : '✗ ') + check.requirement + ' — ' + check.evidence));
+  for (const missing of ev.missing || []) if (!(ev.checks || []).length) box.appendChild(el('div', '', missing));
+  return box;
+}
 function renderEntry(entry) {
   if (entry.role === 'user') { add('you', entry.content); return; }
   const events = entry.events || [];
@@ -217,6 +232,7 @@ function renderEntry(entry) {
     else if (ev.type === 'tool_end') finishToolCard(ev);
     else if (ev.type === 'approval') note('Approval: ' + ev.tool + ' → ' + ev.decision + (ev.reason ? ' (' + ev.reason + ')' : ''));
     else if (ev.type === 'compaction') note('Context compacted (' + ev.method + '): ' + ev.before_tokens + ' → ' + ev.after_tokens + ' tokens');
+    else if (ev.type === 'completion_check') completionNote(ev);
     else if (ev.type === 'error') note(ev.text, 'err');
     else if (ev.type === 'subagent_start') subagentCard(ev);
     else if (ev.type === 'subagent_end') finishSubagent(ev);
@@ -409,6 +425,7 @@ async function send() {
   const background = !!(document.getElementById('background') && document.getElementById('background').checked);
   const images = attachments.splice(0, attachments.length); renderAttachments();
   const you = add('you', text);
+  const hero = chat.querySelector ? chat.querySelector('.hero') : null; if (hero && typeof hero.remove === 'function') hero.remove();
   for (const img of images) { const im = document.createElement('img'); im.src = img.data_url; im.alt = img.name; im.className = 'thumb'; if (you.appendChild) you.appendChild(im); }
   inp.value = ''; if (inp.style) inp.style.height = 'auto';
   const status = document.getElementById('status');
@@ -459,7 +476,10 @@ async function send() {
         case 'retry': status.textContent = ev.text; break;
         case 'status': note(ev.text); break;
         case 'error': note(ev.text, 'err'); status.textContent = 'Error'; break;
+        case 'completion_check': completionNote(ev); break;
         case 'done':
+          if (ev.status === 'unverified') note('Unverified: automatic checks are limited, not proof the whole request is correct.');
+          if (ev.status === 'incomplete') note('Incomplete: required checks did not pass.');
           if (ev.status === 'stopped') note('Stopped.');
           if (ev.status === 'max_steps') note('Step budget reached — say "continue" to keep going.');
           if (ev.usage_reported === false) note('Token counts: not reported by this provider.');
@@ -751,6 +771,12 @@ async function restoreTasks(watch = true) {
     for (const row of rows) taskStatuses.set(row.id, row.status);
     updateStopButton();
     const selected = select.value; select.replaceChildren();
+    select.disabled = rows.length === 0;
+    const resume = document.querySelector && document.querySelector('[onclick="resumeTask()"]');
+    if (resume) resume.disabled = rows.length === 0;
+    if (!rows.length) {
+      const option = document.createElement('option'); option.value = ''; option.textContent = 'No background tasks yet'; select.appendChild(option);
+    }
     for (const row of rows) {
       const option = document.createElement('option'); option.value = row.id;
       option.textContent = row.status + ': ' + row.goal.slice(0, 60); select.appendChild(option);
@@ -1013,9 +1039,24 @@ async function testKey() {
   } catch (e) { setKeyStatus('Could not run the test: ' + e.message, 'bad'); }
   btn.disabled = false; btn.textContent = 'Test'; btn.classList.remove('dots');
 }
+if (hasDOM && window.matchMedia) {
+  const mobileLayout = window.matchMedia('(max-width: 720px)');
+  const layoutChanged = () => closeSidebar();
+  if (mobileLayout.addEventListener) mobileLayout.addEventListener('change', layoutChanged);
+}
 function toggleSidebar() {
   const side = document.getElementById('sidebar');
   if (side.classList) side.classList.toggle('open');
+}
+if (hasDOM && document.addEventListener) {
+  // Mobile drawer: Escape or a tap outside the drawer closes it.
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSidebar(); });
+  document.addEventListener('click', e => {
+    const side = document.getElementById('sidebar'); const menu = document.getElementById('menu');
+    if (!side || !side.classList || !side.classList.contains('open')) return;
+    if (side.contains(e.target) || (menu && menu.contains(e.target))) return;
+    closeSidebar();
+  });
 }
 async function saveKey() {
   const sel = document.getElementById('providersel');

@@ -223,7 +223,7 @@ def protect():
 def headers(response):
     response.headers['Cache-Control'] = 'no-store'
     response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['Content-Security-Policy'] = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+    response.headers['Content-Security-Policy'] = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
                                                    "connect-src 'self'; frame-ancestors " + FRAME_ANCESTORS)
     return response
 
@@ -1008,7 +1008,7 @@ SCHEDULER = None
 MCP = None
 TELEGRAM = None
 NOTIFICATIONS = collections.defaultdict(list)     # owner -> [{...}] delivered to the web UI by /notifications
-PERSISTED_EVENTS = ('tool_start', 'tool_end', 'approval', 'compaction', 'error', 'status', 'subagent_start', 'subagent_end',
+PERSISTED_EVENTS = ('completion_check', 'tool_start', 'tool_end', 'approval', 'compaction', 'error', 'status', 'subagent_start', 'subagent_end',
                     'memory_saved', 'schedule_created')
 UNATTENDED_NOTE = ('This is an unattended scheduled run: nobody can answer questions or approve actions, and anything that needs '
                    'approval is denied automatically. Do the task with the tools that are allowed and finish with a concise report.')
@@ -1126,7 +1126,7 @@ def run_owner_turn(owner, workspace, cid, text, *, emit, stop, images=None, uplo
         max_steps=gconfig.SCHEDULED_MAX_STEPS if unattended else None,
         context_tokens=current_context_tokens(), model_label=cfg[2] + (' via ' + provider_label(cfg[1]) if cfg[1] else ''),
         system_extra=extra_prompt, summarizer=None if mock else make_summarizer(cfg), previous_summary=summary,
-        stream_fn=mock_stream if mock else agent_stream_fn)
+        stream_fn=mock_stream if mock else agent_stream_fn, verify_request=True)
     store.append_entry(cid, owner, 'assistant', result.text or '', events=kept)
     store.set_context(cid, owner, result.messages, result.summary)
     return result, ctx

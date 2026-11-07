@@ -130,8 +130,13 @@ class Printer:
             self.out.write('· %s\n' % text)
         elif kind == 'error':
             self._break(); self.out.write('error: %s\n' % event['text'])
+        elif kind == 'completion_check':
+            self._break()
+            self.out.write('· Verification: %s\n' % (event.get('note') or ('passed' if event.get('passed') else ', '.join(event.get('missing', [])))))
         elif kind == 'done':
             self._break()
+            if event.get('status') in ('unverified', 'incomplete'):
+                self.out.write('· %s\n' % event['status'])
 
     def _subagent(self, event):
         """Nested sub-agent events: indented, tools only (its text becomes the delegate tool result)."""
@@ -160,7 +165,7 @@ def make_ctx(args, workspace, approvals):
 
 def run_once(args, messages, ctx, registry, cfg, emit):
     return agent_core.run_turn(messages, registry, ctx, cfg, emit, max_steps=args.max_steps,
-                               context_tokens=args.context_tokens, model_label=cfg[2], stream_fn=stream_for(args),
+                               context_tokens=args.context_tokens, model_label=cfg[2], stream_fn=stream_for(args), verify_request=True,
                                summarizer=None if args.mock else (lambda prompt: providers.complete_once(cfg, prompt, max_tokens=1200)))
 
 
@@ -178,7 +183,9 @@ def cmd_exec(args):
                           'tool_calls': result.tool_calls, 'usage': result.usage}, ensure_ascii=False))
     elif printer.in_text:
         print()
-    return 0 if result.status == 'completed' else 1
+    # Exit success means the run ended without execution failure, not acceptance.
+    # JSON/status output still distinguishes unverified from independently completed.
+    return 0 if result.status in ('completed', 'unverified') else 1
 
 
 def cmd_chat(args):
@@ -222,7 +229,7 @@ def cmd_chat(args):
         try:
             result = agent_core.run_turn(messages + [{'role': 'user', 'content': line}], registry, ctx, cfg, printer,
                                          max_steps=args.max_steps, context_tokens=args.context_tokens, model_label=cfg[2],
-                                         previous_summary=summary, stream_fn=stream_for(args),
+                                         previous_summary=summary, stream_fn=stream_for(args), verify_request=True,
                                          summarizer=None if args.mock else (lambda prompt: providers.complete_once(cfg, prompt, max_tokens=1200)))
         except KeyboardInterrupt:
             ctx.stop.set(); print('\n(stopped)'); continue

@@ -423,7 +423,7 @@ def _rate_limit_wait(exc):
 def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg, emit: Callable[[dict], None],
              *, max_steps=None, context_tokens=None, tool_mode=None, model_label='', system_extra='',
              summarizer: Optional[Callable[[List[dict]], str]] = None, previous_summary='', stream_fn=None,
-             requirements=None, completion_verifier=None, completion_resume=False) -> TurnResult:
+             requirements=None, completion_verifier=None, completion_resume=False, verify_request=False) -> TurnResult:
     """Run one user turn to completion. ``messages`` is the conversation without the system prompt
     and already includes the newest user message. Returns the updated conversation."""
     max_steps = max_steps or config.MAX_STEPS
@@ -443,7 +443,7 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
     ctx.extras['_skill_learning_enabled'] = False
     skill_verified = False
     convo = [dict(m) for m in messages]
-    contract = completion.attach(convo, requirements, resume=completion_resume)
+    contract = completion.attach(convo, requirements, resume=completion_resume or (verify_request and completion._latest_request(convo).strip().lower() in ('continue', 'resume', 'keep going')))
     ctx.extras['_skill_learning_enabled'] = completion_verifier is not None and bool(contract.get('requirements'))
     completion_attempts = 0
     goal = ''
@@ -595,7 +595,10 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                         send({'type': 'text', 'delta': text})
             if not calls and finish not in TRUNCATED_FINISH and finish != 'content_filter':
                 verdict = completion.check(contract, completion_verifier, ctx)
-                skill_verified = bool(verdict and verdict.get('passed'))
+                if verify_request and not contract.get('requirements'):
+                    verdict = completion.automatic_check(contract, ctx, text)
+                    status = verdict['status']
+                skill_verified = bool(completion_verifier is not None and verdict and verdict.get('passed'))
                 if verdict is not None:
                     send({'type': 'completion_check', **verdict})
                     if not verdict['passed']:

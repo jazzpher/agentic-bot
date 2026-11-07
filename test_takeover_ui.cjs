@@ -7,7 +7,7 @@ function setup(fetch){const elements={},timers=[];
   appendChild(c){this.children.push(c)},append(...a){a.forEach(x=>this.children.push(x))},replaceChildren(){this.children=[]},focus(){},
   addEventListener(n,f){this[n]=f}});
  const el=id=>elements[id]||=mk();
- const ctx={console,Set,Map,JSON,Promise,TextDecoder,TextEncoder,fetch,Date,encodeURIComponent,setTimeout:f=>timers.push(f),document:{getElementById:el,createElement:mk}};
+ const ctx={console,Set,Map,JSON,Promise,TextDecoder,TextEncoder,fetch,Date,encodeURIComponent,setTimeout:f=>timers.push(f),clearTimeout:()=>{},document:{getElementById:el,createElement:mk}};
  vm.createContext(ctx);for(const n of ['keyin','urlin','modelin','inp','wrap','chat'])ctx[n]=el(n);vm.runInContext(code.replace('restoreTasks();','').replace('restoreHistory();','').replace('loadPolicy();','').replace('refreshKeyStatus();\n',''),ctx);return {ctx,el,timers,run:e=>vm.runInContext(e,ctx)}}
 const resp=(obj,ok=true)=>({ok,json:async()=>obj,text:async()=>typeof obj==='string'?obj:JSON.stringify(obj)});
 const flat=n=>[n.textContent||'',...(n.children||[]).map(flat)].join('|');
