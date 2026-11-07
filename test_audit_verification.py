@@ -89,3 +89,10 @@ class AutomaticAcceptanceTests(unittest.TestCase):
             entries = store.entries(cid, 'audit')
             events = [ev for e in entries for ev in (e.get('events') or [])]
             self.assertTrue(any(ev.get('type') == 'completion_check' for ev in events), entries[-1:])
+
+
+class CspAllowsInlinePreviewImages(unittest.TestCase):
+    """Browser previews arrive as data:image URLs; a CSP without img-src data: renders them broken."""
+    def test_img_src_allows_data_urls(self):
+        src = Path(__file__).with_name('webui.py').read_text()
+        self.assertIn("img-src 'self' data: blob:", src)
