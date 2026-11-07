@@ -425,6 +425,7 @@ async function send() {
   const background = !!(document.getElementById('background') && document.getElementById('background').checked);
   const images = attachments.splice(0, attachments.length); renderAttachments();
   const you = add('you', text);
+  const hero = chat.querySelector ? chat.querySelector('.hero') : null; if (hero && typeof hero.remove === 'function') hero.remove();
   for (const img of images) { const im = document.createElement('img'); im.src = img.data_url; im.alt = img.name; im.className = 'thumb'; if (you.appendChild) you.appendChild(im); }
   inp.value = ''; if (inp.style) inp.style.height = 'auto';
   const status = document.getElementById('status');
@@ -1046,6 +1047,16 @@ if (hasDOM && window.matchMedia) {
 function toggleSidebar() {
   const side = document.getElementById('sidebar');
   if (side.classList) side.classList.toggle('open');
+}
+if (hasDOM && document.addEventListener) {
+  // Mobile drawer: Escape or a tap outside the drawer closes it.
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSidebar(); });
+  document.addEventListener('click', e => {
+    const side = document.getElementById('sidebar'); const menu = document.getElementById('menu');
+    if (!side || !side.classList || !side.classList.contains('open')) return;
+    if (side.contains(e.target) || (menu && menu.contains(e.target))) return;
+    closeSidebar();
+  });
 }
 async function saveKey() {
   const sel = document.getElementById('providersel');
