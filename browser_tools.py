@@ -10,7 +10,7 @@ import functools
 import ipaddress
 import urllib.parse
 
-from grokbot import config as _cfg, netguard
+from agenticbot import config as _cfg, netguard
 
 _BLOCKED_HOSTS = {'localhost', '0.0.0.0', '::1', '[::1]'}
 _BLOCKED_SUFFIXES = ('.local', '.internal', '.localhost', '.arpa')
@@ -103,7 +103,7 @@ def _on_worker(fn):
     @functools.wraps(fn)
     def wrapper(self, *args, **kwargs):
         if getattr(self, '_worker', None) is None:
-            self._worker = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix='grokbot-browser')
+            self._worker = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix='agenticbot-browser')
         return self._worker.submit(fn, self, *args, **kwargs).result()
     return wrapper
 

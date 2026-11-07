@@ -4,10 +4,10 @@ import unittest
 from pathlib import Path
 
 from agent_loop import Workspace
-from grokbot import agent as agent_core
-from grokbot.approvals import SandboxPolicy
-from grokbot.tools import ToolContext, default_registry
-from test_grokbot_agent import scripted, text_events, tool_call_events
+from agenticbot import agent as agent_core
+from agenticbot.approvals import SandboxPolicy
+from agenticbot.tools import ToolContext, default_registry
+from test_agenticbot_agent import scripted, text_events, tool_call_events
 
 CANDIDATE = {'name': 'csv-summary', 'description': 'Summarize CSV totals', 'content': '# CSV totals\n1. Read CSV.\n2. Sum values.\n3. Verify against source.'}
 

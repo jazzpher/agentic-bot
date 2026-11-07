@@ -6,10 +6,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 from agent_loop import Workspace
-from grokbot import agent as agent_core, completion, compaction, providers
-from grokbot.approvals import SandboxPolicy
-from grokbot.tools import ToolContext, default_registry
-from test_grokbot_agent import scripted, text_events
+from agenticbot import agent as agent_core, completion, compaction, providers
+from agenticbot.approvals import SandboxPolicy
+from agenticbot.tools import ToolContext, default_registry
+from test_agenticbot_agent import scripted, text_events
 
 REQS = ['archive defaults to false', 'README documents the CLI']
 

@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
-from grokbot.memory import MemoryStore  # noqa: E402
+from agenticbot.memory import MemoryStore  # noqa: E402
 
 
 class _Base(unittest.TestCase):
@@ -225,7 +225,7 @@ class SupersessionContractTest(_Base):
         # Regression (review): a predecessor whose replacement is future-dated is still the active
         # fact and must count against the budget until the replacement activates.
         from unittest import mock
-        import grokbot.memory as gm
+        import agenticbot.memory as gm
         now = time.time()
         with mock.patch.object(gm, 'MAX_MEMORIES', 3):
             old = self.store.save('o', 'Dev server port is 3000', effective_from=now - 100, **KEY)
@@ -347,7 +347,7 @@ class SupersessionContractTest(_Base):
 
 
 class _Reg:
-    """Captures @registry.tool registrations from grokbot.tools.memory without the real registry."""
+    """Captures @registry.tool registrations from agenticbot.tools.memory without the real registry."""
     def __init__(self):
         self.tools = {}
 
@@ -366,7 +366,7 @@ class _Ctx:
 
 
 def _tools():
-    from grokbot.tools import memory as tm
+    from agenticbot.tools import memory as tm
     reg = _Reg(); tm.register(reg); return reg.tools
 
 
@@ -381,7 +381,7 @@ class ToolsContractTest(_Base):
 
     def test_unlinked_duplicate_facts_count_against_owner_cap(self):
         from unittest import mock
-        import grokbot.memory as gm
+        import agenticbot.memory as gm
         with mock.patch.object(gm, 'MAX_MEMORIES', 3):
             for p in (3000, 3001, 3002):
                 self.store.save('o', 'Dev server port is %d' % p)
@@ -403,13 +403,13 @@ class ToolsContractTest(_Base):
 
     def test_supersede_tool_errors_on_unknown_id(self):
         t = _tools(); ctx = _Ctx(self.store)
-        from grokbot.tools import ToolError
+        from agenticbot.tools import ToolError
         with self.assertRaises(ToolError):
             t['supersede_memory'][1](ctx, id='nope', text='Dev server port is 8080')
 
     def test_superseded_rows_do_not_count_against_owner_cap(self):
         from unittest import mock
-        import grokbot.memory as gm
+        import agenticbot.memory as gm
         with mock.patch.object(gm, 'MAX_MEMORIES', 2):
             prev = None
             for p in (3000, 3001, 3002, 8080):
@@ -419,7 +419,7 @@ class ToolsContractTest(_Base):
     def test_candidate_flagged_rows_still_count_against_owner_cap(self):
         # Ambiguous facts are active facts: flagging must not move them outside the budget.
         from unittest import mock
-        import grokbot.memory as gm
+        import agenticbot.memory as gm
         with mock.patch.object(gm, 'MAX_MEMORIES', 2):
             self.store.save('o', 'Dev server port is 3000', **KEY)
             self.store.save('o', 'Dev server port is 8080', **KEY)   # ambiguous pair: both count

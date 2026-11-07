@@ -5,7 +5,7 @@ description: "When the user asked for a page, landing, component, or to fix a de
 # UI preview pass
 
 Use when: the user asked for a web page, landing page, component, or "ayusin ang design" — any HTML/CSS/UI work
-where looks matter. Needs `preview_page` (GROK_PREVIEW=on) and a vision-capable model.
+where looks matter. Needs `preview_page` (AGENTIC_PREVIEW=on) and a vision-capable model.
 
 ## Steps
 1. Write the HTML/CSS (one file or a small set) with write_file / edit_file.

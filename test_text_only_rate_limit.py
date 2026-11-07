@@ -7,10 +7,10 @@ from pathlib import Path
 import requests
 
 from agent_loop import Workspace
-from grokbot import agent as agent_core
-from grokbot.approvals import SandboxPolicy
-from grokbot.tools import ToolContext, default_registry
-from test_grokbot_agent import text_events
+from agenticbot import agent as agent_core
+from agenticbot.approvals import SandboxPolicy
+from agenticbot.tools import ToolContext, default_registry
+from test_agenticbot_agent import text_events
 
 URL = 'https://api.groq.com/openai/v1/chat/completions'
 SHOT = {'role': 'user', '_preview_image': True, 'content': [

@@ -3,16 +3,16 @@ import copy
 import json
 from unittest.mock import patch
 
-from grokbot import agent, config, providers
-from grokbot.tools import ToolError, ToolResult
-from grokbot.tools import web
+from agenticbot import agent, config, providers
+from agenticbot.tools import ToolError, ToolResult
+from agenticbot.tools import web
 from test_tool_order_truncation import (LoopTestCase, FakeSSEResponse, final,
                                         scripted, sse, tool_batch)
 
 
 class GeminiSignatureTests(LoopTestCase):
     def stream_events(self, *chunks):
-        with patch('grokbot.providers.requests.post', return_value=FakeSSEResponse(sse(*chunks))):
+        with patch('agenticbot.providers.requests.post', return_value=FakeSSEResponse(sse(*chunks))):
             return list(providers.stream_chat(self.cfg, []))
 
     def test_late_metadata_is_kept_per_call_and_nested_fields_merged(self):
@@ -48,7 +48,7 @@ class GeminiSignatureTests(LoopTestCase):
              'extra_content': {'google': {'thought_signature': 'original-signature'}}}]},
             'finish_reason': 'tool_calls'}]})
         done = sse({'choices': [{'delta': {'content': 'done'}, 'finish_reason': 'stop'}]})
-        with patch('grokbot.providers.requests.post', side_effect=[FakeSSEResponse(body), FakeSSEResponse(done)]) as post:
+        with patch('agenticbot.providers.requests.post', side_effect=[FakeSSEResponse(body), FakeSSEResponse(done)]) as post:
             result = self.turn()
         self.assertEqual(result.status, 'completed')
         payload = post.call_args_list[1].kwargs['json']
@@ -97,7 +97,7 @@ class SearchFeedbackTests(LoopTestCase):
 
     def test_empty_search_is_failure_with_actionable_feedback(self):
         with patch.object(web, 'search_backend', return_value='duckduckgo'), patch.dict(web.SEARCHERS, {'duckduckgo': lambda q, n: []}):
-            from grokbot.tools import ToolContext
+            from agenticbot.tools import ToolContext
             result = self.registry.execute(ToolContext(workspace=self.ws), 'web_search', {'query': 'nothing'})
         self.assertFalse(result.ok)
         self.assertIn('No results from duckduckgo', result.output)
@@ -179,7 +179,7 @@ class LoopGuardTests(LoopTestCase):
         def stream(cfg, messages, **kw):
             yield {'type': 'text', 'delta': '{"tool":"web_search","arguments":{"query":"lucena weather"}}'}
             yield {'type': 'finish', 'reason': 'stop'}
-        from grokbot.tools import ToolContext
+        from agenticbot.tools import ToolContext
         with patch.object(self.registry, 'execute', side_effect=self.search_result) as execute:
             result = agent.run_turn([{'role': 'user', 'content': 'weather'}], self.registry,
                                     ToolContext(workspace=self.ws), self.cfg, self.events.append,

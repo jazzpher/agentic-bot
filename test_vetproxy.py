@@ -1,5 +1,5 @@
-"""Tests for grokbot/vetproxy.py (fail-closed browse proxy) and, gated behind
-GROK_LIVE_BROWSE_TESTS=1, the isolated-browser redirect/adversarial suite.
+"""Tests for agenticbot/vetproxy.py (fail-closed browse proxy) and, gated behind
+AGENTIC_LIVE_BROWSE_TESTS=1, the isolated-browser redirect/adversarial suite.
 
 Offline unit tests run the proxy on loopback TCP with an injected resolver
 mapping fake "public" hostnames to a local test server - the same seam the
@@ -20,8 +20,8 @@ import unittest.mock
 
 from browser_tools import BrowserError
 
-from grokbot import browser_isolation, vetproxy
-from grokbot.vetproxy import VettingProxy
+from agenticbot import browser_isolation, vetproxy
+from agenticbot.vetproxy import VettingProxy
 
 def _playwright_importable():
     try:
@@ -31,13 +31,13 @@ def _playwright_importable():
     return True
 
 
-_REQUIRE_CAPS = os.environ.get('GROK_REQUIRE_LIVE_BROWSE_CAPS') == '1'
-# GROK_REQUIRE_LIVE_BROWSE_CAPS=1 (set by jobs that install the capabilities on purpose)
+_REQUIRE_CAPS = os.environ.get('AGENTIC_REQUIRE_LIVE_BROWSE_CAPS') == '1'
+# AGENTIC_REQUIRE_LIVE_BROWSE_CAPS=1 (set by jobs that install the capabilities on purpose)
 # implies the live suite and turns every capability skip below into a hard failure.
-_LIVE = os.environ.get('GROK_LIVE_BROWSE_TESTS') == '1' or _REQUIRE_CAPS
-# GROK_TEST_BROWSER_ISOLATION=proxy runs the live sessions in the explicit Windows/macOS
+_LIVE = os.environ.get('AGENTIC_LIVE_BROWSE_TESTS') == '1' or _REQUIRE_CAPS
+# AGENTIC_TEST_BROWSER_ISOLATION=proxy runs the live sessions in the explicit Windows/macOS
 # proxy-enforced mode (on any OS, via the constructor seam); unset = the platform default.
-_TEST_ISOLATION = os.environ.get('GROK_TEST_BROWSER_ISOLATION') or None
+_TEST_ISOLATION = os.environ.get('AGENTIC_TEST_BROWSER_ISOLATION') or None
 # The bubblewrap namespace (wrapper, relay, /proc checks) only exists on Linux.
 _linux_only = unittest.skipUnless(sys.platform.startswith('linux'), 'bubblewrap namespace is Linux-only')
 
@@ -282,7 +282,7 @@ class WebSocketGateTests(unittest.TestCase):
             self.closed = (code, reason)
 
     def _session_with(self, approved):
-        from grokbot.agent_browser import AgentBrowserSession
+        from agenticbot.agent_browser import AgentBrowserSession
         session = AgentBrowserSession.__new__(AgentBrowserSession)
         session._approved = set(approved)
         return session
@@ -291,7 +291,7 @@ class WebSocketGateTests(unittest.TestCase):
         """Read/click-only browser: WS refused even to approved, public hosts."""
         from unittest import mock
         session = self._session_with({'good.test'})
-        with mock.patch('grokbot.agent_browser.request_allowed', return_value=True):
+        with mock.patch('agenticbot.agent_browser.request_allowed', return_value=True):
             for url in ('wss://good.test/ws', 'wss://evil.test/ws', 'ws://127.0.0.1/ws'):
                 ws = self.FakeWS(url)
                 session._ws_route(ws)
@@ -443,7 +443,7 @@ class LiveIsolatedBrowseTests(unittest.TestCase):
                 return [LOCAL]                    # pre-vetted test seam: maps fake public hosts to the test server
             return []
 
-        from grokbot.agent_browser import AgentBrowserSession, BrowserError
+        from agenticbot.agent_browser import AgentBrowserSession, BrowserError
         self.session = AgentBrowserSession(resolver=resolver, allowed_ports=(80, 443, self.port),
                                            ip_check=_test_ip_check, isolation=_TEST_ISOLATION)
         self.addCleanup(self.session.close)
@@ -636,7 +636,7 @@ class LiveH2CoalescingTests(unittest.TestCase):
                 return [LOCAL]
             return []
 
-        from grokbot.agent_browser import AgentBrowserSession
+        from agenticbot.agent_browser import AgentBrowserSession
         session = AgentBrowserSession(resolver=resolver, allowed_ports=(80, 443, self.port),
                                       extra_args=extra_args, ip_check=_test_ip_check,
                                       isolation=_TEST_ISOLATION)
@@ -866,7 +866,7 @@ class LiveWrapperTests(unittest.TestCase):
     def _run_wrapper(self, body):
         """Run a shell `body` as the 'chromium' through the real wrapper; return CompletedProcess.
         `body` may be a callable taking the BrowserIsolation, for commands that need its paths."""
-        from grokbot import browser_isolation
+        from agenticbot import browser_isolation
         iso = browser_isolation.BrowserIsolation()
         self.addCleanup(iso.cleanup)
         if callable(body):
@@ -977,7 +977,7 @@ class LiveWrapperTests(unittest.TestCase):
     def test_relay_path_through_real_wrapper(self):
         """The in-namespace loopback relay reaches the proxy unix socket: ping -> pong."""
         import socket as sk
-        from grokbot import browser_isolation
+        from agenticbot import browser_isolation
         iso = browser_isolation.BrowserIsolation()
         self.addCleanup(iso.cleanup)
         srv = sk.socket(sk.AF_UNIX, sk.SOCK_STREAM)
@@ -1023,7 +1023,7 @@ class ResourceLifecycleTests(unittest.TestCase):
 
     def test_missing_bwrap_refuses_browser_start(self):
         """No bwrap -> available() False -> the session raises instead of falling back."""
-        from grokbot import browser_isolation
+        from agenticbot import browser_isolation
         real_which = browser_isolation.shutil.which
         browser_isolation.shutil.which = lambda name: None
         try:
@@ -1034,7 +1034,7 @@ class ResourceLifecycleTests(unittest.TestCase):
 
     def test_unusable_userns_refuses_browser_start(self):
         """bwrap present but namespaces blocked -> probe fails -> browser stays off."""
-        from grokbot import browser_isolation
+        from agenticbot import browser_isolation
         real_run = browser_isolation.subprocess.run if hasattr(browser_isolation, 'subprocess') else None
         import subprocess as sp
         original = sp.run
@@ -1058,13 +1058,13 @@ class ResourceLifecycleTests(unittest.TestCase):
 
     @_cap_gate(_playwright_importable(), 'needs playwright installed')
     def test_session_refusal_leaves_no_resources(self):
-        from grokbot import agent_browser
-        from grokbot.browser_isolation import WRAPPER_PREFIX
+        from agenticbot import agent_browser
+        from agenticbot.browser_isolation import WRAPPER_PREFIX
         chromium_before = self._proc_count('chromium')
         drivers_before = self._proc_count('playwright/driver')
         entries_before = {e for e in os.listdir(tempfile.gettempdir())
                           if e.startswith(WRAPPER_PREFIX)}
-        with unittest.mock.patch('grokbot.browser_isolation.available', return_value=False):
+        with unittest.mock.patch('agenticbot.browser_isolation.available', return_value=False):
             session = agent_browser.AgentBrowserSession()
             with self.assertRaises(BrowserError) as ctx:
                 session.open('https://example.com/', {'example.com'})
@@ -1083,8 +1083,8 @@ class ResourceLifecycleTests(unittest.TestCase):
 
     def test_close_leaves_no_chromium_processes(self):
         if not _LIVE:
-            self.skipTest('needs isolation (GROK_LIVE_BROWSE_TESTS=1)')
-        from grokbot.agent_browser import AgentBrowserSession
+            self.skipTest('needs isolation (AGENTIC_LIVE_BROWSE_TESTS=1)')
+        from agenticbot.agent_browser import AgentBrowserSession
         real_getaddrinfo = socket.getaddrinfo
 
         def fake_getaddrinfo(host, port, *args, **kwargs):
@@ -1182,7 +1182,7 @@ class DenialSplitTests(unittest.TestCase):
     must stay separate in the session state and in the result_payload text."""
 
     def _state_with_denials(self, denials):
-        from grokbot import agent_browser
+        from agenticbot import agent_browser
 
         class FakeProxy:
             def drain_denials(self):
@@ -1257,7 +1257,7 @@ class LiveSandboxHardeningTests(unittest.TestCase):
     session isolation, SysV IPC isolation. Test-created canaries only."""
 
     def _run_wrapper(self, body):
-        from grokbot import browser_isolation
+        from agenticbot import browser_isolation
         iso = browser_isolation.BrowserIsolation()
         self.addCleanup(iso.cleanup)
         fake = os.path.join(iso.dir, 'fake-chromium.sh')

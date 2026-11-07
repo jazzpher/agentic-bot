@@ -1,7 +1,7 @@
 # Known limitations (honest list)
 
 - **Subprocess backend is not a security boundary.** Approvals and heuristics reduce risk; they do not contain a
-  hostile command. Use the Docker backend (`GROK_SANDBOX_BACKEND=docker`) or run the whole app in the provided
+  hostile command. Use the Docker backend (`AGENTIC_SANDBOX_BACKEND=docker`) or run the whole app in the provided
   container when you let the agent run commands on untrusted repositories.
 - **Heuristics are heuristics.** Destructive-command detection, read-only whitelist, network/escape detection are
   regex/token based. Obfuscated commands can slip through (which is why the policy defaults to asking in
@@ -16,14 +16,14 @@
   wrap JSON in prose. It is only used when the provider rejects `tools`. A reply that *looks* like a tool call but
   is not usable (wrong schema, truncated/unbalanced JSON) is no longer accepted as a final answer: the model gets
   up to two corrective nudges naming the exact parse error, and the turn ends with an error (non-zero exit for
-  `grokbot exec`) if it keeps failing. A JSON object closer than ~80 characters to the end of a reply is treated as
+  `agenticbot exec`) if it keeps failing. A JSON object closer than ~80 characters to the end of a reply is treated as
   a call, so avoid quoting the protocol right at the end of an answer.
-- **`GROK_TESTS_READ_ONLY=1` is a file-tool guard, not a sandbox.** It refuses `write_file`/`edit_file`/`copy_file`/
+- **`AGENTIC_TESTS_READ_ONLY=1` is a file-tool guard, not a sandbox.** It refuses `write_file`/`edit_file`/`copy_file`/
   `write_docx`/`delete_file` on test paths (`test_*.py`, `tests/**`, `conftest.py`, …) so an evaluation run cannot
   make a failing test pass by rewriting the test. `run_command` can still modify those files; for a hard guarantee
   run the task in the Docker backend with the workspace mounted read-only (`read_only` mount).
 - **Web search without a key** scrapes DuckDuckGo HTML, which is best-effort and may break; set `TAVILY_API_KEY`,
-  `BRAVE_API_KEY`, or `GROK_SEARXNG_URL` for reliable results.
+  `BRAVE_API_KEY`, or `AGENTIC_SEARXNG_URL` for reliable results.
 - **Durable background tasks still use the legacy JSON harness** (`/task`), not the new agent loop. They are
   resumable across restarts but do not get native tool calling, the sandbox policy or web tools yet.
 - **The run log is a debug aid, not an audit trail.** `.runlog.jsonl` is local, rotated by
@@ -42,9 +42,9 @@
   is denied rather than queued; results land in a ⏰ conversation. The scheduler lives in the web process (one
   process, one scheduler); jobs missed while the server was down run once at the next tick.
 - **Sub-agents share the workspace and policy** of the parent — isolation is about context and tool set, not about
-  files. Depth is limited (`GROK_MAX_SUBAGENT_DEPTH`, default 1) and sub-agents run sequentially inside the parent's turn.
+  files. Depth is limited (`AGENTIC_MAX_SUBAGENT_DEPTH`, default 1) and sub-agents run sequentially inside the parent's turn.
 - **MCP client only, core features.** stdio + Streamable HTTP, `tools/list` and `tools/call` with text/resource
-  results. No sampling, roots, prompts/resources browsing, OAuth flows, or server mode (`grok-bot` as an MCP server).
+  results. No sampling, roots, prompts/resources browsing, OAuth flows, or server mode (`agentic-bot` as an MCP server).
   MCP tools are trusted as much as the server you configure — annotations (`readOnlyHint`, `destructiveHint`) are
   hints from the server, so the approval policy still applies to anything that is not read-only.
 - **Telegram gateway is text-only** (no photos/documents yet), long-polling, one bot per process, and strictly
@@ -52,12 +52,12 @@
   formatting; messages longer than 4000 chars are split.
 - **Images are passed through, not processed.** Attachments become `image_url` parts; the provider/model must support
   vision. Images stay in the stored context of that conversation (compaction drops them like any old message).
-- **Browser tools are durable-task only.** `browse_open/read/click/type` are enabled by `GROK_BROWSER_ENABLED=on`
-  (plus `GROK_BROWSER_INTERACT=on` for click/type) and run through the legacy task harness (`/task`). The
+- **Browser tools are durable-task only.** `browse_open/read/click/type` are enabled by `AGENTIC_BROWSER_ENABLED=on`
+  (plus `AGENTIC_BROWSER_INTERACT=on` for click/type) and run through the legacy task harness (`/task`). The
   interactive agent (`POST /agent`) does not expose them yet; Playwright is an optional dependency
   (`pip install playwright && playwright install chromium`).
 - **Interactive browsing is read-and-click only for the agent.** `browse_open/see/scroll/click`
-  (`GROK_AGENT_BROWSER=on`) have no typing, no downloads and an ephemeral per-turn context. When a page needs text
+  (`AGENTIC_AGENT_BROWSER=on`) have no typing, no downloads and an ephemeral per-turn context. When a page needs text
   (a login, a captcha, a form), the agent can call `request_takeover`: the web UI shows a live view (JPEG frames
   about twice a second, not video) where the user clicks, types and scrolls, then taps Done. Limits: web UI turns
   only (not Telegram, the CLI or scheduled runs); clicks, text, scrolling and a short key list only (no drag,
@@ -67,18 +67,18 @@
   interaction may not work with click-only. The 8-action cap per turn bounds long research sessions. Domain approval covers the top-level
   document; subresource hosts are netguard-checked but not individually approved. Live-tested on Linux Chromium in
   both isolation modes, and in proxy mode on Windows and macOS in CI; real-model end-to-end runs are untested.
-- **`GROK_AGENT_BROWSER` is experimental and stays off by default.** On this branch Chromium runs
+- **`AGENTIC_AGENT_BROWSER` is experimental and stays off by default.** On this branch Chromium runs
   inside a mandatory bubblewrap network namespace (no bwrap, no browser) behind a fail-closed vetting proxy:
   approved hosts only, public pinned IPs, ports 80/443, redirect hops and subresources vetted the same way,
   WebSockets refused entirely. Measured edges and open gaps (HTTP/2 coalescing tested-not-reproduced but
   version-dependent, host-scoped not URL-scoped policy) are in docs/AGENT_BROWSER_VETPROXY.md. On hosts whose
   PID 1 does not reap children, isolated-browser runs can accumulate zombie processes until the subprocess
   sandbox's RLIMIT_NPROC makes command checks fail; run tests via tools_reaprun.py there. Windows/macOS have
-  no namespace: the browser refuses to start there unless `GROK_AGENT_BROWSER_ISOLATION=proxy` opts into the
+  no namespace: the browser refuses to start there unless `AGENTIC_AGENT_BROWSER_ISOLATION=proxy` opts into the
   weaker proxy-enforced mode (same vetting proxy via Chromium's own proxy switches, rerouting args refused,
   fail-closed startup self-test). It has no OS sandbox behind it, so a compromised renderer could still reach
   the network directly; prefer Linux + bubblewrap for anything but testing. The setting is ignored on Linux.
-- **Preview is render-only, single page, per turn.** `preview_page` (`GROK_PREVIEW=on`) screenshots workspace
+- **Preview is render-only, single page, per turn.** `preview_page` (`AGENTIC_PREVIEW=on`) screenshots workspace
   HTML for the interactive agent: no clicking/typing/scrolling, one page per call (desktop or mobile viewport),
   screenshots are clipped at 2000px height and capped at 3 previews per turn, and the image only helps when the
   configured model actually accepts vision input. The contrast pass is best-effort heuristics, not an
@@ -87,4 +87,4 @@
 - **Voice is browser-side only.** Dictation uses the Web Speech API when the browser offers it (Chrome/Edge/Safari);
   there is no server-side STT/TTS.
 - **No Discord/Slack/WhatsApp gateways or image generation** yet; the gateway runner
-  interface (`run_owner_turn`) is platform-agnostic, so adding one is a thin adapter like `grokbot/gateway/telegram.py`.
+  interface (`run_owner_turn`) is platform-agnostic, so adding one is a thin adapter like `agenticbot/gateway/telegram.py`.

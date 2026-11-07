@@ -9,9 +9,9 @@ import time
 import unittest
 
 from agent_loop import Workspace
-from grokbot.approvals import SandboxPolicy
-from grokbot.tools import ToolContext, default_registry
-from grokbot.visual import VisualVerifyError, diff_images
+from agenticbot.approvals import SandboxPolicy
+from agenticbot.tools import ToolContext, default_registry
+from agenticbot.visual import VisualVerifyError, diff_images
 
 
 def action(kind, **kw):
@@ -166,14 +166,14 @@ class VerifyVisualToolTests(unittest.TestCase):
         make_image(self.ws.root / 'out.png')
         res = self.run_tool(path='out.png', url='https://example.com')
         self.assertFalse(res.ok)
-        self.assertIn('GROK_BROWSER_ENABLED', res.output)
+        self.assertIn('AGENTIC_BROWSER_ENABLED', res.output)
 
     def test_html_side_needs_preview_flag(self):
         make_image(self.ws.root / 'truth.png')
         (self.ws.root / 'out.html').write_text('<html><body>hi</body></html>')
         res = self.run_tool(path='out.html', source_path='truth.png')
         self.assertFalse(res.ok)
-        self.assertIn('GROK_PREVIEW', res.output)
+        self.assertIn('AGENTIC_PREVIEW', res.output)
 
 
 class HarnessCheckTests(unittest.TestCase):

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Local chat and bounded tasks. Public exposure requires GROK_APP_PASSWORD."""
+"""Local chat and bounded tasks. Public exposure requires AGENTIC_APP_PASSWORD."""
+from agenticbot.env import env_get
 import argparse
 import atexit
 import collections
@@ -26,19 +27,19 @@ from werkzeug.utils import secure_filename
 from task_harness import OutputBudgetExceeded, TaskManager, MAX_RETRIES, is_transient, friendly_provider_error
 import task_harness
 import model_discovery
-import grokbot
-from grokbot import agent as agent_core, compaction, config as gconfig, netguard, providers as provider_client, sandbox as sandbox_mod
-from grokbot.approvals import ApprovalBroker, PolicyStore, SandboxPolicy, MODES as SANDBOX_MODES, APPROVALS as APPROVAL_MODES
-from grokbot.takeover import TakeoverBroker
-from grokbot.conversations import ConversationStore
-from grokbot.memory import MemoryStore
-from grokbot.scheduler import Scheduler, ScheduleError
-from grokbot.mcp import MCPManager
-from grokbot.tools import ToolContext, default_registry
-from grokbot.tools.web import search_backend
+import agenticbot
+from agenticbot import agent as agent_core, compaction, config as gconfig, netguard, providers as provider_client, sandbox as sandbox_mod
+from agenticbot.approvals import ApprovalBroker, PolicyStore, SandboxPolicy, MODES as SANDBOX_MODES, APPROVALS as APPROVAL_MODES
+from agenticbot.takeover import TakeoverBroker
+from agenticbot.conversations import ConversationStore
+from agenticbot.memory import MemoryStore
+from agenticbot.scheduler import Scheduler, ScheduleError
+from agenticbot.mcp import MCPManager
+from agenticbot.tools import ToolContext, default_registry
+from agenticbot.tools.web import search_backend
 
-API_URL = os.environ.get('GROK_API_URL', 'https://api.x.ai/v1/chat/completions')
-DEFAULT_MODEL = os.environ.get('GROK_MODEL', 'grok-4-fast')
+API_URL = env_get('AGENTIC_API_URL', 'https://api.x.ai/v1/chat/completions')
+DEFAULT_MODEL = env_get('AGENTIC_MODEL', 'grok-4-fast')
 MAX_CHAT_OUTPUT_BYTES = 128000
 # Control markers wrap live retry notices in the chat stream; the page strips them.
 RETRY_MARK, RETRY_END = '\x1e', '\x1f'
@@ -61,13 +62,13 @@ PROVIDERS = {pid: {'label': label, 'url': url, 'model_hint': hint}
              for pid, label, url, hint in PROVIDER_ROWS}
 ALLOWED_API_URLS = {p['url'] for p in PROVIDERS.values()}
 # A local provider (Ollama, LM Studio, vLLM, llama.cpp…) may be configured by the server owner through the
-# environment, never through public settings: GROK_LOCAL_API_URL=http://127.0.0.1:11434/v1/chat/completions
-LOCAL_API_URL = os.environ.get('GROK_LOCAL_API_URL', '').strip()
+# environment, never through public settings: AGENTIC_LOCAL_API_URL=http://127.0.0.1:11434/v1/chat/completions
+LOCAL_API_URL = env_get('AGENTIC_LOCAL_API_URL', '').strip()
 if not LOCAL_API_URL and urlparse(API_URL).hostname in ('127.0.0.1', 'localhost'):
     LOCAL_API_URL = API_URL
 if LOCAL_API_URL and urlparse(LOCAL_API_URL).scheme in ('http', 'https'):
     PROVIDERS['local'] = {'label': 'Local model (' + (urlparse(LOCAL_API_URL).hostname or 'local') + ')', 'url': LOCAL_API_URL,
-                          'model_hint': os.environ.get('GROK_LOCAL_MODEL', '')}
+                          'model_hint': env_get('AGENTIC_LOCAL_MODEL', '')}
     ALLOWED_API_URLS.add(LOCAL_API_URL)
     model_discovery.MODEL_URLS['local'] = re.sub(r'/chat/completions/?$', '/models', LOCAL_API_URL)
 # Key prefixes that identify a provider when neither provider nor URL is given.
@@ -76,36 +77,36 @@ KEY_PREFIXES = (('AIza', 'gemini'), ('AQ.', 'gemini'), ('nvapi-', 'nvidia'),
 # Custom https endpoints validated at save time. Memory-only, guarded by provider_lock.
 custom_endpoints = set()
 
-# The UI lives in grokbot/templates/ + grokbot/static/ so it ships inside the installed package.
+# The UI lives in agenticbot/templates/ + agenticbot/static/ so it ships inside the installed package.
 _HERE = Path(__file__).resolve().parent
 
 def _web_dir(name):
-    # Repo layout: <root>/grokbot/<name>; installed wheel: site-packages/grokbot/<name>.
+    # Repo layout: <root>/agenticbot/<name>; installed wheel: site-packages/agenticbot/<name>.
     # Fall back to a legacy root-level folder for old checkouts.
-    for base in (_HERE / 'grokbot' / name, _HERE / name):
+    for base in (_HERE / 'agenticbot' / name, _HERE / name):
         if base.is_dir():
             return str(base)
-    return str(_HERE / 'grokbot' / name)
+    return str(_HERE / 'agenticbot' / name)
 
 app = Flask(__name__, template_folder=_web_dir('templates'), static_folder=_web_dir('static'))
 app.config.update(MAX_CONTENT_LENGTH=MAX_UPLOAD + 65536, SESSION_COOKIE_HTTPONLY=True,
-                  # Strict by default. 'None' (+GROK_SECURE_COOKIE=1) only when deliberately embedding the UI in an iframe.
-                  SESSION_COOKIE_SAMESITE=os.environ.get('GROK_COOKIE_SAMESITE', 'Strict'),
-                  SESSION_COOKIE_SECURE=os.environ.get('GROK_SECURE_COOKIE') == '1',
-                  API_KEY=os.environ.get('GROK_API_KEY', ''), MODEL=DEFAULT_MODEL, MOCK=False)
-PASSWORD = os.environ.get('GROK_APP_PASSWORD', '')
+                  # Strict by default. 'None' (+AGENTIC_SECURE_COOKIE=1) only when deliberately embedding the UI in an iframe.
+                  SESSION_COOKIE_SAMESITE=env_get('AGENTIC_COOKIE_SAMESITE', 'Strict'),
+                  SESSION_COOKIE_SECURE=env_get('AGENTIC_SECURE_COOKIE') == '1',
+                  API_KEY=env_get('AGENTIC_API_KEY', ''), MODEL=DEFAULT_MODEL, MOCK=False)
+PASSWORD = env_get('AGENTIC_APP_PASSWORD', '')
 # Who may embed the UI in a frame: 'none' (default, anti-clickjacking) or an origin list / '*' for a trusted preview host.
-FRAME_ANCESTORS = os.environ.get('GROK_FRAME_ANCESTORS', "'none'")
+FRAME_ANCESTORS = env_get('AGENTIC_FRAME_ANCESTORS', "'none'")
 # Any tunnel/reverse proxy must explicitly use exposed mode, even on loopback.
-DEPLOYMENT_MODE = os.environ.get('GROK_DEPLOYMENT_MODE', 'local')
+DEPLOYMENT_MODE = env_get('AGENTIC_DEPLOYMENT_MODE', 'local')
 # Password mode has exactly one owner: every successful login maps to this id, so conversations, memory, files,
 # policy and schedules persist across logins, browsers and devices (workspaces/owner).
 OWNER_SID = 'owner'
 # Login rate limiting is keyed by client IP. Behind Docker, a tunnel or a reverse proxy every visitor shares one
-# remote_addr, so set GROK_TRUSTED_PROXIES to the number of proxies in front of the app to key it by the
+# remote_addr, so set AGENTIC_TRUSTED_PROXIES to the number of proxies in front of the app to key it by the
 # X-Forwarded-For entry they appended instead (never trusted when unset). A browser that has logged in before also
 # carries a signed device cookie that exempts it from the lockout, so strangers cannot lock the owner out.
-_trusted = os.environ.get('GROK_TRUSTED_PROXIES', '').strip()
+_trusted = env_get('AGENTIC_TRUSTED_PROXIES', '').strip()
 TRUSTED_PROXIES = int(_trusted) if _trusted.isdigit() else 0
 LOGIN_WINDOW, LOGIN_MAX_FAILURES = 300, 5
 DEVICE_COOKIE, DEVICE_MAX_AGE = 'grok_device', 90 * 24 * 3600
@@ -115,25 +116,27 @@ def default_data_dir():
     A fixed per-user directory, not the current working directory: starting the app
     from another folder must not open a different (empty) set of conversations.
     """
-    env = os.environ.get('GROK_WORKSPACE_DIR', '').strip()
+    env = env_get('AGENTIC_WORKSPACE_DIR', '').strip()
     if env:
         return Path(env).expanduser()
     if os.name == 'nt':
-        base = Path(os.environ.get('LOCALAPPDATA') or Path.home() / 'AppData' / 'Local')
-        return base / 'grokbot' / 'workspaces'
-    base = Path(os.environ.get('XDG_DATA_HOME', '').strip() or Path.home() / '.local' / 'share')
-    return base / 'grokbot' / 'workspaces'
+        base = Path(env_get('LOCALAPPDATA') or Path.home() / 'AppData' / 'Local')
+        legacy = base / 'grokbot' / 'workspaces'
+        return legacy if legacy.exists() else base / 'agenticbot' / 'workspaces'
+    base = Path(env_get('XDG_DATA_HOME', '').strip() or Path.home() / '.local' / 'share')
+    legacy = base / 'grokbot' / 'workspaces'
+    return legacy if legacy.exists() else base / 'agenticbot' / 'workspaces'
 
 
 WORKSPACES = default_data_dir().resolve()
-from grokbot import runlog as _runlog
+from agenticbot import runlog as _runlog
 _runlog.configure(WORKSPACES / '.runlog.jsonl')
 
 def _session_secret():
     # Flask signs the session cookie (which carries the workspace/conversation owner id)
     # with this key. A fresh random key every boot makes every existing conversation,
     # workspace and task look gone after a restart, so persist the generated key.
-    env = os.environ.get('GROK_SESSION_SECRET', '').strip()
+    env = env_get('AGENTIC_SESSION_SECRET', '').strip()
     if env:
         return env
     path = WORKSPACES.parent / '.session_secret'
@@ -153,10 +156,10 @@ def _session_secret():
         with os.fdopen(fd, 'w') as fh:
             secret = secrets.token_hex(32)
             fh.write(secret)
-        print('grokbot: generated a session secret at %s so sessions survive restarts' % path)
+        print('agenticbot: generated a session secret at %s so sessions survive restarts' % path)
         return secret
     except OSError:
-        print('grokbot: WARNING sessions are ephemeral; set GROK_SESSION_SECRET to keep them across restarts')
+        print('agenticbot: WARNING sessions are ephemeral; set AGENTIC_SESSION_SECRET to keep them across restarts')
         return secrets.token_hex(32)
 
 app.secret_key = _session_secret()
@@ -164,7 +167,7 @@ app.secret_key = _session_secret()
 
 def print_startup_info():
     """Where data lives and whether sessions survive restarts (both CLIs call this)."""
-    secret_mode = 'env' if os.environ.get('GROK_SESSION_SECRET', '').strip() else (
+    secret_mode = 'env' if env_get('AGENTIC_SESSION_SECRET', '').strip() else (
         'persisted' if (WORKSPACES.parent / '.session_secret').is_file() else 'ephemeral')
     print('data dir: %s · sessions: %s' % (WORKSPACES, secret_mode))
 
@@ -175,7 +178,7 @@ def task_manager():
     global TASKS
     with tasks_lock:
         if TASKS is None:
-            TASKS = TaskManager(Path(os.environ.get('GROK_TASK_DB', str(WORKSPACES / '.tasks.sqlite3'))), WORKSPACES)
+            TASKS = TaskManager(Path(env_get('AGENTIC_TASK_DB', str(WORKSPACES / '.tasks.sqlite3'))), WORKSPACES)
         return TASKS
 SETTINGS_FILE = Path(__file__).resolve().parent / 'settings.json'
 settings = {}
@@ -190,12 +193,12 @@ clients = {}
 clients_lock = threading.Lock()
 provider_lock = threading.Lock()
 login_failures = {}
-LOGIN = """<!doctype html><html><meta name="viewport" content="width=device-width,initial-scale=1"><title>grok-bot login</title><body style="font-family:system-ui;max-width:400px;margin:80px auto;padding:24px"><h1>grok-bot</h1><p>This app is private.</p><form method="post"><input type="password" name="password" placeholder="App password" required autocomplete="current-password"><button>Log in</button></form><p>{{ error }}</p></body></html>"""
+LOGIN = """<!doctype html><html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agentic Bot login</title><body style="font-family:system-ui;max-width:400px;margin:80px auto;padding:24px"><h1>Agentic Bot</h1><p>This app is private.</p><form method="post"><input type="password" name="password" placeholder="App password" required autocomplete="current-password"><button>Log in</button></form><p>{{ error }}</p></body></html>"""
 
 @app.before_request
 def protect():
     if DEPLOYMENT_MODE not in ('local', 'exposed'):
-        return Response('Invalid GROK_DEPLOYMENT_MODE.', status=403)
+        return Response('Invalid AGENTIC_DEPLOYMENT_MODE.', status=403)
     if not PASSWORD:
         try:
             loopback = ipaddress.ip_address(request.remote_addr or '').is_loopback
@@ -207,7 +210,7 @@ def protect():
                             for h in request.headers.keys())
         if (DEPLOYMENT_MODE != 'local' or not loopback or proxy_headers
                 or urlparse('http://' + request.host).hostname not in ('127.0.0.1', 'localhost', '::1')):
-            return Response('Public access disabled. Use GROK_DEPLOYMENT_MODE=exposed and GROK_APP_PASSWORD for tunnels/proxies.', status=403)
+            return Response('Public access disabled. Use AGENTIC_DEPLOYMENT_MODE=exposed and AGENTIC_APP_PASSWORD for tunnels/proxies.', status=403)
     if request.endpoint == 'login':
         return None
     if PASSWORD and not session.get('authenticated'):
@@ -251,7 +254,7 @@ def login():
 
 
 def login_client_ip():
-    """Key for login rate limiting: the peer address, or with GROK_TRUSTED_PROXIES=N the address the outermost of
+    """Key for login rate limiting: the peer address, or with AGENTIC_TRUSTED_PROXIES=N the address the outermost of
     our N proxies saw (the N-th entry from the right of X-Forwarded-For). Client-supplied entries are never used."""
     if TRUSTED_PROXIES:
         hops = [h.strip() for h in request.headers.get('X-Forwarded-For', '').split(',') if h.strip()]
@@ -358,14 +361,14 @@ def iter_bounded_sse_lines(response):
 
 @app.route('/')
 def index():
-    return render_template('index.html', version=grokbot.__version__, initial_cid='')
+    return render_template('index.html', version=agenticbot.__version__, initial_cid='')
 
 
 @app.route('/c/<cid>')
 def index_conversation(cid):
     if not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', cid):
         return redirect('/')
-    return render_template('index.html', version=grokbot.__version__, initial_cid=cid)
+    return render_template('index.html', version=agenticbot.__version__, initial_cid=cid)
 
 @app.route('/chat', methods=['POST'])
 def chat():
@@ -975,7 +978,7 @@ def set_key():
 
 
 # ---------------------------------------------------------------------------
-# Unified tool-using agent (grokbot package): NDJSON stream, conversations, approvals, policy.
+# Unified tool-using agent (agenticbot package): NDJSON stream, conversations, approvals, policy.
 # The legacy /chat (plain text stream) and /task (durable JSON-protocol harness) stay as they were.
 # ---------------------------------------------------------------------------
 REGISTRY = default_registry()
@@ -992,7 +995,7 @@ def conversation_store():
     global CONVERSATIONS
     with conversations_lock:
         if CONVERSATIONS is None:
-            CONVERSATIONS = ConversationStore(Path(os.environ.get('GROK_CONVERSATION_DB', str(WORKSPACES / '.conversations.sqlite3'))))
+            CONVERSATIONS = ConversationStore(Path(env_get('AGENTIC_CONVERSATION_DB', str(WORKSPACES / '.conversations.sqlite3'))))
         return CONVERSATIONS
 
 
@@ -1059,7 +1062,7 @@ def memory_store():
     global MEMORY
     with conversations_lock:
         if MEMORY is None:
-            MEMORY = MemoryStore(Path(os.environ.get('GROK_MEMORY_DB', str(WORKSPACES / '.memory.sqlite3'))))
+            MEMORY = MemoryStore(Path(env_get('AGENTIC_MEMORY_DB', str(WORKSPACES / '.memory.sqlite3'))))
         return MEMORY
 
 
@@ -1067,12 +1070,12 @@ def scheduler():
     global SCHEDULER
     with conversations_lock:
         if SCHEDULER is None:
-            SCHEDULER = Scheduler(Path(os.environ.get('GROK_SCHEDULE_DB', str(WORKSPACES / '.schedules.sqlite3'))), runner=run_scheduled_job)
+            SCHEDULER = Scheduler(Path(env_get('AGENTIC_SCHEDULE_DB', str(WORKSPACES / '.schedules.sqlite3'))), runner=run_scheduled_job)
         return SCHEDULER
 
 
 def mcp_manager(reload=False):
-    """MCP servers from GROK_MCP_CONFIG / ./mcp.json, registered into the shared tool registry (lazy, on first use)."""
+    """MCP servers from AGENTIC_MCP_CONFIG / ./mcp.json, registered into the shared tool registry (lazy, on first use)."""
     global MCP
     with conversations_lock:
         if MCP is None or reload:
@@ -1216,11 +1219,11 @@ class TelegramRunner:
 
 
 def start_telegram():
-    """Start the Telegram gateway when GROK_TELEGRAM_TOKEN is set (allowlist required; fails closed)."""
+    """Start the Telegram gateway when AGENTIC_TELEGRAM_TOKEN is set (allowlist required; fails closed)."""
     global TELEGRAM
     if not gconfig.TELEGRAM_TOKEN:
         return None
-    from grokbot.gateway.telegram import TelegramGateway
+    from agenticbot.gateway.telegram import TelegramGateway
     TELEGRAM = TelegramGateway(gconfig.TELEGRAM_TOKEN, gconfig.TELEGRAM_ALLOWED_IDS, TelegramRunner(), approvals=APPROVALS, policy_store=POLICIES)
     TELEGRAM.start()
     return TELEGRAM
@@ -1549,9 +1552,9 @@ def set_model():
 
 @app.route('/capabilities')
 def capabilities():
-    from grokbot import plugins as plugin_mod
+    from agenticbot import plugins as plugin_mod
     sid = session['sid']
-    return json_response({'version': grokbot.__version__, 'tools': REGISTRY.describe(), 'sandbox': sandbox_mod.describe(),
+    return json_response({'version': agenticbot.__version__, 'tools': REGISTRY.describe(), 'sandbox': sandbox_mod.describe(),
                          'search_backend': search_backend(), 'tool_mode': gconfig.TOOL_MODE,
                          'limits': {'max_steps': gconfig.MAX_STEPS, 'context_tokens': current_context_tokens(),
                                     'subagent_depth': gconfig.MAX_SUBAGENT_DEPTH},
@@ -1774,15 +1777,15 @@ def main():
     parser.add_argument('--model', default=DEFAULT_MODEL)
     parser.add_argument('--port', type=int, default=5000)
     parser.add_argument('--host', default='127.0.0.1',
-                        help='bind address; anything but loopback requires GROK_DEPLOYMENT_MODE=exposed + GROK_APP_PASSWORD (Docker: 0.0.0.0)')
+                        help='bind address; anything but loopback requires AGENTIC_DEPLOYMENT_MODE=exposed + AGENTIC_APP_PASSWORD (Docker: 0.0.0.0)')
     args = parser.parse_args()
     app.config.update(MOCK=args.mock, MODEL=args.model)
-    if args.host not in ('127.0.0.1', 'localhost', '::1') and not (os.environ.get('GROK_IN_CONTAINER') or PASSWORD):
-        print('Refusing to bind %s without GROK_APP_PASSWORD (or GROK_IN_CONTAINER=1 behind a container port mapping).' % args.host)
+    if args.host not in ('127.0.0.1', 'localhost', '::1') and not (env_get('AGENTIC_IN_CONTAINER') or PASSWORD):
+        print('Refusing to bind %s without AGENTIC_APP_PASSWORD (or AGENTIC_IN_CONTAINER=1 behind a container port mapping).' % args.host)
         return
-    if not PASSWORD: print('Local-only access. Set GROK_APP_PASSWORD before sharing a tunnel.')
+    if not PASSWORD: print('Local-only access. Set AGENTIC_APP_PASSWORD before sharing a tunnel.')
     if SETTINGS_FILE.exists(): print('Legacy settings.json loaded. Remove it after moving your key to an environment variable; new settings are memory-only.')
-    print('grokbot %s · sandbox backend: %s · search: %s' % (grokbot.__version__, sandbox_mod.describe()['backend'], search_backend()))
+    print('agenticbot %s · sandbox backend: %s · search: %s' % (agenticbot.__version__, sandbox_mod.describe()['backend'], search_backend()))
     print_startup_info()
     manager = task_manager()
     manager.prune()

@@ -1,0 +1,26 @@
+Processing ./.
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: agentic-bot
+  Building wheel for agentic-bot (pyproject.toml): started
+  Building wheel for agentic-bot (pyproject.toml): finished with status 'done'
+  Created wheel for agentic-bot: filename=agentic_bot-0.9.3-py3-none-any.whl size=274754 sha256=307cec34637f351035badff83b11b741690fcb87a2a735e77b5116fe30c301c2
+  Stored in directory: /tmp/pip-ephem-wheel-cache-zzcsu42w/wheels/6d/8d/e9/54222de30813b53c26332a4bed092f1e9d34fa0ddfd1e6d30d
+Successfully built agentic-bot
+
+[notice] A new release of pip is available: 26.2.2 -> 26.3
+[notice] To update, run: pip install --upgrade pip
+Processing /tmp/out/wheels/agentic_bot-0.9.3-py3-none-any.whl
+Installing collected packages: agentic-bot
+  Attempting uninstall: agentic-bot
+    Found existing installation: agentic-bot 0.9.3
+    Uninstalling agentic-bot-0.9.3:
+      Successfully uninstalled agentic-bot-0.9.3
+Successfully installed agentic-bot-0.9.3
+
+[notice] A new release of pip is available: 25.3 -> 26.3
+[notice] To update, run: /tmp/rename-pkg/bin/python3 -m pip install --upgrade pip

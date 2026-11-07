@@ -17,9 +17,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from agent_loop import Workspace, run_loop
-from grokbot import agent as agent_core
-from grokbot.approvals import SandboxPolicy
-from grokbot.tools import ToolContext, default_registry
+from agenticbot import agent as agent_core
+from agenticbot.approvals import SandboxPolicy
+from agenticbot.tools import ToolContext, default_registry
 
 
 def scripted(script):
@@ -158,21 +158,21 @@ class TruncatedReplyTests(LoopTestCase):
     def test_real_stream_hitting_output_limit_is_not_completed(self):
         body = sse({'choices': [{'delta': {'content': 'Steps: 1. inst'}}]},
                    {'choices': [{'delta': {}, 'finish_reason': 'length'}]})
-        with patch('grokbot.providers.requests.post', return_value=FakeSSEResponse(body)):
+        with patch('agenticbot.providers.requests.post', return_value=FakeSSEResponse(body)):
             result = self.turn()
         self.assertNotCompleted(result)
         self.assertEqual(result.text, 'Steps: 1. inst')
 
     def test_real_stream_dropped_before_done_is_not_completed(self):
         body = sse({'choices': [{'delta': {'content': 'The answer is'}}]}, done=False)
-        with patch('grokbot.providers.requests.post', return_value=FakeSSEResponse(body)):
+        with patch('agenticbot.providers.requests.post', return_value=FakeSSEResponse(body)):
             result = self.turn()
         self.assertNotCompleted(result)
 
     def test_real_stream_finished_normally_completes(self):
         body = sse({'choices': [{'delta': {'content': 'All good.'}}]},
                    {'choices': [{'delta': {}, 'finish_reason': 'stop'}]})
-        with patch('grokbot.providers.requests.post', return_value=FakeSSEResponse(body)):
+        with patch('agenticbot.providers.requests.post', return_value=FakeSSEResponse(body)):
             result = self.turn()
         self.assertEqual(result.status, 'completed')
         self.assertEqual(result.text, 'All good.')

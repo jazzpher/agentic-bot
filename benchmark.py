@@ -23,9 +23,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from agent_loop import Workspace
-from grokbot import agent as agent_core, providers
-from grokbot.approvals import SandboxPolicy
-from grokbot.tools import ToolContext, default_registry
+from agenticbot import agent as agent_core, providers
+from agenticbot.approvals import SandboxPolicy
+from agenticbot.tools import ToolContext, default_registry
 
 CFG = ('key', 'https://api.example.test/v1/chat/completions', 'model-x')
 RESULTS = []
@@ -208,7 +208,7 @@ def task_stream_cap(b):
 
 def task_backup_restore(b):
     try:
-        from grokbot import backup
+        from agenticbot import backup
     except ImportError:
         return None, 'backup module not present'
     t = time.monotonic()
@@ -231,7 +231,7 @@ def task_backup_restore(b):
 
 def task_runlog(b):
     try:
-        from grokbot import runlog
+        from agenticbot import runlog
     except ImportError:
         return None, 'runlog module not present'
     t = time.monotonic()
@@ -263,7 +263,7 @@ TASKS = [
 
 
 def main():
-    print('grok-bot reliability benchmark (%s)\n' % time.strftime('%Y-%m-%d %H:%M:%S'))
+    print('agentic-bot reliability benchmark (%s)\n' % time.strftime('%Y-%m-%d %H:%M:%S'))
     for name, fn, _ in TASKS:
         b = Bench()
         started = time.monotonic()
