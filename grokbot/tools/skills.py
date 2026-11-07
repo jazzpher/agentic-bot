@@ -24,7 +24,7 @@ def register(registry):
         except ValueError as exc:
             raise ToolError(str(exc)) from exc
 
-    @registry.tool('save_skill', 'Save or update a reusable workflow after it has been verified. Include when to use it, '
+    @registry.tool('save_skill', 'Stage a reusable workflow; saved only after independent acceptance and successful completion. Include when to use it, '
                    'numbered steps, pitfalls and verification. Use generic placeholders, never secrets or private data. '
                    'For updates pass the revision returned by read_skill.',
                    {'type': 'object', 'properties': {
@@ -34,8 +34,14 @@ def register(registry):
                        'revision': {'type': 'string', 'description': 'Existing revision when updating; omit for new'}},
                     'required': ['name', 'description', 'content']}, category='skills', mutates=True)
     def save_skill(ctx, name, description, content, revision=''):
+        if not ctx.extras.get('_skill_learning_enabled'):
+            raise ToolError('Skill learning requires host requirements and an independent completion verifier.')
+        pending = ctx.extras['_skill_candidates']
+        if len(pending) >= 3:
+            raise ToolError('At most three skill candidates per turn.')
         try:
-            result = ctx.workspace.skills.save(name, description, content, revision or '')
+            ctx.workspace.skills.validate(name, description, content)
+            pending.append((name, description, content, revision or ''))
         except ValueError as exc:
             raise ToolError(str(exc)) from exc
-        return 'Saved skill ' + result['name'] + ' (revision ' + result['revision'][:12] + ').'
+        return 'Staged skill ' + name + '. Not saved yet: independent acceptance must pass and this turn must complete.'

@@ -1,0 +1,38 @@
+[
+  {
+    "phase": "learn",
+    "status": "completed",
+    "tools": [
+      "read_file",
+      "run_command",
+      "run_command",
+      "save_skill",
+      "read_file",
+      "list_files"
+    ],
+    "checks": {
+      "completed": true,
+      "artifact": true,
+      "skill_persisted": true,
+      "retrieved": true
+    }
+  },
+  {
+    "phase": "reuse",
+    "status": "completed",
+    "tools": [
+      "list_files",
+      "list_skills",
+      "read_file",
+      "read_skill",
+      "run_command",
+      "run_command"
+    ],
+    "checks": {
+      "completed": true,
+      "artifact": true,
+      "skill_persisted": true,
+      "retrieved": true
+    }
+  }
+]

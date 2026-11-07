@@ -439,8 +439,12 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
     ctx.extras.setdefault('depth', 0)
     ctx.extras.update({'registry': registry, 'cfg': cfg, 'stream_fn': stream_fn, 'summarizer': summarizer,
                        'context_tokens': context_tokens, 'model_label': model_label})
+    ctx.extras['_skill_candidates'] = []
+    ctx.extras['_skill_learning_enabled'] = False
+    skill_verified = False
     convo = [dict(m) for m in messages]
     contract = completion.attach(convo, requirements, resume=completion_resume)
+    ctx.extras['_skill_learning_enabled'] = completion_verifier is not None and bool(contract.get('requirements'))
     completion_attempts = 0
     goal = ''
     for m in reversed(convo):
@@ -591,6 +595,7 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                         send({'type': 'text', 'delta': text})
             if not calls and finish not in TRUNCATED_FINISH and finish != 'content_filter':
                 verdict = completion.check(contract, completion_verifier, ctx)
+                skill_verified = bool(verdict and verdict.get('passed'))
                 if verdict is not None:
                     send({'type': 'completion_check', **verdict})
                     if not verdict['passed']:
@@ -666,7 +671,16 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
             _browse_tools.close_turn_session(ctx)       # kill the turn's web-browsing Chromium
         except Exception:  # noqa: BLE001
             pass
-    scrub_preview_images(convo)
+        scrub_preview_images(convo)
+        candidates = ctx.extras.pop('_skill_candidates', [])
+        ctx.extras.pop('_skill_learning_enabled', None)
+    if status == 'completed' and skill_verified:
+        for candidate in candidates:
+            try:
+                saved = ctx.workspace.skills.save(*candidate)
+                send({'type': 'skill_saved', 'name': saved['name'], 'revision': saved['revision']})
+            except (ValueError, OSError) as exc:
+                send({'type': 'status', 'text': 'Skill was not saved: ' + str(exc)})
     result = TurnResult(status, final_text, convo, steps, tool_count, usage_total, summary)
     try:
         from grokbot import plugins
