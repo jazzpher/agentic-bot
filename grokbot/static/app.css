@@ -1,17 +1,17 @@
 :root {
   color-scheme: dark;
   --bg: #161715; --panel: #1c1d1b; --panel2: #232422; --border: #2a2b28; --border2: #343531;
-  --text: #e8e6e1; --muted: #94928c; --muted2: #6f6d67; --accent: #4cc38a; --accent-dark: #052e1e;
+  --text: #e8e6e1; --muted: #94928c; --muted2: #a3a19b; --accent: #4cc38a; --accent-dark: #052e1e;
   --danger: #e5766b; --warn: #e0b35a; --info: #9ac6ff; --you: #35342f; --code: #101110;
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) { color-scheme: light; --bg: #f7f8fa; --panel: #ffffff; --panel2: #f1f3f6; --border: #e1e5ea; --border2: #cfd5dc;
-          --text: #1b1f24; --muted: #5d6670; --muted2: #7a838d; --you: #e4ecf7; --code: #f1f3f6; }
+          --text: #1b1f24; --muted: #5d6670; --muted2: #626b75; --you: #e4ecf7; --code: #f1f3f6; }
 }
 :root[data-theme="light"] { color-scheme: light; --bg: #f7f8fa; --panel: #ffffff; --panel2: #f1f3f6; --border: #e1e5ea; --border2: #cfd5dc;
-          --text: #1b1f24; --muted: #5d6670; --muted2: #7a838d; --you: #e4ecf7; --code: #f1f3f6; }
+          --text: #1b1f24; --muted: #5d6670; --muted2: #626b75; --you: #e4ecf7; --code: #f1f3f6; }
 :root[data-theme="dark"] { color-scheme: dark; --bg: #161715; --panel: #1c1d1b; --panel2: #232422; --border: #2a2b28; --border2: #343531;
-          --text: #e8e6e1; --muted: #94928c; --muted2: #6f6d67; --you: #35342f; --code: #101110; }
+          --text: #e8e6e1; --muted: #94928c; --muted2: #a3a19b; --you: #35342f; --code: #101110; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text);
        height: 100dvh; overflow: hidden; }
@@ -265,3 +265,19 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 /* preview_page screenshot card */
 .toolcard.preview img.previewshot { display: block; max-width: 100%; height: auto; margin: 8px 12px 12px; border: 1px solid var(--line, #333); border-radius: 6px; }
 .item.stale { opacity: .55; }
+
+/* Audit: readable secondary text, stable responsive settings and touch targets. */
+.settings-grid { grid-template-columns: minmax(0, 1fr); }
+.settings-advanced > summary { cursor: pointer; padding: 12px 0; color: var(--text); }
+.settings-advanced .settings-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+#settings section { min-width: 0; }
+#settings input, #settings select { width: 100%; min-width: 0; }
+#settings .muted { white-space: normal; overflow: visible; overflow-wrap: anywhere; line-height: 1.5; }
+#settings .row { flex-wrap: wrap; }
+.tool, .iconbtn, .takeover button, #settings button { min-height: 40px; min-width: 40px; }
+button:focus-visible, summary:focus-visible, .liveview:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 720px) {
+  .tool, .iconbtn, .takeover button { min-height: 44px; min-width: 44px; }
+  #settings { padding: 12px; }
+  #composer-row { flex-wrap: wrap; }
+}

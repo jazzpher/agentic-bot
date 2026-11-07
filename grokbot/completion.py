@@ -103,3 +103,47 @@ def repair_note(verdict):
         detail['evidence'] = {r: evidence.get(r) for r in detail['missing']}
     return ('Independent acceptance failed. Fix these original requirements before finishing: '
             + json.dumps(detail, ensure_ascii=False, default=str)[:REPAIR_NOTE_LIMIT])
+
+
+def automatic_check(contract, ctx, text):
+    """Limited host evidence, never a semantic oracle or skill-learning approval.
+
+    Even passing literal checks remain unverified: file existence and a title
+    cannot establish correctness of a whole natural-language request.
+    """
+    import re
+    from grokbot.tools import ToolError
+    request = contract.get('request', '')
+    checks = []
+    # Restrict extraction to explicit output clauses, not referenced input files.
+    clauses = re.findall(r'\b(?:create|write|save|generate|produce|export)\b[^\n;!?]*', request, re.I)
+    paths = []
+    for clause in clauses:
+        paths.extend(re.findall(r'(?<![\w/])([\w./-]+\.(?:csv|md|txt|json|html|py|pdf|docx|xlsx))\b', clause))
+    for name in dict.fromkeys(paths):
+        try:
+            path = ctx.workspace.path(name)
+            passed = path.is_file() and path.stat().st_size > 0
+            checks.append({'requirement': 'Output file: ' + name, 'passed': passed,
+                           'evidence': 'Nonempty file exists (content correctness not checked).' if passed else 'File missing or empty.'})
+        except (ToolError, ValueError, OSError):
+            checks.append({'requirement': 'Output file: ' + name, 'passed': False,
+                           'evidence': 'Output path unavailable or outside the workspace.'})
+    titles = re.findall(r'\b(?:title(?:d)?|heading)(?:\s+(?:it|is|must be|should be|exactly|the report|the document))*\s*[:=]?\s*["\u201c]([^"\u201d]+)["\u201d]', request, re.I)
+    output_text = text
+    for name in dict.fromkeys(paths):
+        if name.endswith(('.md', '.txt', '.html')):
+            try:
+                path = ctx.workspace.path(name)
+                if path.is_file() and path.stat().st_size <= 200_000:
+                    output_text += '\n' + path.read_text(encoding='utf-8')
+            except (ToolError, ValueError, OSError, UnicodeError):
+                pass
+    for title in dict.fromkeys(titles):
+        passed = title in output_text
+        checks.append({'requirement': 'Exact title: ' + title, 'passed': passed,
+                       'evidence': 'Literal title found in response/output.' if passed else 'Literal title missing.'})
+    missing = [c['requirement'] for c in checks if not c['passed']]
+    return {'passed': not missing, 'missing': missing, 'checks': checks,
+            'coverage': 'limited', 'status': 'incomplete' if missing else 'unverified',
+            'note': 'Only explicit files and quoted titles are checked. Full request correctness is not independently verified.'}

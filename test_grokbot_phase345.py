@@ -556,7 +556,7 @@ class WebRoutesTest(unittest.TestCase):
             if job['runs']:
                 break
             time.sleep(0.03)
-        self.assertEqual(job['last_status'], 'completed')
+        self.assertEqual(job['last_status'], 'unverified')
         notes = self.c.get('/notifications').get_json()
         self.assertEqual(notes[0]['title'], 'Ping')
         conv = self.c.get('/conversations/' + notes[0]['conversation_id']).get_json()
@@ -580,7 +580,7 @@ class WebRoutesTest(unittest.TestCase):
         png = 'data:image/png;base64,' + base64.b64encode(b'\x89PNG\r\n\x1a\n' + b'0' * 64).decode()
         r = self.c.post('/agent', json={'message': 'what is this', 'images': [{'name': 'shot.png', 'data_url': png}]})
         events = events_of(r)
-        self.assertEqual(events[-1]['status'], 'completed')
+        self.assertEqual(events[-1]['status'], 'unverified')
         conv = self.c.get('/conversations/' + events[0]['id']).get_json()
         self.assertIn('[image: shot.png]', [e['content'] for e in conv['entries'] if e['role'] == 'user'][-1])
         self.assertEqual(self.c.post('/agent', json={'message': 'x', 'images': [{'data_url': 'data:text/html;base64,AAAA'}]}).status_code, 400)

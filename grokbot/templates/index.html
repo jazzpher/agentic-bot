@@ -57,6 +57,7 @@
         </div>
         <span id="modelstatus" role="status" aria-live="polite" class="muted">Listed does not mean chat support or free quota. Manual entry always works.</span>
         <input id="modelin" aria-label="Model" placeholder="Model (optional, blank = auto)" autocomplete="off">
+        <label for="ctxin">Context window (tokens)</label>
         <input id="ctxin" aria-label="Context window tokens" placeholder="Context window (tokens, optional — auto from model list)" inputmode="numeric">
         <div class="row">
           <button onclick="saveKey()">Save</button>
@@ -65,6 +66,7 @@
         </div>
         <div id="keymask" class="muted">No key saved yet.</div>
       </section>
+      <details class="settings-advanced"><summary>Advanced: sandbox &amp; integrations</summary><div class="settings-grid">
       <section>
         <h3>Sandbox &amp; approvals</h3>
         <label>Sandbox mode
@@ -79,6 +81,7 @@
             <option value="never">never — auto-deny anything outside the sandbox (no prompts)</option>
           </select></label>
         <label class="check"><input type="checkbox" id="networkmode"> Allow network in commands</label>
+        <p class="muted">Read-only asks before writes. Workspace-write permits workspace edits and commands. Full-access removes path/network restrictions. On-request pauses for approval. The never policy automatically denies outside-sandbox calls.</p>
         <div id="allowrules" class="muted"></div>
         <div class="row"><button onclick="savePolicy()">Save policy</button><button onclick="clearAllowRules()">Clear saved allow rules</button><span id="policystatus" class="muted"></span></div>
         <div id="sandboxinfo" class="muted"></div>
@@ -90,6 +93,7 @@
         <div id="integrationinfo" class="muted"></div>
         <p class="muted">Configure MCP servers in <code>mcp.json</code> (or <code>GROK_MCP_CONFIG</code>), Telegram with <code>GROK_TELEGRAM_TOKEN</code> + <code>GROK_TELEGRAM_ALLOWED_IDS</code>, plugins with <code>GROK_PLUGINS</code>, a local model with <code>GROK_LOCAL_API_URL</code>. All server-side, owner-only.</p>
       </section>
+      </div></details>
     </div>
   </div>
 
