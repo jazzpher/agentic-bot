@@ -59,48 +59,110 @@ function summarizeArgs(name, args) {
   if (args.expression) return args.expression;
   try { return JSON.stringify(args).slice(0, 120); } catch (_) { return ''; }
 }
+// Bounded presentation only: the durable conversation keeps the full event history.
+const TOOL_LIMIT = 24, LOG_LIMIT = 12000, ARG_LIMIT = 2000;
 const toolCards = new Map();
+let toolGroup = null;
+function clipped(value, limit) {
+  const text = typeof value === 'string' ? value : String(value || '');
+  return text.length > limit ? [text.slice(0, limit), '\n[display clipped; full events remain in conversation export]'].join('') : text;
+}
+function beginToolGroup() { toolGroup = null; }
+function getToolGroup() {
+  if (toolGroup) return toolGroup;
+  const box = el('details', 'toolgroup');
+  const sum = el('summary', '', 'Tool activity'); box.appendChild(sum);
+  const body = el('div', 'toolgroup-body'); box.appendChild(body);
+  box.open = true; box._body = body; box._summary = sum; box._cards = []; box._count = 0;
+  chat.appendChild(box); toolGroup = box; return box;
+}
+function updateToolGroup(group) {
+  const hidden = group._count - group._cards.length;
+  group._summary.textContent = 'Tool activity · ' + group._count + (hidden ? ' · latest ' + group._cards.length + ' shown' : '');
+}
+function boundToolGroup(group) {
+  while (group._cards.length > TOOL_LIMIT) {
+    const old = group._cards.shift();
+    if (old._id) toolCards.delete(old._id);
+    if (typeof old.remove === 'function') old.remove();
+  }
+  updateToolGroup(group);
+}
+function endToolGroup() {
+  if (!toolGroup) return;
+  for (const card of toolGroup._cards) if (card._meta && /\b(running|quiet)\b/.test(card.className)) {
+    card.className = 'toolcard unknown'; card._meta.textContent = 'outcome not received';
+    if (card._id) toolCards.delete(card._id);
+  }
+  // Chromium can retain a pseudo-element animation in a newly closed details subtree.
+  if (typeof toolGroup.getAnimations === 'function') for (const animation of toolGroup.getAnimations({subtree: true})) animation.cancel();
+  toolGroup.open = false; toolGroup = null;
+}
 function toolCard(ev) {
+  const group = getToolGroup();
   const card = el('details', 'toolcard running');
   const sum = el('summary');
-  sum.appendChild(el('b', '', ev.name));
-  sum.appendChild(el('code', '', summarizeArgs(ev.name, ev.arguments)));
-  const meta = el('span', 'tmeta', 'running');
-  sum.appendChild(meta);
-  card.appendChild(sum);
-  const args = el('pre', 'targs');
-  try { args.textContent = JSON.stringify(ev.arguments, null, 1); } catch (_) { args.textContent = ''; }
-  card.appendChild(args);
-  const out = el('pre', 'tout', '');
-  card.appendChild(out);
-  card._meta = meta; card._out = out;
-  chat.appendChild(card);
-  scrollChat();
-  if (ev.id) toolCards.set(ev.id, card);
-  return card;
+  sum.appendChild(el('b', '', ev.name + (ev.agent ? ' · ' + ev.agent : '')));
+  sum.appendChild(el('code', '', clipped(summarizeArgs(ev.name, ev.arguments), 160)));
+  const meta = el('span', 'tmeta', 'running'); sum.appendChild(meta); card.appendChild(sum);
+  const args = el('pre', 'targs'), out = el('pre', 'tout', '');
+  let argsText = ''; try { argsText = clipped(JSON.stringify(ev.arguments, null, 1), ARG_LIMIT); } catch (_) {}
+  card._meta = meta; card._out = out; card._id = ev.id; card._tool = ev.name;
+  card._artifactPath = ['write_file', 'edit_file', 'create_docx'].includes(ev.name) && ev.arguments && ev.arguments.path;
+  // Details payloads are attached and painted only when requested.
+  card.addEventListener('toggle', () => {
+    if (!card.open) return;
+    if (!args.parentNode) { args.textContent = argsText; card.appendChild(args); card.appendChild(out); }
+    out.textContent = card._output || '';
+  });
+  group._body.appendChild(card); group._cards.push(card); group._count++; boundToolGroup(group);
+  scrollChat(); if (ev.id) toolCards.set(ev.id, card); return card;
 }
 function previewImageCard(ev, host) {
   const box = el('details', 'toolcard preview ok');
   const sum = el('summary');
   sum.appendChild(el('b', '', ev.tool === 'preview_page' ? 'preview' : (ev.tool || 'preview')));
-  sum.appendChild(el('code', '', (ev.name || 'screenshot').slice(0, 120)));
-  box.appendChild(sum);
-  if (typeof ev.data_url === 'string' && /^data:image\/(png|jpeg|webp|gif);base64,/.test(ev.data_url)) {
-    const img = document.createElement('img');
-    img.src = ev.data_url; img.alt = ev.name || 'preview screenshot'; img.className = 'previewshot';
-    box.appendChild(img);
-  }
-  (host || chat).appendChild(box);
-  scrollChat();
-  return box;
+  sum.appendChild(el('code', '', (ev.name || 'screenshot').slice(0, 120))); box.appendChild(sum);
+  let data = ev.data_url;
+  box.addEventListener('toggle', () => {
+    if (!box.open || !data) return;
+    if (/^data:image\/(png|jpeg|webp|gif);base64,/.test(data)) {
+      const img = document.createElement('img'); img.loading = 'lazy'; img.decoding = 'async';
+      img.src = data; img.alt = ev.name || 'preview screenshot'; img.className = 'previewshot'; box.appendChild(img);
+    }
+    data = null;
+  });
+  if (host) host.appendChild(box);
+  else { const group = getToolGroup(); group._body.appendChild(box); group._cards.push(box); group._count++; boundToolGroup(group); }
+  scrollChat(); return box;
 }
 function finishToolCard(ev) {
-  const card = toolCards.get(ev.id);
-  if (!card) return;
-  card.className = 'toolcard ' + (ev.ok ? 'ok' : 'err');
-  if (card._meta) card._meta.textContent = (ev.duration !== undefined ? ev.duration.toFixed(1) + 's' : '') + (ev.truncated ? ' · truncated' : '');
-  if (card._out) card._out.textContent = ev.output || '';
+  const card = toolCards.get(ev.id); if (!card) return;
+  // A tool wrapper may succeed while the subprocess itself exits nonzero.
+  const exit = card._tool === 'run_command' && /\[exit code (-?\d+)(?:\s|\])/.exec(ev.output || '');
+  const ok = Boolean(ev.ok) && (!exit || Number(exit[1]) === 0);
+  card.className = 'toolcard ' + (ok ? 'ok' : 'err');
+  if (card._meta) card._meta.textContent = (ok ? 'succeeded' : 'failed') + (ev.duration !== undefined ? ' · ' + Number(ev.duration).toFixed(1) + 's' : '') + (ev.truncated ? ' · truncated' : '');
+  card._output = clipped(ev.output || '', LOG_LIMIT);
+  if (card.open && card._out) card._out.textContent = card._output;
+  if (ev.ok && card._artifactPath) card.appendChild(artifactCard(card._artifactPath));
   toolCards.delete(ev.id);
+}
+function artifactCard(name) {
+  const box = el('details', 'artifact'); box.appendChild(el('summary', '', 'File · ' + name));
+  const link = el('a', 'chip', 'Download'); link.href = '/files/' + name.split('/').map(encodeURIComponent).join('/'); box.appendChild(link);
+  let loaded = false;
+  box.addEventListener('toggle', async () => {
+    if (!box.open || loaded) return; loaded = true;
+    const text = el('pre', 'artifact-text', 'Loading preview…'); box.appendChild(text);
+    try {
+      const res = await fetch('/file-preview?name=' + encodeURIComponent(name));
+      const row = await res.json(); if (!res.ok) throw new Error(row.error || 'Preview unavailable');
+      // Always inert text, including HTML/SVG. Never execute a workspace artifact.
+      text.textContent = row.text + (row.truncated ? '\n[preview clipped at 64 KiB; download for the full file]' : '');
+    } catch (e) { text.textContent = e.message + ' · use Download for this file.'; }
+  });
+  return box;
 }
 function approvalCard(ev) {
   const card = el('div', 'approval');
@@ -226,6 +288,7 @@ function completionNote(ev) {
 }
 function renderEntry(entry) {
   if (entry.role === 'user') { add('you', entry.content); return; }
+  beginToolGroup();
   const events = entry.events || [];
   for (const ev of events) {
     if (ev.type === 'tool_start') toolCard(ev);
@@ -239,6 +302,7 @@ function renderEntry(entry) {
     else if (ev.type === 'memory_saved') note('Memory saved: ' + ev.text, 'mem');
     else if (ev.type === 'schedule_created') note('Scheduled: ' + ev.title + ' · ' + ev.when, 'mem');
   }
+  endToolGroup();
   const bubble = add('grok', '');
   renderMarkdown(bubble, entry.content || '');
 }
@@ -294,7 +358,7 @@ function subagentEvent(ev) {
     if (!card._bubble) { card._bubble = el('div', 'subtext', ''); host.appendChild(card._bubble); }
     card._text += ev.delta; card._bubble.textContent = card._text;
   } else if (ev.type === 'tool_start') {
-    host.appendChild(toolCard(ev));
+    toolCard(ev);
   } else if (ev.type === 'tool_end') finishToolCard(ev);
   else if (ev.type === 'preview_image') previewImageCard(ev, host);
   else if (ev.type === 'approval_required') approvalCard(ev);
@@ -431,11 +495,27 @@ async function send() {
   const status = document.getElementById('status');
   if (background) return sendBackgroundTask(text);
   setRunning(true);
+  beginToolGroup();
   status.textContent = 'Thinking';
   let bubble = add('grok pending', '');
+  let terminal = false, quietTimer = null, activity = 'Thinking', activityAnimated = true, quietActivity = null;
   let statusLine = null;
-  if (hasDOM) { statusLine = el('div', 'tstatus running', 'orchestrating…'); chat.appendChild(statusLine); scrollChat(); }
-  const dropStatusLine = () => { if (statusLine && typeof statusLine.remove === 'function') statusLine.remove(); statusLine = null; };
+  if (hasDOM) { statusLine = el('div', 'tstatus running', 'Thinking'); chat.appendChild(statusLine); scrollChat(); }
+  const setActivity = (text, animate = true) => {
+    activity = text; activityAnimated = animate; status.textContent = text;
+    if (statusLine) { statusLine.textContent = text; statusLine.className = 'tstatus' + (animate ? ' running' : ''); }
+  };
+  const touchActivity = () => {
+    if (quietActivity) { const previous = quietActivity; quietActivity = null; setActivity(previous.text, previous.animate); }
+    if (typeof clearTimeout === 'function') clearTimeout(quietTimer);
+    if (hasDOM && !terminal) quietTimer = setTimeout(() => {
+      quietActivity = {text: activity, animate: activityAnimated};
+      setActivity('No events for 45s · may still be running', false);
+      if (bubble.classList) bubble.classList.remove('pending');
+      if (toolGroup) for (const card of toolGroup._cards) if (card.className.includes('running')) { card.className = 'toolcard quiet'; card._meta.textContent = 'awaiting result'; }
+    }, 45000);
+  };
+  touchActivity();
   let current = '';            // text in the active bubble
   let anyText = false, reasoningBox = null, pendingRender = false;
   const paint = () => { if (pendingRender) return; pendingRender = true; raf(() => { pendingRender = false; renderMarkdown(bubble, current); scrollChat(); }); };
@@ -446,38 +526,42 @@ async function send() {
       body: JSON.stringify({message: text, conversation_id: currentConversation || undefined, images: images.length ? images : undefined})});
     if (!res.ok) throw new Error(await res.text());
     await consumeEventStream(res, ev => {
+      touchActivity();
+      if (bubble.classList) bubble.classList.remove('pending');
+      if (ev.type !== 'done' && ev.type !== 'error') setActivity(activity, activityAnimated);
       if (ev.agent && ev.type !== 'subagent_start' && ev.type !== 'subagent_end' && subagentEvent(ev)) return;
       switch (ev.type) {
         case 'conversation': currentConversation = ev.id; if (ev.title) setCrumb(ev.title); setUrl(ev.id); break;
         case 'context_info': contextInfoRow(ev); break;
-        case 'subagent_start': if (current) finalizeBubble(); subagentCard(ev); status.textContent = 'Sub-agent ' + ev.agent; break;
+        case 'subagent_start': if (current) finalizeBubble(); subagentCard(ev); setActivity('Sub-agent ' + ev.agent); break;
         case 'subagent_end': finishSubagent(ev); break;
         case 'memory_saved': note('Memory saved: ' + ev.text, 'mem'); refreshMemoryCount(); break;
         case 'schedule_created': note('Scheduled: ' + ev.title + ' · ' + ev.when, 'mem'); refreshScheduleCount(); break;
         case 'text':
-          dropStatusLine();
           if (current && lastChild() !== bubble) { finalizeBubble(); bubble = add('grok pending', ''); current = ''; }
-          current += ev.delta; anyText = true; paint(); status.textContent = 'Replying'; break;
+          current += ev.delta; anyText = true; paint(); setActivity('Replying'); break;
         case 'reasoning':
           if (!reasoningBox) { reasoningBox = el('div', 'reasoning', ''); chat.appendChild(reasoningBox); }
           reasoningBox.textContent += ev.delta; break;
         case 'tool_start':
           if (current) finalizeBubble();
-          toolCard(ev); status.textContent = 'Running ' + ev.name; break;
-        case 'tool_end': finishToolCard(ev); break;
+          toolCard(ev); setActivity('Running ' + ev.name); break;
+        case 'tool_end': finishToolCard(ev); setActivity(toolCards.size ? 'Running tools' : 'Thinking'); break;
         case 'preview_image': previewImageCard(ev); break;
-        case 'command_start': status.textContent = 'Running: ' + (ev.description || ev.command).slice(0, 60); break;
-        case 'approval_required': approvalCard(ev); status.textContent = 'Waiting for your approval'; break;
-        case 'takeover_required': if (current) finalizeBubble(); takeoverCard(ev); status.textContent = 'Waiting for you in the browser'; break;
-        case 'takeover': finishTakeover(ev); status.textContent = 'Reading the page'; break;
+        case 'command_start': setActivity('Bash · ' + (ev.description || ev.command || '').slice(0, 60)); break;
+        case 'approval_required': approvalCard(ev); setActivity('Waiting for your approval', false); break;
+        case 'takeover_required': if (current) finalizeBubble(); takeoverCard(ev); setActivity('Waiting for you in the browser', false); break;
+        case 'takeover': finishTakeover(ev); setActivity('Reading the page'); break;
         case 'approval': if (ev.id === undefined) note('Approval: ' + ev.tool + ' → ' + ev.decision + ' (' + (ev.reason || '') + ')'); break;
         case 'compaction': note('Context compacted (' + ev.method + '): ' + ev.before_tokens + ' → ' + ev.after_tokens + ' tokens'); break;
         case 'usage': updateMeter(ev); break;
-        case 'retry': status.textContent = ev.text; break;
+        case 'retry': setActivity(ev.text, false); break;
         case 'status': note(ev.text); break;
-        case 'error': note(ev.text, 'err'); status.textContent = 'Error'; break;
+        case 'error': note(ev.text, 'err'); setActivity('Error', false); break;
         case 'completion_check': completionNote(ev); break;
         case 'done':
+          terminal = true;
+          setActivity(({completed: 'Completed · verified', unverified: 'Unverified', incomplete: 'Incomplete', stopped: 'Stopped', max_steps: 'Step budget reached'})[ev.status] || ev.status || 'Outcome unknown', false);
           if (ev.status === 'unverified') note('Unverified: automatic checks are limited, not proof the whole request is correct.');
           if (ev.status === 'incomplete') note('Incomplete: required checks did not pass.');
           if (ev.status === 'stopped') note('Stopped.');
@@ -490,11 +574,14 @@ async function send() {
     });
     finalizeBubble();
     if (!anyText && !bubble.textContent) bubble.textContent = '';
-    if (status.textContent !== 'Error') status.textContent = 'Ready';
+    if (!terminal && status.textContent !== 'Error') setActivity('Disconnected · outcome unknown', false);
   } catch (e) {
     note('Error: ' + e.message, 'err'); status.textContent = 'Error';
   } finally {
-    dropStatusLine();
+    if (typeof clearTimeout === 'function') clearTimeout(quietTimer);
+    if (statusLine) { statusLine.className = 'tstatus'; if (!terminal) statusLine.textContent = status.textContent; }
+    endToolGroup();
+    for (const card of subagents.values()) if (card.className.includes('running')) { card.className = 'subagent unknown'; if (card._meta) card._meta.textContent = 'outcome not received'; }
     bubble.className = 'msg grok';
     setRunning(false); if (inp.focus) inp.focus(); loadConversations();
   }
@@ -598,9 +685,7 @@ function showFileChips(view) {
   view.chipsShown = view.files.size;
   const bubble = add('grok', 'Files ready to download:\n');
   for (const name of view.files) {
-    const link = document.createElement('a'); link.textContent = name; link.className = 'chip';
-    link.href = '/files/' + name.split('/').map(encodeURIComponent).join('/');
-    bubble.appendChild(link);
+    bubble.appendChild(artifactCard(name));
   }
   scrollChat();
 }
@@ -836,9 +921,7 @@ async function showFiles() {
   if (!res.ok) { document.getElementById('status').textContent = 'Could not list files'; return; }
   const names = await res.json(); const bubble = add('grok', names.length ? 'Workspace files:\n' : 'No workspace files yet.');
   for (const name of names) {
-    const link = document.createElement('a'); link.textContent = name; link.className = 'chip';
-    link.href = '/files/' + name.split('/').map(encodeURIComponent).join('/');
-    bubble.appendChild(link);
+    bubble.appendChild(artifactCard(name));
   }
   scrollChat();
 }
