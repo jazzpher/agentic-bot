@@ -6,9 +6,9 @@ import unittest
 from pathlib import Path
 
 from agent_loop import Workspace
-from grokbot import agent as agent_core, runlog
-from grokbot.approvals import SandboxPolicy
-from grokbot.tools import ToolContext, default_registry
+from agenticbot import agent as agent_core, runlog
+from agenticbot.approvals import SandboxPolicy
+from agenticbot.tools import ToolContext, default_registry
 
 
 def text_events(text):

@@ -1,6 +1,6 @@
 """Tests for the browser take-over (request_takeover + live view): broker scoping and input validation, the
 tool's pause/resume contract with a fake browser session, the owner-scoped web routes, the UI wiring, and a
-real-Chromium pass (skips unless GROK_LIVE_BROWSE_TESTS=1, like test_agent_browse.LiveChromiumTests)."""
+real-Chromium pass (skips unless AGENTIC_LIVE_BROWSE_TESTS=1, like test_agent_browse.LiveChromiumTests)."""
 import html
 import http.server
 import shutil
@@ -10,11 +10,11 @@ import unittest
 import urllib.parse
 from unittest import mock
 
-from grokbot import agent_browser, config
-from grokbot.agent_browser import BrowserError
-from grokbot.takeover import MAX_QUEUE, TakeoverBroker, validate_input
-from grokbot.tools import ToolContext, default_registry
-from grokbot.tools import browse as browse_tool
+from agenticbot import agent_browser, config
+from agenticbot.agent_browser import BrowserError
+from agenticbot.takeover import MAX_QUEUE, TakeoverBroker, validate_input
+from agenticbot.tools import ToolContext, default_registry
+from agenticbot.tools import browse as browse_tool
 import test_agent_browse
 from test_agent_browse import fake_state, make_workspace
 from test_vetproxy import _cap_gate, _LIVE
@@ -284,7 +284,7 @@ class RouteTests(unittest.TestCase):
 
         def fake_run_turn(messages, registry, ctx, cfg, emit, **kwargs):
             captured.update(ctx.extras)
-            from grokbot.agent import TurnResult
+            from agenticbot.agent import TurnResult
             return TurnResult(status='completed', text='ok', messages=list(messages))
         store = mock.Mock()
         store.get_context.return_value = ([], None)
@@ -301,7 +301,7 @@ class RouteTests(unittest.TestCase):
 
 class UiWiringTests(unittest.TestCase):
     def test_app_js_handles_takeover_events(self):
-        with open('grokbot/static/app.js', encoding='utf-8') as fh:
+        with open('agenticbot/static/app.js', encoding='utf-8') as fh:
             code = fh.read()
         for needle in ("case 'takeover_required'", "case 'takeover'", "ev.type === 'takeover_required' && !ev.resolved",
                        "'/frame?t='", "'/input'", "'/done'", "field.type = 'password'"):

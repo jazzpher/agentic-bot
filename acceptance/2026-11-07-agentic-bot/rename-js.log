@@ -1,0 +1,21 @@
+PASS bounded logs, explicit tool outcomes, on-demand inert artifact preview, reduced motion
+PASS browse url rows link only http(s)
+PASS user requirements reach the background task API and UI explains limits
+PASS key/test/resume UI
+PASS preview image card rendering
+PASS task view shows project-instruction load event
+PASS provider picker UI
+PASS global Stop never targets selected history
+PASS Stop stays enabled viewing completed during another run
+PASS Stop stays enabled viewing needs_input during another run
+PASS list refresh enables queued work without watching history
+PASS Stop reports inactive, HTTP, and network results truthfully
+PASS active agent reply remains stoppable across task refresh and selection
+PASS takeover UI
+PASS terminal race completed
+PASS terminal race needs_input
+PASS saved reload and selector deduplication
+PASS resume UI checks
+PASS meter session totals
+PASS task footer usage
+PASS task footer unknown usage

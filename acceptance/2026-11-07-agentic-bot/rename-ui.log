@@ -1,0 +1,37 @@
+data dir: /home/codespace/.local/share/grokbot/workspaces · sessions: persisted
+ * Serving Flask app 'webui'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://10.0.11.236:7860
+Press CTRL+C to quit
+127.0.0.1 - - [07/Nov/2026 13:47:30] "GET / HTTP/1.1" 302 -
+127.0.0.1 - - [07/Nov/2026 13:47:31] "GET /login HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:31] "GET /favicon.ico HTTP/1.1" 302 -
+127.0.0.1 - - [07/Nov/2026 13:47:31] "GET /login HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:46] "POST /login HTTP/1.1" 302 -
+127.0.0.1 - - [07/Nov/2026 13:47:46] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:46] "GET /static/app.css HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:46] "GET /static/vendor/marked.min.js HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:46] "GET /static/vendor/purify.min.js HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:47] "GET /static/app.js HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:47] "GET /policy HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:47] "GET /key_status HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:47] "GET /tasks HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:47] "GET /memories HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:47] "GET /schedules HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:47] "GET /static/icon.svg HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:47] "GET /conversations/current HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:48] "GET /conversations HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:55] "POST /agent HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:47:58] "GET /conversations HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:48:01] "GET /capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:48:01] "GET /key_status HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:48:01] "GET /policy HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:48:01] "GET /providers HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:48:02] "POST /models HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:48:07] "GET /notifications HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:48:52] "GET /notifications HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:49:38] "GET /notifications HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 13:50:23] "GET /notifications HTTP/1.1" 200 -

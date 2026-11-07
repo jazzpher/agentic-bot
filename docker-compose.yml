@@ -1,16 +1,16 @@
 services:
-  grokbot:
+  agenticbot:
     build: .
     ports:
       - "127.0.0.1:5000:5000"
     environment:
-      GROK_API_KEY: ${GROK_API_KEY:-}
-      GROK_API_URL: ${GROK_API_URL:-https://generativelanguage.googleapis.com/v1beta/openai/chat/completions}
-      GROK_MODEL: ${GROK_MODEL:-gemini-flash-latest}
-      GROK_APP_PASSWORD: ${GROK_APP_PASSWORD:?set GROK_APP_PASSWORD - the container is reached through the Docker bridge, so login is mandatory}
-      GROK_DEPLOYMENT_MODE: exposed
-      GROK_SESSION_SECRET: ${GROK_SESSION_SECRET:-}
-      GROK_SEARCH_BACKEND: ${GROK_SEARCH_BACKEND:-auto}
+      AGENTIC_API_KEY: ${AGENTIC_API_KEY-${GROK_API_KEY-}}
+      AGENTIC_API_URL: ${AGENTIC_API_URL-${GROK_API_URL-https://generativelanguage.googleapis.com/v1beta/openai/chat/completions}}
+      AGENTIC_MODEL: ${AGENTIC_MODEL-${GROK_MODEL-gemini-flash-latest}}
+      AGENTIC_APP_PASSWORD: ${AGENTIC_APP_PASSWORD-${GROK_APP_PASSWORD:?set AGENTIC_APP_PASSWORD or GROK_APP_PASSWORD}}
+      AGENTIC_DEPLOYMENT_MODE: exposed
+      AGENTIC_SESSION_SECRET: ${AGENTIC_SESSION_SECRET-${GROK_SESSION_SECRET-}}
+      AGENTIC_SEARCH_BACKEND: ${AGENTIC_SEARCH_BACKEND-${GROK_SEARCH_BACKEND-auto}}
       TAVILY_API_KEY: ${TAVILY_API_KEY:-}
       BRAVE_API_KEY: ${BRAVE_API_KEY:-}
     volumes:

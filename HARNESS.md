@@ -28,7 +28,7 @@ Four deterministic check types are supported:
 - `pixel_diff` (`path`, `source_path`, optional `max_diff` default 0.01, `tolerance` 0-255,
   `ignore` up to 8 `[x,y,w,h]` rectangles, `viewport`, `note`): the output is pixel-compared
   against a ground-truth image with Pillow and passes when the mismatch ratio is at most
-  `max_diff`. An `.html` side is rendered headlessly first (needs `GROK_PREVIEW=on` and
+  `max_diff`. An `.html` side is rendered headlessly first (needs `AGENTIC_PREVIEW=on` and
   Playwright). The highlighted diff is saved next to the output as `<name>.diff.png`.
 - `command` (`command`, optional `expect_exit` default 0, `expect_output` substring,
   `timeout` 5-120s default 60, `note`): runs the owner-supplied command in the workspace on
@@ -70,7 +70,7 @@ A resumed task takes a fresh provider configuration snapshot, not an old key.
 
 ## Persistence and restart
 
-`GROK_TASK_DB` defaults to `workspaces/.tasks.sqlite3`; `GROK_WORKSPACE_DIR`
+`AGENTIC_TASK_DB` defaults to `workspaces/.tasks.sqlite3`; `AGENTIC_WORKSPACE_DIR`
 selects the workspace root. SQLite commits checkpoint state and event in one
 transaction. The retained trajectory includes original goal, action arguments,
 tool evidence, written/checked sets, pending action, step/output/elapsed counters,
@@ -79,7 +79,7 @@ and raw provider exception messages are **not** stored. User prompts, uploads,
 tool contents and model text **are** persisted: do not include secrets there.
 This is not automatic secret redaction or encrypted storage.
 
-Set a stable secret via `GROK_SESSION_SECRET` before the first run to keep signed
+Set a stable secret via `AGENTIC_SESSION_SECRET` before the first run to keep signed
 cookie ownership across process restarts. With the random default secret, old
 sessions become inaccessible after restart; files are not reassigned. Cookie loss
 or clearing cookies also loses access. No account recovery or cross-device sync.
@@ -144,7 +144,7 @@ Linux and native Windows execution are tested; symlink and POSIX mode assertions
 are conditional on platform support. Migration from future incompatible
 schemas, distributed queues, hard sandboxing and automatic workspace GC are absent.
 
-For any tunnel/proxy use exposed mode, strong `GROK_APP_PASSWORD`, stable secret,
+For any tunnel/proxy use exposed mode, strong `AGENTIC_APP_PASSWORD`, stable secret,
 HTTPS/secure cookies as documented in README. Local-only authentication safeguards
 from PR #3 remain. The password is single-owner access, not multi-user accounts.
 
@@ -170,21 +170,21 @@ read a page), `browse_read` (read the current page), `browse_click` (click by
 CSS or text selector), `browse_type` (fill a field), `browse_close` (release the
 browser early). One headless Chromium page lives per workspace and is closed
 when the task run ends. Page text is untrusted data, truncated to
-`GROK_BROWSER_TEXT_LIMIT` (default 12000 characters).
+`AGENTIC_BROWSER_TEXT_LIMIT` (default 12000 characters).
 
-**Off by default.** `GROK_BROWSER_ENABLED=on` turns on open/read/close.
+**Off by default.** `AGENTIC_BROWSER_ENABLED=on` turns on open/read/close.
 `browse_click` and `browse_type` can act on pages (submit forms, trigger
 requests), and the task loop has no approval prompt, so they need a second
-opt-in: `GROK_BROWSER_INTERACT=on`. Until then they return an error.
+opt-in: `AGENTIC_BROWSER_INTERACT=on`. Until then they return an error.
 
 Playwright is an optional dependency: `pip install playwright && playwright
 install chromium`. Without it, browse actions fail with an install hint instead
-of crashing the harness. Other settings: `GROK_BROWSER_HEADLESS=no` keeps a
-visible window; `GROK_BROWSER_EXECUTABLE` points at a custom Chromium binary;
-`GROK_BROWSER_ARGS` adds launch flags (comma-separated);
-`GROK_BROWSER_TIMEOUT` bounds navigation and element waits (default 30s).
+of crashing the harness. Other settings: `AGENTIC_BROWSER_HEADLESS=no` keeps a
+visible window; `AGENTIC_BROWSER_EXECUTABLE` points at a custom Chromium binary;
+`AGENTIC_BROWSER_ARGS` adds launch flags (comma-separated);
+`AGENTIC_BROWSER_TIMEOUT` bounds navigation and element waits (default 30s).
 
-Guards: only http/https URLs. Every URL is checked with `grokbot.netguard`:
+Guards: only http/https URLs. Every URL is checked with `agenticbot.netguard`:
 hostnames are resolved and anything that points at a private, loopback,
 link-local, multicast or reserved address is refused (so a public name that
 resolves to 127.0.0.1 is blocked), as are `.local`, `.internal`, `.localhost`
@@ -194,7 +194,7 @@ and navigations caused by clicks, and again on the final page URL before text
 is read. This is best-effort: like `fetch_url`, it does not defend against DNS
 rebinding between the check and the connection, and WebSocket traffic is not
 routed.
-`test_grokbot_browser.py` covers protocol registration,
+`test_agenticbot_browser.py` covers protocol registration,
 the URL guard (including DNS-to-private and redirect hops), default-off and
 the interact opt-in, truncation, workspace dispatch, the missing-Playwright
 hint and close idempotence.

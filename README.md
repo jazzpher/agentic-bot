@@ -1,4 +1,4 @@
-# grok-bot
+# Agentic Bot
 
 A local, tool-using chat/coding agent with a web UI and a CLI, for any
 OpenAI-compatible provider (Gemini, xAI, NVIDIA NIM, OpenRouter, Groq, Cerebras,
@@ -22,11 +22,11 @@ it, with an automatic JSON-protocol fallback when it does not. See
 and the honest [docs/LIMITATIONS.md](docs/LIMITATIONS.md).
 
 ```
-python -m grokbot chat                          # terminal agent in the current directory
-python -m grokbot exec "run the tests and fix the failure" --json   # CI / scripts
+python -m agenticbot chat                          # terminal agent in the current directory
+python -m agenticbot exec "run the tests and fix the failure" --json   # CI / scripts
 python webui.py                                 # web UI on http://127.0.0.1:5000
-python -m grokbot telegram                      # Telegram gateway only (token + allowlist via env)
-python -m grokbot exec --mock "hello"           # offline smoke test, no key needed
+python -m agenticbot telegram                      # Telegram gateway only (token + allowlist via env)
+python -m agenticbot exec --mock "hello"           # offline smoke test, no key needed
 ```
 
 ### Memory, automations, sub-agents, MCP, Telegram (0.9)
@@ -35,12 +35,12 @@ python -m grokbot exec --mock "hello"           # offline smoke test, no key nee
 |---|---|---|
 | Long-term memory | `save_memory` / `search_memory` / `forget_memory` tools; pinned + relevant memories are added to the system prompt each turn; the *Context* row under each reply shows exactly what was injected | **Memory** panel, `/memory`, `/remember <fact>`, `GET/POST /memories` |
 | Session search | `search_history` / `read_history` tools over the FTS5 conversation store | automatic |
-| Sub-agents | `delegate(task, context, max_steps)` runs an isolated turn with its own context and a reduced tool set (no memory writes, no nested delegation beyond `GROK_MAX_SUBAGENT_DEPTH`); its tool calls stream as a nested card | automatic |
-| Automations | `schedule_task` tool or the **Automations** panel: `every day at 08:00`, `every 2 hours`, `every monday at 9:00`, `in 30 minutes`, `tomorrow at 09:00`, or 5-field cron. Runs are *unattended*: approval policy forced to `never` and `full-access` downgraded to `workspace-write` (opt back in with `GROK_UNATTENDED_FULL_ACCESS=on`); a model-created schedule asks for approval first; step budget `GROK_SCHEDULED_MAX_STEPS` (25); each run becomes a ⏰ conversation and a notification | `/schedules`, `GET/POST /schedules` |
-| MCP client | `mcp.json` (or `GROK_MCP_CONFIG`) with `{"mcpServers": {"name": {"command", "args", "env"} or {"url", "headers"}}}`; tools appear as `mcp__<server>__<tool>`; `readOnlyHint`/`destructiveHint` annotations feed the approval policy | Settings → Integrations, `GET /mcp`, `POST /mcp/reload` |
-| Telegram | `GROK_TELEGRAM_TOKEN` + `GROK_TELEGRAM_ALLOWED_IDS=123,456` (fails closed without the allowlist). Long polling, streamed replies, approval buttons, `/new /stop /policy /status /help`; owner `tg:<chat_id>` with its own workspace, memory and policy | `python webui.py` starts it, or `python -m grokbot telegram` |
-| Plugins | `GROK_PLUGINS=my_module,other` — modules with `register(registry)`, `before_tool`, `after_tool`, `on_turn_end` hooks | — |
-| Local models | `GROK_LOCAL_API_URL=http://127.0.0.1:11434/v1/chat/completions` (Ollama, LM Studio, vLLM, llama.cpp) adds a *Local model* provider; no key needed | Settings → Provider |
+| Sub-agents | `delegate(task, context, max_steps)` runs an isolated turn with its own context and a reduced tool set (no memory writes, no nested delegation beyond `AGENTIC_MAX_SUBAGENT_DEPTH`); its tool calls stream as a nested card | automatic |
+| Automations | `schedule_task` tool or the **Automations** panel: `every day at 08:00`, `every 2 hours`, `every monday at 9:00`, `in 30 minutes`, `tomorrow at 09:00`, or 5-field cron. Runs are *unattended*: approval policy forced to `never` and `full-access` downgraded to `workspace-write` (opt back in with `AGENTIC_UNATTENDED_FULL_ACCESS=on`); a model-created schedule asks for approval first; step budget `AGENTIC_SCHEDULED_MAX_STEPS` (25); each run becomes a ⏰ conversation and a notification | `/schedules`, `GET/POST /schedules` |
+| MCP client | `mcp.json` (or `AGENTIC_MCP_CONFIG`) with `{"mcpServers": {"name": {"command", "args", "env"} or {"url", "headers"}}}`; tools appear as `mcp__<server>__<tool>`; `readOnlyHint`/`destructiveHint` annotations feed the approval policy | Settings → Integrations, `GET /mcp`, `POST /mcp/reload` |
+| Telegram | `AGENTIC_TELEGRAM_TOKEN` + `AGENTIC_TELEGRAM_ALLOWED_IDS=123,456` (fails closed without the allowlist). Long polling, streamed replies, approval buttons, `/new /stop /policy /status /help`; owner `tg:<chat_id>` with its own workspace, memory and policy | `python webui.py` starts it, or `python -m agenticbot telegram` |
+| Plugins | `AGENTIC_PLUGINS=my_module,other` — modules with `register(registry)`, `before_tool`, `after_tool`, `on_turn_end` hooks | — |
+| Local models | `AGENTIC_LOCAL_API_URL=http://127.0.0.1:11434/v1/chat/completions` (Ollama, LM Studio, vLLM, llama.cpp) adds a *Local model* provider; no key needed | Settings → Provider |
 | Images | attach PNG/JPEG/WebP/GIF (drag-drop, paste or 🖼) — sent as `image_url` parts to vision-capable models | composer |
 | UI | per-conversation URLs (`/c/<id>`), Markdown/JSON export, in-composer model switch, theme toggle, installable (PWA manifest), dictation via the Web Speech API when the browser has it | — |
 
@@ -53,33 +53,33 @@ Example `mcp.json` (copy `mcp.example.json`):
 }}
 ```
 
-Docker is **optional**. Sandbox backends (`GROK_SANDBOX_BACKEND`, default `auto` = `docker` when the
+Docker is **optional**. Sandbox backends (`AGENTIC_SANDBOX_BACKEND`, default `auto` = `docker` when the
 docker CLI is installed, otherwise `subprocess`): `subprocess` — commands run as your user inside the
 workspace with keys scrubbed from the environment; **not** an isolation boundary, so every command asks for approval — or `docker` — one
 throwaway container per command, no network unless the policy allows it, workspace bind-mounted,
 read-only root, command timeout enforced inside the container. `off` disables `run_command` entirely. `docker compose up` runs the whole app in a
 container, which is the recommended way to let it work on untrusted code.
 
-Configuration (environment): `GROK_API_KEY`, `GROK_API_URL`, `GROK_MODEL`,
-`GROK_SANDBOX_BACKEND`, `GROK_SANDBOX_IMAGE`, `GROK_MAX_STEPS` (default 40),
-`GROK_CONTEXT_TOKENS` (default 128000, auto-filled from the model list when
-available), `GROK_SEARCH_BACKEND` (`auto`/`tavily`/`brave`/`searxng`/`duckduckgo`/`off`)
-with `TAVILY_API_KEY` / `BRAVE_API_KEY` / `GROK_SEARXNG_URL`, `GROK_MAX_FILE_BYTES`
-(10 MB), `GROK_MAX_WORKSPACE_BYTES` (500 MB), `GROK_MAX_FILES` (2000),
-`GROK_MAX_SUBAGENT_DEPTH` (1), `GROK_SCHEDULER_TICK` (30 s), `GROK_SCHEDULER_MAX_JOBS`
-(100), `GROK_SCHEDULED_MAX_STEPS` (25), `GROK_MCP_CONFIG`, `GROK_MCP_CONNECT_TIMEOUT`
-(20 s), `GROK_MCP_CALL_TIMEOUT` (90 s), `GROK_TELEGRAM_TOKEN`, `GROK_TELEGRAM_ALLOWED_IDS`,
-`GROK_PLUGINS`, `GROK_LOCAL_API_URL` / `GROK_LOCAL_MODEL`, `GROK_MEMORY_DB`,
-`GROK_SCHEDULE_DB`. Project rules in `AGENTS.md` / `GROKBOT.md` / `CLAUDE.md` at the
+Configuration (environment): `AGENTIC_API_KEY`, `AGENTIC_API_URL`, `AGENTIC_MODEL`,
+`AGENTIC_SANDBOX_BACKEND`, `AGENTIC_SANDBOX_IMAGE`, `AGENTIC_MAX_STEPS` (default 40),
+`AGENTIC_CONTEXT_TOKENS` (default 128000, auto-filled from the model list when
+available), `AGENTIC_SEARCH_BACKEND` (`auto`/`tavily`/`brave`/`searxng`/`duckduckgo`/`off`)
+with `TAVILY_API_KEY` / `BRAVE_API_KEY` / `AGENTIC_SEARXNG_URL`, `AGENTIC_MAX_FILE_BYTES`
+(10 MB), `AGENTIC_MAX_WORKSPACE_BYTES` (500 MB), `AGENTIC_MAX_FILES` (2000),
+`AGENTIC_MAX_SUBAGENT_DEPTH` (1), `AGENTIC_SCHEDULER_TICK` (30 s), `AGENTIC_SCHEDULER_MAX_JOBS`
+(100), `AGENTIC_SCHEDULED_MAX_STEPS` (25), `AGENTIC_MCP_CONFIG`, `AGENTIC_MCP_CONNECT_TIMEOUT`
+(20 s), `AGENTIC_MCP_CALL_TIMEOUT` (90 s), `AGENTIC_TELEGRAM_TOKEN`, `AGENTIC_TELEGRAM_ALLOWED_IDS`,
+`AGENTIC_PLUGINS`, `AGENTIC_LOCAL_API_URL` / `AGENTIC_LOCAL_MODEL`, `AGENTIC_MEMORY_DB`,
+`AGENTIC_SCHEDULE_DB`. Project rules in `AGENTS.md` / `AGENTICBOT.md` / `CLAUDE.md` at the
 workspace root are added to the system prompt.
 
 ## Run locally
 
 ```sh
 pip install -r requirements.txt
-export GROK_API_KEY='your-key'
-export GROK_API_URL='https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
-export GROK_MODEL='gemini-flash-latest'
+export AGENTIC_API_KEY='your-key'
+export AGENTIC_API_URL='https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
+export AGENTIC_MODEL='gemini-flash-latest'
 python webui.py
 ```
 
@@ -91,7 +91,7 @@ task** still uses the original restart-safe harness with explicit artifact check
 retention and deployment limits. Completion there requires explicit supported
 artifact checks; a budget stop is never success.
 
-For evaluation or benchmark runs, set `GROK_TESTS_READ_ONLY=1`: the file tools then refuse to modify
+For evaluation or benchmark runs, set `AGENTIC_TESTS_READ_ONLY=1`: the file tools then refuse to modify
 test paths, so the agent cannot make a failing test pass by editing the test itself (shell commands are
 not covered — use a read-only Docker mount for that).
 
@@ -188,8 +188,8 @@ hardline-blocked commands refused at submit. Known-irrelevant differences are
 handled with numbers, not vibes: a looser `max_diff`, a per-channel `tolerance`,
 or `ignore` rectangles, each with a `note` documenting the exemption. The
 interactive agent gets the same verifier as the `verify_visual` tool (Pillow
-pixel diff; HTML/URL sides rendered through the existing GROK_PREVIEW /
-GROK_BROWSER_ENABLED machinery). Example:
+pixel diff; HTML/URL sides rendered through the existing AGENTIC_PREVIEW /
+AGENTIC_BROWSER_ENABLED machinery). Example:
 `[{"type":"pixel_diff","path":"page.html","source_path":"figma.png","max_diff":0.02,"tolerance":8,"note":"font antialiasing"}]`
 or `[{"type":"command","command":"python3 test_out.py","expect_exit":0}]`.
 
@@ -197,19 +197,19 @@ The section above describes the durable background harness. The interactive agen
 can additionally run shell commands (under the sandbox policy), fetch pages and
 search the web. It still cannot send messages, buy things, or reach files outside its
 workspace unless you choose `full-access`. Browser automation (`browse_open`,
-`browse_read`, and `browse_click`/`browse_type` with `GROK_BROWSER_INTERACT=on`) is
-opt-in with `GROK_BROWSER_ENABLED=on` and currently runs in **durable background
+`browse_read`, and `browse_click`/`browse_type` with `AGENTIC_BROWSER_INTERACT=on`) is
+opt-in with `AGENTIC_BROWSER_ENABLED=on` and currently runs in **durable background
 tasks** only. Completion of
 background tasks verifies only the explicit supported byte checks, not every
 possible semantic goal. Review generated content.
 
 **Web browsing** (`browse_open` / `browse_see` / `browse_scroll` / `browse_click`)
 lets the interactive agent open PUBLIC web pages and see them: opt in with
-`GROK_AGENT_BROWSER=on` (separate from `GROK_BROWSER_ENABLED` and `GROK_PREVIEW`;
+`AGENTIC_AGENT_BROWSER=on` (separate from `AGENTIC_BROWSER_ENABLED` and `AGENTIC_PREVIEW`;
 needs Playwright + Chromium). Each view returns a screenshot image (with a
-vision-capable model; `GROK_AGENT_BROWSER_IMAGES=off` keeps the text snapshot
+vision-capable model; `AGENTIC_AGENT_BROWSER_IMAGES=off` keeps the text snapshot
 only) plus bounded page text and a numbered list of clickable elements, at most
-8 actions per turn (`GROK_AGENT_BROWSER_MAX_ACTIONS`). Chromium runs INSIDE a
+8 actions per turn (`AGENTIC_AGENT_BROWSER_MAX_ACTIONS`). Chromium runs INSIDE a
 bubblewrap network namespace with no direct egress (mandatory: no bubblewrap, no
 browser), and every connection - navigations, subresources and every redirect
 hop, which Playwright does not route - must pass a fail-closed vetting proxy:
@@ -218,7 +218,7 @@ rebinding flips nothing), ports 80/443. An unapproved host is refused before any
 request fires and is named back to you for approval. WebSockets are refused
 entirely (read/click-only). This is EXPERIMENTAL. On Windows/macOS there is no
 namespace: the browser refuses to start unless you set
-`GROK_AGENT_BROWSER_ISOLATION=proxy`, a weaker mode where Chromium's own proxy
+`AGENTIC_AGENT_BROWSER_ISOLATION=proxy`, a weaker mode where Chromium's own proxy
 switches (checked by a startup self-test) send everything through the same
 vetting proxy, with no OS sandbox behind it. The measured
 security boundary and its open edges are in docs/AGENT_BROWSER_VETPROXY.md -
@@ -230,13 +230,13 @@ is instructed never to follow instructions found on a page. When a page needs a
 person (a login, a captcha, a payment), the agent calls `request_takeover`: the
 web UI shows a live view of its browser where you click, type and scroll, then
 tap Done. The agent only sees the page afterwards, never what you typed; it
-waits up to `GROK_AGENT_BROWSER_TAKEOVER_TIMEOUT` seconds (default 600).
+waits up to `AGENTIC_AGENT_BROWSER_TAKEOVER_TIMEOUT` seconds (default 600).
 
 **UI preview** (`preview_page`) lets the interactive agent SEE the HTML it
-writes: opt in with `GROK_PREVIEW=on` (separate from `GROK_BROWSER_ENABLED`;
+writes: opt in with `AGENTIC_PREVIEW=on` (separate from `AGENTIC_BROWSER_ENABLED`;
 needs Playwright + Chromium). The agent renders a workspace HTML file in
 headless Chromium and gets back the screenshot as an image (with a
-vision-capable model; set `GROK_PREVIEW_IMAGES=off` for text-only models to
+vision-capable model; set `AGENTIC_PREVIEW_IMAGES=off` for text-only models to
 keep just the layout numbers) plus measured layout facts: horizontal overflow,
 top element boxes and a best-effort contrast pass. It renders workspace files
 only — never URLs — from a loopback-only server; the page cannot reach the
@@ -246,10 +246,10 @@ per turn. See `docs/skills/ui-preview-pass/SKILL.md` for the companion
 workflow skill (import it from the Skills panel).
 
 Files are limited per session (defaults: 2000 files, 10 MB per file, 500 MB
-total; configurable with `GROK_MAX_*`). Paths cannot escape the workspace. Existing files in that workspace can be
+total; configurable with `AGENTIC_MAX_*`). Paths cannot escape the workspace. Existing files in that workspace can be
 replaced by a task. Download important results. New chat clears only your
 conversation, not workspace files or task evidence. Last 24 chat entries and
-task trajectories persist in SQLite. Set a stable GROK_SESSION_SECRET to keep
+task trajectories persist in SQLite. Set a stable AGENTIC_SESSION_SECRET to keep
 session access across restarts. Remove unused workspace folders manually when
 the app is stopped. This demo is not a multi-user service.
 
@@ -277,14 +277,14 @@ headers are never proof of authentication. For **every** tunnel, reverse proxy
 explicitly select exposed mode and set an app password before starting:
 
 ```sh
-export GROK_DEPLOYMENT_MODE=exposed
-export GROK_APP_PASSWORD='a-long-unique-password'
-export GROK_SESSION_SECRET='a-long-random-session-secret'
+export AGENTIC_DEPLOYMENT_MODE=exposed
+export AGENTIC_APP_PASSWORD='a-long-unique-password'
+export AGENTIC_SESSION_SECRET='a-long-random-session-secret'
 # For an HTTPS tunnel, also set:
-export GROK_SECURE_COOKIE=1
+export AGENTIC_SECURE_COOKIE=1
 # Behind N reverse proxies that append X-Forwarded-For (nginx, Caddy, Cloudflare Tunnel), rate-limit
 # logins per real client instead of per proxy address (never set this when clients reach the app directly):
-# export GROK_TRUSTED_PROXIES=1
+# export AGENTIC_TRUSTED_PROXIES=1
 python webui.py
 ```
 
@@ -322,21 +322,21 @@ strings. A stream ending without [DONE] is treated as interrupted.
 - **Stop works during waits too.** Pressing Stop interrupts a hung provider stream and a
   running shell command within about a second (socket shutdown + process-group kill), not
   only between steps. A provider stream also has a hard total cap
-  (`GROK_STREAM_TIMEOUT`, default 600s) so a dribbling provider cannot hang a turn forever.
+  (`AGENTIC_STREAM_TIMEOUT`, default 600s) so a dribbling provider cannot hang a turn forever.
 - **Every run is logged** to `.runlog.jsonl` in the data directory: run id, source, model,
   goal, status, duration, steps, each tool call (name, ok, duration, error) and the final
-  error. Inspect with `grokbot runs [-v]` or `GET /runs`.
+  error. Inspect with `agenticbot runs [-v]` or `GET /runs`.
 - **Backup and restore:**
 
   ```sh
-  python -m grokbot backup --out grokbot-backup.zip            # consistent DB snapshots + workspaces
-  python -m grokbot restore --from grokbot-backup.zip          # verifies first, keeps previous data
+  python -m agenticbot backup --out agenticbot-backup.zip            # consistent DB snapshots + workspaces
+  python -m agenticbot restore --from agenticbot-backup.zip          # verifies first, keeps previous data
   ```
 
   Restore checks the archive (readable zip, `PRAGMA integrity_check` on every database) before
   replacing anything, and keeps the previous data next to the data dir as
   `.pre-restore-<timestamp>`. Stop the server before restoring.
-- **Optional edit review** (`GROK_APPROVE_EDITS=on`): file edits ask for approval with a
+- **Optional edit review** (`AGENTIC_APPROVE_EDITS=on`): file edits ask for approval with a
   unified diff before they are applied. Do not combine with unattended schedules
   (approval=never denies every edit there).
 - **Benchmark:** `python benchmark.py` runs 10 offline tasks (turns, edits, commands, Stop
@@ -416,7 +416,7 @@ https://hermes-agent.nousresearch.com/docs/user-guide/features/skills
   learn and reuse automatically, or the Skills panel to create/edit directly.
 
 Storage: `workspaces/.skills/<browser-session-id>/<skill-name>/SKILL.md` (under
-`GROK_WORKSPACE_DIR` when configured). Agent-created skills carry explicit
+`AGENTIC_WORKSPACE_DIR` when configured). Agent-created skills carry explicit
 provenance and are eligible for the zero-cost stale/archive lifecycle; manually
 created and legacy skills are protected from automatic archival. Pin an agent
 skill to exempt it from automatic status changes. New chat and server restarts
@@ -502,3 +502,20 @@ Task bodies without a finish_reason remain compatible; chat still requires DONE.
 Tests cover both original suites plus the skill/output-budget/upload boundary.
 Native Windows and physical iPhone/Safari were not run by the combined-branch
 author. Earlier Windows test claims refer to #7's author report, not this build.
+
+## Renaming from grok-bot
+
+The project is now **Agentic Bot**, not affiliated with xAI. Install with
+`pip install -e .` and run `agentic-bot` or `python -m agenticbot`.
+The old `grokbot` / `grok-bot` commands and `grokbot.*` imports are deprecated aliases.
+
+Use `AGENTIC_*` settings. Legacy `GROK_*` values still work when the new setting
+is absent; an explicitly set new value (even empty) wins. `AGENTICBOT.md` is read
+alongside legacy `GROKBOT.md`. Existing data directories, login-device cookies,
+backup archive format and Docker volume keys are retained for compatibility.
+Fresh local installations store data under `agenticbot/workspaces`; if the old
+`grokbot/workspaces` directory exists it is reused without copying or deleting it.
+When renaming your checkout folder, keep Docker's previous Compose project name
+(`docker compose -p grok-bot up -d`) to reuse its existing named volume.
+Saved UI theme settings fall back to the old key. Provider names such as
+`grok-4-fast` remain unchanged because those are actual model identifiers.

@@ -1,7 +1,7 @@
 """Tests for the interactive browse tools (browse_open/see/scroll/click): availability
 flags, per-domain approval, action budget, image hand-off, turn-end cleanup, URL guards.
 Offline except the clearly marked real-Chromium class, which skips unless
-GROK_LIVE_BROWSE_TESTS=1 (needs playwright + chromium)."""
+AGENTIC_LIVE_BROWSE_TESTS=1 (needs playwright + chromium)."""
 import base64
 import http.server
 import shutil
@@ -14,12 +14,12 @@ import unittest
 import urllib.parse
 from unittest import mock
 
-from grokbot import agent_browser, config
-from grokbot.agent import run_turn, build_system_prompt, BROWSE_RULE
-from grokbot.agent_browser import AgentBrowserSession, BrowserError, format_snapshot, host_of
-from grokbot.approvals import ApprovalBroker, SandboxPolicy, allow_pattern, pattern_matches
-from grokbot.tools import ToolContext, ToolRegistry, default_registry
-from grokbot.tools import browse as browse_tool
+from agenticbot import agent_browser, config
+from agenticbot.agent import run_turn, build_system_prompt, BROWSE_RULE
+from agenticbot.agent_browser import AgentBrowserSession, BrowserError, format_snapshot, host_of
+from agenticbot.approvals import ApprovalBroker, SandboxPolicy, allow_pattern, pattern_matches
+from agenticbot.tools import ToolContext, ToolRegistry, default_registry
+from agenticbot.tools import browse as browse_tool
 from agent_loop import Workspace
 
 FAKE_PNG = b'\x89PNG\r\n\x1a\n' + b'fake' * 100
@@ -133,7 +133,7 @@ class ToolBehaviorTests(unittest.TestCase):
             result = self.reg.execute(self.ctx, 'browse_open', {'url': 'https://example.com/page'})
         self.assertTrue(result.ok, result.output)
         self.assertEqual(result.meta.get('images'), None)
-        self.assertIn('GROK_AGENT_BROWSER_IMAGES', result.output)
+        self.assertIn('AGENTIC_AGENT_BROWSER_IMAGES', result.output)
 
     def test_domain_approval_asked_once_per_turn(self):
         spec = self.reg.get('browse_open')
@@ -322,7 +322,7 @@ class LiveChromiumTests(unittest.TestCase):
         cls.server.server_close()
 
     def setUp(self):
-        from grokbot import browser_isolation
+        from agenticbot import browser_isolation
         if _TEST_ISOLATION != 'proxy' and not browser_isolation.available():
             if _REQUIRE_CAPS:
                 self.fail('required live-browse capability missing: bubblewrap (bwrap)')
@@ -419,7 +419,7 @@ class LiveChromiumTests(unittest.TestCase):
                 self.session.open(bad, {'127.0.0.1', 'localhost'})
 
     def test_wedged_page_is_killed_not_hung(self):
-        with mock.patch('grokbot.agent_browser._action_deadline', return_value=6):
+        with mock.patch('agenticbot.agent_browser._action_deadline', return_value=6):
             self.session.open(self.base_a + '/busy', {self.A}, False)
             import time as _time
             _time.sleep(3)
@@ -434,9 +434,9 @@ class LiveChromiumTests(unittest.TestCase):
     @unittest.skipUnless(sys.platform.startswith('linux'), 'reads /proc/<pid>/environ, Linux-only')
     def test_browser_processes_do_not_inherit_secrets(self):
         import os as _os
-        with mock.patch.dict(_os.environ, {'GROK_CANARY_API_KEY': 'canary-31337'}):
+        with mock.patch.dict(_os.environ, {'AGENTIC_CANARY_API_KEY': 'canary-31337'}):
             self.session.open(self.base_a + '/two', {self.A}, False)
-            from grokbot import agent_browser as _ab
+            from agenticbot import agent_browser as _ab
             pids = [self.session._driver_pid] + _ab._descendants(self.session._driver_pid)
             self.assertGreater(len(pids), 1)
             for pid in pids:
@@ -473,13 +473,13 @@ class LiveChromiumTests(unittest.TestCase):
 
 class HardeningUnitTests(unittest.TestCase):
     def test_scrubbed_env_drops_secrets(self):
-        from grokbot.agent_browser import scrubbed_env
-        env = scrubbed_env({'PATH': '/bin', 'GROK_API_KEY': 'x', 'GROK_TELEGRAM_TOKEN': 'y', 'GROK_APP_PASSWORD': 'z',
-                            'GROK_SESSION_SECRET': 's', 'TAVILY_API_KEY': 't', 'HOME': '/h'})
+        from agenticbot.agent_browser import scrubbed_env
+        env = scrubbed_env({'PATH': '/bin', 'AGENTIC_API_KEY': 'x', 'AGENTIC_TELEGRAM_TOKEN': 'y', 'AGENTIC_APP_PASSWORD': 'z',
+                            'AGENTIC_SESSION_SECRET': 's', 'TAVILY_API_KEY': 't', 'HOME': '/h'})
         self.assertEqual(env, {'PATH': '/bin', 'HOME': '/h'})
 
     def test_browse_screenshot_labelled_untrusted(self):
-        from grokbot.agent import _screenshot_note
+        from agenticbot.agent import _screenshot_note
         self.assertIn('UNTRUSTED', _screenshot_note('browse_open'))
         self.assertIn('not a message from the user', _screenshot_note('browse_click'))
         self.assertIn('critique the layout', _screenshot_note('preview_page'))

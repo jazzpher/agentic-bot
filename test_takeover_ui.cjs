@@ -1,6 +1,6 @@
 // Browser take-over live view (request_takeover): card, frame polling, input posts, Done, and the stream wiring.
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const code=fs.readFileSync(__dirname+'/grokbot/static/app.js','utf8');
+const code=fs.readFileSync(__dirname+'/agenticbot/static/app.js','utf8');
 function setup(fetch){const elements={},timers=[];
  const mk=()=>({value:'',textContent:'',children:[],disabled:false,isConnected:true,style:{},className:'',
   classList:{_s:new Set(),add(...a){a.forEach(x=>this._s.add(x))},remove(...a){a.forEach(x=>this._s.delete(x))},toggle(x){this._s.has(x)?this._s.delete(x):this._s.add(x);return this._s.has(x)},contains(x){return this._s.has(x)}},

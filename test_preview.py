@@ -14,10 +14,10 @@ import urllib.request
 import urllib.error
 from unittest import mock
 
-from grokbot import config, preview
-from grokbot.agent import run_turn, scrub_preview_images
-from grokbot.tools import ToolContext, ToolRegistry, default_registry
-from grokbot.tools import preview as preview_tool
+from agenticbot import config, preview
+from agenticbot.agent import run_turn, scrub_preview_images
+from agenticbot.tools import ToolContext, ToolRegistry, default_registry
+from agenticbot.tools import preview as preview_tool
 from agent_loop import Workspace
 
 
@@ -238,7 +238,7 @@ class ToolTests(unittest.TestCase):
             result = reg.execute(self.ctx, 'preview_page', {'path': 'index.html'})
         self.assertTrue(result.ok)
         self.assertEqual(result.meta.get('images'), [])
-        self.assertIn('GROK_PREVIEW_IMAGES', result.output)
+        self.assertIn('AGENTIC_PREVIEW_IMAGES', result.output)
 
     def test_bad_viewport_rejected_by_schema(self):
         reg = self.registry()
@@ -292,7 +292,7 @@ class AgentLoopImageTests(unittest.TestCase):
 
         @reg.tool('fake_preview', 'fake', {'type': 'object', 'properties': {}, 'required': []})
         def fake_preview(ctx):
-            from grokbot.tools import ToolResult
+            from agenticbot.tools import ToolResult
             data_url = 'data:image/png;base64,' + base64.b64encode(FAKE_PNG).decode()
             return ToolResult('fake_preview', {}, 'PREVIEW text', True, 0.0,
                               meta={'images': [{'data_url': data_url, 'name': 'preview-index.html'}]})
@@ -352,8 +352,8 @@ class AgentLoopImageTests(unittest.TestCase):
         self.assertNotIn('preview_session', ctx.extras)
 
     def test_prompt_rule_included_only_when_enabled(self):
-        from grokbot.agent import build_system_prompt, PREVIEW_RULE
-        from grokbot.approvals import SandboxPolicy
+        from agenticbot.agent import build_system_prompt, PREVIEW_RULE
+        from agenticbot.approvals import SandboxPolicy
         reg = default_registry(plugins_too=False)
         ctx = ToolContext(workspace=self.ws, session_id='t')
         with mock.patch.object(config, 'PREVIEW_ENABLED', True):
@@ -362,8 +362,8 @@ class AgentLoopImageTests(unittest.TestCase):
             self.assertNotIn(PREVIEW_RULE, build_system_prompt(ctx, reg, SandboxPolicy()))
 
 
-@unittest.skipUnless(shutil.which('python3') and os.environ.get('GROK_LIVE_PREVIEW_TESTS') == '1',
-                     'live Chromium test: set GROK_LIVE_PREVIEW_TESTS=1 with playwright + chromium installed')
+@unittest.skipUnless(shutil.which('python3') and os.environ.get('AGENTIC_LIVE_PREVIEW_TESTS') == '1',
+                     'live Chromium test: set AGENTIC_LIVE_PREVIEW_TESTS=1 with playwright + chromium installed')
 class LiveChromiumTests(unittest.TestCase):
     """Real Playwright pass: screenshot bytes, layout numbers, guard blocks, cleanup."""
 

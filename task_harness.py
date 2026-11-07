@@ -242,7 +242,7 @@ class TaskManager:
         command = c.get('command')
         if not isinstance(command, str) or not 1 <= len(command) <= 500:
             raise ValueError('command checks require a command string up to 500 characters.')
-        from grokbot.sandbox import hardline_reason
+        from agenticbot.sandbox import hardline_reason
         reason = hardline_reason(command)
         if reason:
             raise ValueError('command check refused. ' + reason)
@@ -259,7 +259,7 @@ class TaskManager:
 
     @staticmethod
     def _validate_pixel_check(c, workspace):
-        from grokbot.visual import HTML_SUFFIXES, IMAGE_SUFFIXES, VisualVerifyError, validate_ignore, validate_threshold, validate_tolerance
+        from agenticbot.visual import HTML_SUFFIXES, IMAGE_SUFFIXES, VisualVerifyError, validate_ignore, validate_threshold, validate_tolerance
         kinds = ', '.join(sorted(IMAGE_SUFFIXES)) + ' or ' + '/'.join(sorted(HTML_SUFFIXES))
         for key in ('path', 'source_path'):
             value = c.get(key)
@@ -320,7 +320,7 @@ class TaskManager:
         past = [m for m in history if m.get('role') != 'system'][-24:]
         # Lazy: a module-level import would drag the agent loop (and subprocess) into hosts
         # that import task_harness under restricted environments.
-        from grokbot.agent import project_instruction_file, project_instructions
+        from agenticbot.agent import project_instruction_file, project_instructions
         project_name = project_instruction_file(workspace)
         project = project_instructions(workspace)
         state = {'steps': 0, 'attempts': 0, 'requirements': requirements, 'messages': [{'role': 'system', 'content': context_rules + '\n' + workspace.skills.index_context(goal) + project + '\n' + RULES},
@@ -427,7 +427,7 @@ class TaskManager:
         Checks come from the owner, not the model, and hardline-blocked commands
         are rejected at submit; they run without a per-command approval prompt on
         the configured sandbox backend (subprocess fallback), network disabled."""
-        from grokbot import sandbox as _sandbox
+        from agenticbot import sandbox as _sandbox
         backend = _sandbox.get_backend()
         if backend is None or not backend.available():
             backend = _sandbox.SubprocessBackend()
@@ -460,20 +460,20 @@ class TaskManager:
     def _verify_pixel_diff(self, c, workspace):
         """Deterministic pixel diff between an output artifact and a ground truth.
 
-        A .html/.htm side is rendered headlessly first (needs GROK_PREVIEW=on);
+        A .html/.htm side is rendered headlessly first (needs AGENTIC_PREVIEW=on);
         image sides are compared directly. The highlighted diff lands next to
         the output as <name>.diff.png."""
-        from grokbot import config as _gconfig
-        from grokbot.visual import MAX_IMAGE_BYTES, VisualVerifyError, diff_images, is_html_name
+        from agenticbot import config as _gconfig
+        from agenticbot.visual import MAX_IMAGE_BYTES, VisualVerifyError, diff_images, is_html_name
 
         def side(rel, label):
             path = workspace.path(rel)
             if is_html_name(rel):
                 if not _gconfig.PREVIEW_ENABLED:
-                    raise VisualVerifyError('rendering HTML needs GROK_PREVIEW=on')
+                    raise VisualVerifyError('rendering HTML needs AGENTIC_PREVIEW=on')
                 if not path.is_file():
                     raise VisualVerifyError('HTML file missing: ' + label)
-                from grokbot.preview import PreviewError, PreviewSession
+                from agenticbot.preview import PreviewError, PreviewSession
                 session = PreviewSession(workspace.root)
                 try:
                     return session.capture(path.relative_to(workspace.root).as_posix(),
@@ -498,9 +498,9 @@ class TaskManager:
                                  ignore=c.get('ignore'), diff_path=workspace.path(diff_rel))
         except VisualVerifyError as exc:
             text = str(exc)
-            if 'GROK_PREVIEW' in text or 'Pillow' in text or 'Playwright' in text:
+            if 'AGENTIC_PREVIEW' in text or 'Pillow' in text or 'Playwright' in text:
                 return 'blocked', ('Pixel-diff check cannot run: ' + text + '. Install the verifier '
-                                   '(pip install pillow; HTML sides also need GROK_PREVIEW=on and Playwright), '
+                                   '(pip install pillow; HTML sides also need AGENTIC_PREVIEW=on and Playwright), '
                                    'then resume.')
             return 'check', 'Artifact verification could not run: ' + text
         max_diff = c.get('max_diff', 0.01)

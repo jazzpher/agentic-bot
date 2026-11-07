@@ -3,11 +3,11 @@
 Status: EXPERIMENTAL, branch `exp/agent-browser-vetproxy` only. Not merged,
 not enabled anywhere by default. Linux + bubblewrap by default; Windows/macOS only in
 the explicit, weaker proxy mode (see Platform scope). Do not enable
-`GROK_AGENT_BROWSER` on a real installation while the open gaps below stand.
+`AGENTIC_AGENT_BROWSER` on a real installation while the open gaps below stand.
 
 ## Threat model
 
-The interactive agent browser (`grokbot/agent_browser.py`) lets a model open
+The interactive agent browser (`agenticbot/agent_browser.py`) lets a model open
 public web pages and read them. A page is hostile input: it can redirect to
 `127.0.0.1` or the LAN, embed subresources from hosts the user never approved,
 or race DNS. Before this branch, Playwright routed only the top-level
@@ -18,13 +18,13 @@ went out unvetted and were only blanked after landing.
 
 Three pieces, all stdlib + bubblewrap, no new dependencies:
 
-1. **Vetting proxy** (`grokbot/vetproxy.py`). The only network path the
+1. **Vetting proxy** (`agenticbot/vetproxy.py`). The only network path the
    browser can use. A connection is allowed only when the destination host is
    user-approved AND resolves to public IPs. The proxy resolves and pins DNS
    itself, so Chromium never does DNS and a rebinding flip changes nothing.
    Ports 80/443 only. Every refusal is recorded and surfaced to the user as
    "approve this host and retry".
-2. **Network isolation** (`grokbot/browser_isolation.py`). Chromium launches
+2. **Network isolation** (`agenticbot/browser_isolation.py`). Chromium launches
    inside a bubblewrap network namespace with no external interfaces: direct
    egress is impossible by construction, not by policy. The namespace mounts
    a MINIMAL read-only filesystem (runtime libraries, a narrow /etc
@@ -45,7 +45,7 @@ Three pieces, all stdlib + bubblewrap, no new dependencies:
    fallback to an unproxied browser. This is NOT a claim of containment
    against a fully compromised renderer: it removes network paths and host
    data; kernel and bwrap semantics themselves are assumed, not proven.
-3. **In-namespace relay** (`grokbot/isorelay.py`). A loopback relay inside the
+3. **In-namespace relay** (`agenticbot/isorelay.py`). A loopback relay inside the
    namespace forwards to the proxy on the host, so the browser's only route
    out leads through vetting.
 
@@ -171,9 +171,9 @@ isolated browsers on such hosts need the same treatment.
 ## Platform scope
 
 - **Linux: `namespace` (always).** Chromium inside the bubblewrap network
-  namespace described above. `GROK_AGENT_BROWSER_ISOLATION` is ignored, so a
+  namespace described above. `AGENTIC_AGENT_BROWSER_ISOLATION` is ignored, so a
   Linux install can never be downgraded by config.
-- **Windows/macOS: refused by default.** With `GROK_AGENT_BROWSER_ISOLATION=proxy`
+- **Windows/macOS: refused by default.** With `AGENTIC_AGENT_BROWSER_ISOLATION=proxy`
   the session runs the same `VettingProxy` on `127.0.0.1:<random port>` and
   launches Chromium (fresh temporary profile, never a personal one) with
   `--proxy-server` pointing at it plus, appended after any operator/test args:
@@ -190,6 +190,6 @@ isolated browsers on such hosts need the same treatment.
 - **What proxy mode is not.** Enforcement lives in Chromium's network stack, not
   the OS: a compromised browser process can open its own sockets, and there is
   no filesystem or process sandbox. The live suites run in both modes
-  (`GROK_TEST_BROWSER_ISOLATION=proxy` picks proxy mode in tests, on any OS) and
+  (`AGENTIC_TEST_BROWSER_ISOLATION=proxy` picks proxy mode in tests, on any OS) and
   CI runs proxy mode on Windows and macOS. A WSL2 or Docker-based path that
   restores real isolation there is separate, undecided work.

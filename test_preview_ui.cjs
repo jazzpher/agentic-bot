@@ -1,5 +1,5 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const code=fs.readFileSync(__dirname+'/grokbot/static/app.js','utf8');
+const code=fs.readFileSync(__dirname+'/agenticbot/static/app.js','utf8');
 function setup(){const elements={};function el(id){return elements[id] ||= {value:'',textContent:'',children:[],disabled:false,isConnected:true,appendChild(c){this.children.push(c)},replaceChildren(){this.children=[]},focus(){},addEventListener(n,f){this[n]=f}}}const ctx={console,Set,Map,JSON,Promise,TextDecoder,fetch:async()=>({ok:true,json:async()=>[]}),setTimeout:f=>f(),document:{getElementById:el,createElement:(tag)=>{if(tag==='img')return {src:'',alt:'',className:'',children:[],appendChild(c){this.children.push(c)}};return {textContent:'',isConnected:true,style:{},children:[],appendChild(c){this.children.push(c)},addEventListener(n,f){this[n]=f}}}}};vm.createContext(ctx);vm.runInContext(code.replace('restoreTasks();','').replace('restoreHistory();','').replace('loadPolicy();','').replace('refreshKeyStatus();\n',''),ctx);return {ctx,el}}
 const s=setup();
 // A preview_image event decodes no image until expanded.

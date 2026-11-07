@@ -6,8 +6,8 @@ import subprocess
 import unittest
 from unittest import mock
 
-from grokbot import agent_browser, config
-from grokbot.agent_browser import BrowserError
+from agenticbot import agent_browser, config
+from agenticbot.agent_browser import BrowserError
 
 
 class IsolationModeTests(unittest.TestCase):
@@ -25,7 +25,7 @@ class IsolationModeTests(unittest.TestCase):
             with self.assertRaises(BrowserError) as ctx:
                 self.mode(platform, 'namespace')
             self.assertIn('bubblewrap', str(ctx.exception))
-            self.assertIn('GROK_AGENT_BROWSER_ISOLATION=proxy', str(ctx.exception))
+            self.assertIn('AGENTIC_AGENT_BROWSER_ISOLATION=proxy', str(ctx.exception))
             self.assertEqual(self.mode(platform, 'proxy'), 'proxy')
 
     def test_other_platforms_refuse_even_with_proxy(self):
@@ -38,7 +38,7 @@ class IsolationModeTests(unittest.TestCase):
             self.mode('linux', 'namespace', 'off')
 
     def test_config_parses_the_setting(self):
-        name = 'GROK_AGENT_BROWSER_ISOLATION'
+        name = 'AGENTIC_AGENT_BROWSER_ISOLATION'
         for raw, want in (('', 'namespace'), ('proxy', 'proxy'), (' PROXY ', 'proxy'),
                           ('namespace', 'namespace'), ('none', 'namespace')):
             with mock.patch.dict(os.environ, {name: raw}):

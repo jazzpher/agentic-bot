@@ -33,24 +33,24 @@ jobs:
           bwrap --ro-bind / / --dev /dev --proc /proc --unshare-net true && echo BWRAP-MIN-OK || echo BWRAP-MIN-FAIL
       - run: pip install playwright h2 && python -m playwright install chromium --with-deps
       # Live isolation suite with explicitly installed capabilities: a missing
-      # capability here must FAIL (GROK_REQUIRE_LIVE_BROWSE_CAPS=1), never skip.
-      - run: GROK_REQUIRE_LIVE_BROWSE_CAPS=1 python -m unittest test_vetproxy test_agent_browse -v
+      # capability here must FAIL (AGENTIC_REQUIRE_LIVE_BROWSE_CAPS=1), never skip.
+      - run: AGENTIC_REQUIRE_LIVE_BROWSE_CAPS=1 python -m unittest test_vetproxy test_agent_browse -v
       # The same live suites (plus take-over) in the explicit Windows/macOS proxy mode.
-      - run: GROK_TEST_BROWSER_ISOLATION=proxy GROK_REQUIRE_LIVE_BROWSE_CAPS=1 python -m unittest test_vetproxy test_agent_browse test_takeover test_browser_platform -v
-      - run: python -m py_compile webui.py agent_loop.py bot.py task_harness.py grokbot/*.py grokbot/tools/*.py grokbot/gateway/*.py
+      - run: AGENTIC_TEST_BROWSER_ISOLATION=proxy AGENTIC_REQUIRE_LIVE_BROWSE_CAPS=1 python -m unittest test_vetproxy test_agent_browse test_takeover test_browser_platform -v
+      - run: python -m py_compile webui.py agent_loop.py bot.py task_harness.py agenticbot/*.py agenticbot/tools/*.py agenticbot/gateway/*.py
       - run: for f in test_*.cjs; do node "$f" || exit 1; done
-      - run: python -m grokbot exec --mock --workspace /tmp/ci-ws -q "smoke" | grep -q "(mock) got your message"
+      - run: python -m agenticbot exec --mock --workspace /tmp/ci-ws -q "smoke" | grep -q "(mock) got your message"
       - name: wheel smoke (pip install . must ship gateway + web assets)
         run: |
           python -m venv /tmp/pkgenv
           /tmp/pkgenv/bin/pip install -q .
           cd /tmp
-          /tmp/pkgenv/bin/python -c "import grokbot.gateway.telegram, webui; c = webui.app.test_client(); assert c.get('/').status_code == 200; assert c.get('/static/app.js').status_code == 200; print('wheel smoke OK')"
+          /tmp/pkgenv/bin/python -c "import agenticbot.gateway.telegram, webui; c = webui.app.test_client(); assert c.get('/').status_code == 200; assert c.get('/static/app.js').status_code == 200; print('wheel smoke OK')"
       - run: |
-          python -m grokbot exec --mock --workspace /tmp/ci-ws -q '!tool delegate {"task": "say hi", "max_steps": 1}' | grep -q "Sub-agent"
+          python -m agenticbot exec --mock --workspace /tmp/ci-ws -q '!tool delegate {"task": "say hi", "max_steps": 1}' | grep -q "Sub-agent"
 
   browser-cross-platform:
-    # Agent browser + take-over in GROK_AGENT_BROWSER_ISOLATION=proxy mode on real Windows and macOS.
+    # Agent browser + take-over in AGENTIC_AGENT_BROWSER_ISOLATION=proxy mode on real Windows and macOS.
     strategy:
       fail-fast: false
       matrix:
@@ -69,6 +69,6 @@ jobs:
       - run: python -m unittest test_browser_platform -v
       - name: live browser suites in proxy mode
         env:
-          GROK_TEST_BROWSER_ISOLATION: proxy
-          GROK_REQUIRE_LIVE_BROWSE_CAPS: '1'
+          AGENTIC_TEST_BROWSER_ISOLATION: proxy
+          AGENTIC_REQUIRE_LIVE_BROWSE_CAPS: '1'
         run: python -m unittest test_vetproxy test_agent_browse test_takeover -v

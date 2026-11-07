@@ -1,5 +1,5 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const code=fs.readFileSync(__dirname+'/grokbot/static/app.js','utf8');
+const code=fs.readFileSync(__dirname+'/agenticbot/static/app.js','utf8');
 function setup(fetch, realDOM=false){const elements={};
  const mk=()=>({value:'',textContent:'',children:[],disabled:false,isConnected:true,style:{},className:'',
   classList:{_s:new Set(),add(...a){a.forEach(x=>this._s.add(x))},remove(...a){a.forEach(x=>this._s.delete(x))},toggle(x){this._s.has(x)?this._s.delete(x):this._s.add(x);return this._s.has(x)},contains(x){return this._s.has(x)}},
@@ -51,7 +51,7 @@ const resp=(obj,ok=true)=>({ok,json:async()=>obj,text:async()=>typeof obj==='str
    s.ctx.TextEncoder=TextEncoder; const seen=[]; const st=s.el('status'); Object.defineProperty(st,'textContent',{get(){return this._t||''},set(v){this._t=v;seen.push(v)}});
    s.el('in').value='hi';
    await vm.runInContext('send()',s.ctx);
-   const bubbles=s.el('chat').children.filter(c=>typeof c.className==='string'&&c.className.includes('grok'));
+   const bubbles=s.el('chat').children.filter(c=>typeof c.className==='string'&&c.className.includes('agent-msg'));
    const bub=bubbles[bubbles.length-1]; assert.equal(bub.textContent,'Hello world');
    assert(seen.includes('Google is busy right now, retrying 1 of 3...'),JSON.stringify(seen)); assert(seen.includes('retrying 2 of 3...')); assert.equal(seen[seen.length-1],'Completed · verified');
    assert.equal(vm.runInContext('currentConversation',s.ctx),'c1','conversation id from the stream is adopted'); }

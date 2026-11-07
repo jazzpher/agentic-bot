@@ -184,9 +184,9 @@ class CopyCompletionTests(unittest.TestCase):
 class ByteCopyTests(CopyCompletionTests):
     def setUp(self):
         super().setUp()
-        # Limits are environment-configurable since grokbot 0.2 (GROK_MAX_FILE_BYTES etc.); pin the
+        # Limits are environment-configurable since agenticbot 0.2 (AGENTIC_MAX_FILE_BYTES etc.); pin the
         # historical values so the bound checks below stay meaningful.
-        import grokbot.config as gconfig
+        import agenticbot.config as gconfig
         for name, value in (('MAX_FILE_BYTES', 32000), ('MAX_WORKSPACE_BYTES', 256 * 1024), ('MAX_FILES', 25)):
             patcher = patch.object(gconfig, name, value)
             patcher.start()
@@ -303,7 +303,7 @@ class CliStreamTests(unittest.TestCase):
 
     def test_interactive_loop_recovers_after_failure(self):
         response = StreamReply([self.chunk], requests.ConnectionError('offline failure'))
-        with patch.object(bot.requests, 'post', return_value=response), patch('builtins.input', side_effect=['hello', '/new', '/exit']), patch.object(bot.sys, 'argv', ['bot.py']), patch.dict(bot.os.environ, {'GROK_API_KEY': 'TEST_ONLY_NOT_REAL'}), contextlib.redirect_stdout(io.StringIO()) as output:
+        with patch.object(bot.requests, 'post', return_value=response), patch('builtins.input', side_effect=['hello', '/new', '/exit']), patch.object(bot.sys, 'argv', ['bot.py']), patch.dict(bot.os.environ, {'AGENTIC_API_KEY': 'TEST_ONLY_NOT_REAL'}), contextlib.redirect_stdout(io.StringIO()) as output:
             bot.main()
         self.assertIn('interrupted', output.getvalue().lower())
         self.assertIn('memory cleared', output.getvalue())

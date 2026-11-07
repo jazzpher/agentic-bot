@@ -1,0 +1,936 @@
+
+[notice] A new release of pip is available: 26.2.2 -> 26.3
+[notice] To update, run: pip install --upgrade pip
+Downloading cpython-3.11.18-linux-x86_64-gnu (download) (29.2MiB)
+ Downloaded cpython-3.11.18-linux-x86_64-gnu (download)
+Using CPython 3.11.18
+Creating virtual environment at: /tmp/agentic-tests311
+Activate with: source /tmp/agentic-tests311/bin/activate
+Using Python 3.11.18 environment at: /tmp/agentic-tests311
+Resolved 15 packages in 314ms
+Downloading pillow (6.8MiB)
+ Downloaded pillow
+Prepared 15 packages in 259ms
+warning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.
+         If the cache and target directories are on different filesystems, hardlinking may not be supported.
+         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.
+Installed 15 packages in 84ms
+ + blinker==1.9.0
+ + certifi==2026.10.23
+ + charset-normalizer==3.5.2
+ + click==8.5.1
+ + defusedxml==0.7.1
+ + flask==3.1.3
+ + idna==3.20
+ + itsdangerous==2.2.0
+ + jinja2==3.1.6
+ + markupsafe==3.0.4
+ + pillow==13.0.0
+ + pypdf==6.21.4
+ + requests==2.34.2
+ + urllib3==2.8.0
+ + werkzeug==3.1.9
+test_action_required_arguments (test_agent.LoopTests.test_action_required_arguments) ... ok
+test_bad_json_budget (test_agent.LoopTests.test_bad_json_budget) ... ok
+test_blocked (test_agent.LoopTests.test_blocked) ... ok
+test_calculator (test_agent.LoopTests.test_calculator) ... ok
+test_compare_mismatch (test_agent.LoopTests.test_compare_mismatch) ... ok
+test_copy_compare_unicode (test_agent.LoopTests.test_copy_compare_unicode) ... ok
+test_exact_copy_false_done_rejected_and_repaired (test_agent.LoopTests.test_exact_copy_false_done_rejected_and_repaired) ... ok
+test_file_limits (test_agent.LoopTests.test_file_limits) ... ok
+test_limit (test_agent.LoopTests.test_limit) ... ok
+test_missing_copy_argument_no_tool_and_recovers (test_agent.LoopTests.test_missing_copy_argument_no_tool_and_recovers) ... ok
+test_one_system_protocol_last (test_agent.LoopTests.test_one_system_protocol_last) ... ok
+test_path_and_symlinks (test_agent.LoopTests.test_path_and_symlinks) ... ok
+test_plan_write_check_done (test_agent.LoopTests.test_plan_write_check_done) ... ok
+test_provider_error (test_agent.LoopTests.test_provider_error) ... ok
+test_repeat (test_agent.LoopTests.test_repeat) ... ok
+test_schema_all_argument_fields_required (test_agent.LoopTests.test_schema_all_argument_fields_required) ... ok
+test_stop (test_agent.LoopTests.test_stop) ... ok
+test_stop_after_model_before_write (test_agent.LoopTests.test_stop_after_model_before_write) ... ok
+test_unsupported_tool (test_agent.LoopTests.test_unsupported_tool) ... ok
+test_upload_directory_aliases_are_reserved_for_writes_and_copies (test_agent.LoopTests.test_upload_directory_aliases_are_reserved_for_writes_and_copies) ... ok
+test_bad_shot_reports_browsererror_not_nameerror (test_agent.ScreenshotErrorNameTest.test_bad_shot_reports_browsererror_not_nameerror) ... ok
+test_bad_uploads (test_agent.UploadTests.test_bad_uploads) ... ok
+test_chat_stream_body_cap_rejects_oversized_provider_body (test_agent.UploadTests.test_chat_stream_body_cap_rejects_oversized_provider_body) ... ok
+test_chat_stream_length_finish_is_not_saved_as_complete (test_agent.UploadTests.test_chat_stream_length_finish_is_not_saved_as_complete) ... ok
+test_chat_stream_output_cap_prevents_saving_oversized_reply (test_agent.UploadTests.test_chat_stream_output_cap_prevents_saving_oversized_reply) ... ok
+test_chat_stream_provider_error_is_not_saved_as_complete (test_agent.UploadTests.test_chat_stream_provider_error_is_not_saved_as_complete) ... ok
+test_chat_stream_skips_malformed_events (test_agent.UploadTests.test_chat_stream_skips_malformed_events) ... ok
+test_chat_stream_without_done_is_not_saved_as_complete (test_agent.UploadTests.test_chat_stream_without_done_is_not_saved_as_complete) ... ok
+test_chat_utf8_and_isolation (test_agent.UploadTests.test_chat_utf8_and_isolation) ... ok
+test_clear_busy (test_agent.UploadTests.test_clear_busy) ... ok
+test_cross_origin (test_agent.UploadTests.test_cross_origin) ... ok
+test_debug_removed (test_agent.UploadTests.test_debug_removed) ... ok
+test_docx (test_agent.UploadTests.test_docx) ... ok
+test_docx_entities (test_agent.UploadTests.test_docx_entities) ... ok
+test_duplicate_upload (test_agent.UploadTests.test_duplicate_upload) ... ok
+test_history_after_reload (test_agent.UploadTests.test_history_after_reload) ... ok
+test_huge_upload (test_agent.UploadTests.test_huge_upload) ... ok
+test_key_destination (test_agent.UploadTests.test_key_destination) ... ok
+test_login (test_agent.UploadTests.test_login) ... ok
+test_mock_task_honest (test_agent.UploadTests.test_mock_task_honest) ... ok
+test_no_external_upload_instructions (test_agent.UploadTests.test_no_external_upload_instructions) ... ok
+test_pdf_no_text (test_agent.UploadTests.test_pdf_no_text) ... ok
+test_public_fail_closed (test_agent.UploadTests.test_public_fail_closed) ... ok
+test_streamed_provider_body_cap_ignores_missing_or_false_length (test_agent.UploadTests.test_streamed_provider_body_cap_ignores_missing_or_false_length) ... ok
+test_task_end_to_end (test_agent.UploadTests.test_task_end_to_end) ... /tmp/agentic-tests311/lib/python3.11/site-packages/flask/app.py:1353: ResourceWarning: unclosed file <_io.FileIO name=5 mode='rb+' closefd=True>
+  for name in chain(request.blueprints, (None,)):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_task_provider_rejects_content_over_remaining_output_budget (test_agent.UploadTests.test_task_provider_rejects_content_over_remaining_output_budget) ... ok
+test_upload_sanitized_path (test_agent.UploadTests.test_upload_sanitized_path) ... ok
+test_upload_text_and_context (test_agent.UploadTests.test_upload_text_and_context) ... ok
+test_validation (test_agent.UploadTests.test_validation) ... ok
+test_chat_stream_body_cap_rejects_oversized_provider_body (test_agent.WebTests.test_chat_stream_body_cap_rejects_oversized_provider_body) ... ok
+test_chat_stream_length_finish_is_not_saved_as_complete (test_agent.WebTests.test_chat_stream_length_finish_is_not_saved_as_complete) ... ok
+test_chat_stream_output_cap_prevents_saving_oversized_reply (test_agent.WebTests.test_chat_stream_output_cap_prevents_saving_oversized_reply) ... ok
+test_chat_stream_provider_error_is_not_saved_as_complete (test_agent.WebTests.test_chat_stream_provider_error_is_not_saved_as_complete) ... ok
+test_chat_stream_skips_malformed_events (test_agent.WebTests.test_chat_stream_skips_malformed_events) ... ok
+test_chat_stream_without_done_is_not_saved_as_complete (test_agent.WebTests.test_chat_stream_without_done_is_not_saved_as_complete) ... ok
+test_chat_utf8_and_isolation (test_agent.WebTests.test_chat_utf8_and_isolation) ... ok
+test_clear_busy (test_agent.WebTests.test_clear_busy) ... ok
+test_cross_origin (test_agent.WebTests.test_cross_origin) ... ok
+test_debug_removed (test_agent.WebTests.test_debug_removed) ... ok
+test_key_destination (test_agent.WebTests.test_key_destination) ... ok
+test_login (test_agent.WebTests.test_login) ... ok
+test_mock_task_honest (test_agent.WebTests.test_mock_task_honest) ... ok
+test_public_fail_closed (test_agent.WebTests.test_public_fail_closed) ... ok
+test_streamed_provider_body_cap_ignores_missing_or_false_length (test_agent.WebTests.test_streamed_provider_body_cap_ignores_missing_or_false_length) ... ok
+test_task_end_to_end (test_agent.WebTests.test_task_end_to_end) ... ok
+test_task_provider_rejects_content_over_remaining_output_budget (test_agent.WebTests.test_task_provider_rejects_content_over_remaining_output_budget) ... ok
+test_validation (test_agent.WebTests.test_validation) ... ok
+test_allow_pattern_is_domain_scoped (test_agent_browse.ApprovalPatternTests.test_allow_pattern_is_domain_scoped) ... ok
+test_pattern_matches_exact_host_only (test_agent_browse.ApprovalPatternTests.test_pattern_matches_exact_host_only) ... ok
+test_bounded_and_labelled (test_agent_browse.FormatSnapshotTests.test_bounded_and_labelled) ... ok
+test_javascript_href_marked (test_agent_browse.FormatSnapshotTests.test_javascript_href_marked) ... ok
+test_browse_screenshot_labelled_untrusted (test_agent_browse.HardeningUnitTests.test_browse_screenshot_labelled_untrusted) ... ok
+test_scrubbed_env_drops_secrets (test_agent_browse.HardeningUnitTests.test_scrubbed_env_drops_secrets) ... ok
+test_host_extraction (test_agent_browse.HostOfTests.test_host_extraction) ... ok
+test_browser_processes_do_not_inherit_secrets (test_agent_browse.LiveChromiumTests.test_browser_processes_do_not_inherit_secrets) ... skipped 'live Chromium test needs playwright + chromium installed'
+test_close_kills_browser (test_agent_browse.LiveChromiumTests.test_close_kills_browser) ... skipped 'live Chromium test needs playwright + chromium installed'
+test_cross_domain_navigation_blocked_until_approved (test_agent_browse.LiveChromiumTests.test_cross_domain_navigation_blocked_until_approved) ... skipped 'live Chromium test needs playwright + chromium installed'
+test_open_see_scroll_click_roundtrip (test_agent_browse.LiveChromiumTests.test_open_see_scroll_click_roundtrip) ... skipped 'live Chromium test needs playwright + chromium installed'
+test_private_urls_never_load (test_agent_browse.LiveChromiumTests.test_private_urls_never_load) ... skipped 'live Chromium test needs playwright + chromium installed'
+test_redirect_to_loopback_page_is_blanked (test_agent_browse.LiveChromiumTests.test_redirect_to_loopback_page_is_blanked) ... skipped 'live Chromium test needs playwright + chromium installed'
+test_snapshot_lists_on_screen_elements_first (test_agent_browse.LiveChromiumTests.test_snapshot_lists_on_screen_elements_first) ... skipped 'live Chromium test needs playwright + chromium installed'
+test_unapproved_navigation_refused_before_request (test_agent_browse.LiveChromiumTests.test_unapproved_navigation_refused_before_request) ... skipped 'live Chromium test needs playwright + chromium installed'
+test_wedged_page_is_killed_not_hung (test_agent_browse.LiveChromiumTests.test_wedged_page_is_killed_not_hung) ... skipped 'live Chromium test needs playwright + chromium installed'
+test_bad_scroll_direction_rejected_by_schema (test_agent_browse.ToolBehaviorTests.test_bad_scroll_direction_rejected_by_schema) ... ok
+test_budget_eight_actions_per_turn (test_agent_browse.ToolBehaviorTests.test_budget_eight_actions_per_turn) ... ok
+test_budget_resets_on_new_turn (test_agent_browse.ToolBehaviorTests.test_budget_resets_on_new_turn) ... ok
+test_denied_domain_is_tool_error (test_agent_browse.ToolBehaviorTests.test_denied_domain_is_tool_error) ... ok
+test_domain_approval_asked_once_per_turn (test_agent_browse.ToolBehaviorTests.test_domain_approval_asked_once_per_turn) ... ok
+test_images_off_gives_text_only_fallback (test_agent_browse.ToolBehaviorTests.test_images_off_gives_text_only_fallback) ... ok
+test_missing_playwright_is_clear_error_not_crash (test_agent_browse.ToolBehaviorTests.test_missing_playwright_is_clear_error_not_crash) ... ok
+test_open_returns_snapshot_and_image (test_agent_browse.ToolBehaviorTests.test_open_returns_snapshot_and_image) ... ok
+test_saved_always_rule_skips_prompt (test_agent_browse.ToolBehaviorTests.test_saved_always_rule_skips_prompt) ... ok
+test_available_when_enabled (test_agent_browse.ToolFlagTests.test_available_when_enabled) ... ok
+test_off_by_default (test_agent_browse.ToolFlagTests.test_off_by_default) ... ok
+test_prompt_rule_included_only_when_enabled (test_agent_browse.ToolFlagTests.test_prompt_rule_included_only_when_enabled) ... ok
+test_turn_end_closes_browse_session (test_agent_browse.TurnEndCleanupTests.test_turn_end_closes_browse_session) ... ok
+test_agent_stream_persists_conversation_and_runs_tools (test_agenticbot_agent.AgentHTTPTests.test_agent_stream_persists_conversation_and_runs_tools) ... /home/codespace/.local/share/uv/python/cpython-3.11.18-linux-x86_64-gnu/lib/python3.11/unittest/mock.py:1574: ResourceWarning: unclosed file <_io.BufferedRandom name='/tmp/tmpiuc_lme3/.tasks.sqlite3.lock'>
+  setattr(self.target, self.attribute, self.temp_original)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_agent_validation_and_busy (test_agenticbot_agent.AgentHTTPTests.test_agent_validation_and_busy) ... /home/codespace/.local/share/uv/python/cpython-3.11.18-linux-x86_64-gnu/lib/python3.11/unittest/mock.py:1574: ResourceWarning: unclosed file <_io.BufferedRandom name='/tmp/tmpdap0kwkq/.tasks.sqlite3.lock'>
+  setattr(self.target, self.attribute, self.temp_original)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_compact_set_model_and_capabilities (test_agenticbot_agent.AgentHTTPTests.test_compact_set_model_and_capabilities) ... /home/codespace/.local/share/uv/python/cpython-3.11.18-linux-x86_64-gnu/lib/python3.11/unittest/mock.py:1574: ResourceWarning: unclosed file <_io.BufferedRandom name='/tmp/tmpvws6n4a7/.tasks.sqlite3.lock'>
+  setattr(self.target, self.attribute, self.temp_original)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_conversation_management_routes (test_agenticbot_agent.AgentHTTPTests.test_conversation_management_routes) ... /home/codespace/.local/share/uv/python/cpython-3.11.18-linux-x86_64-gnu/lib/python3.11/unittest/mock.py:1574: ResourceWarning: unclosed file <_io.BufferedRandom name='/tmp/tmplkg2gtuy/.tasks.sqlite3.lock'>
+  setattr(self.target, self.attribute, self.temp_original)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_index_serves_external_assets_only (test_agenticbot_agent.AgentHTTPTests.test_index_serves_external_assets_only) ... /workspaces/grok-bot/test_agenticbot_agent.py:511: ResourceWarning: unclosed file <_io.BufferedReader name='/workspaces/grok-bot/agenticbot/static/vendor/marked.min.js'>
+  self.assertEqual(self.get('/static/vendor/marked.min.js').status_code, 200)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/workspaces/grok-bot/test_agenticbot_agent.py:512: ResourceWarning: unclosed file <_io.BufferedReader name='/workspaces/grok-bot/agenticbot/static/vendor/purify.min.js'>
+  self.assertEqual(self.get('/static/vendor/purify.min.js').status_code, 200)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_never_policy_denies_without_prompt_and_read_only_commands_run (test_agenticbot_agent.AgentHTTPTests.test_never_policy_denies_without_prompt_and_read_only_commands_run) ... /home/codespace/.local/share/uv/python/cpython-3.11.18-linux-x86_64-gnu/lib/python3.11/unittest/mock.py:1574: ResourceWarning: unclosed file <_io.BufferedRandom name='/tmp/tmp5we8pbwe/.tasks.sqlite3.lock'>
+  setattr(self.target, self.attribute, self.temp_original)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_policy_route_and_approval_flow (test_agenticbot_agent.AgentHTTPTests.test_policy_route_and_approval_flow) ... /home/codespace/.local/share/uv/python/cpython-3.11.18-linux-x86_64-gnu/lib/python3.11/unittest/mock.py:1574: ResourceWarning: unclosed file <_io.BufferedRandom name='/tmp/tmpqjzxykwu/.tasks.sqlite3.lock'>
+  setattr(self.target, self.attribute, self.temp_original)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_crud_and_isolation (test_agenticbot_agent.ConversationStoreTests.test_crud_and_isolation) ... ok
+test_latest_and_prune (test_agenticbot_agent.ConversationStoreTests.test_latest_and_prune) ... ok
+test_context_length_extraction (test_agenticbot_agent.ModelDiscoveryDetailsTests.test_context_length_extraction) ... ok
+test_action_with_arguments_at_the_tail_is_still_nudged (test_agenticbot_agent.RunTurnTests.test_action_with_arguments_at_the_tail_is_still_nudged) ... ok
+test_compaction_triggers_on_small_context (test_agenticbot_agent.RunTurnTests.test_compaction_triggers_on_small_context) ... ok
+test_done_marks_usage_unreported_when_provider_omits_it (test_agenticbot_agent.RunTurnTests.test_done_marks_usage_unreported_when_provider_omits_it) ... ok
+test_done_reports_usage_totals_and_availability (test_agenticbot_agent.RunTurnTests.test_done_reports_usage_totals_and_availability) ... ok
+test_json_fallback_when_provider_rejects_tools (test_agenticbot_agent.RunTurnTests.test_json_fallback_when_provider_rejects_tools) ... ok
+test_json_inside_a_code_fence_is_not_flagged (test_agenticbot_agent.RunTurnTests.test_json_inside_a_code_fence_is_not_flagged) ... ok
+test_json_snippet_with_action_key_in_an_answer_is_not_flagged (test_agenticbot_agent.RunTurnTests.test_json_snippet_with_action_key_in_an_answer_is_not_flagged) ... ok
+test_malformed_call_twice_fails_the_turn_instead_of_pretending_success (test_agenticbot_agent.RunTurnTests.test_malformed_call_twice_fails_the_turn_instead_of_pretending_success) ... ok
+test_malformed_json_tool_call_is_nudged_not_accepted_as_final (test_agenticbot_agent.RunTurnTests.test_malformed_json_tool_call_is_nudged_not_accepted_as_final)
+Regression: a wrong-schema call used to end the turn as 'completed' with nothing done. ... ok
+test_native_tool_loop_executes_and_persists_messages (test_agenticbot_agent.RunTurnTests.test_native_tool_loop_executes_and_persists_messages) ... ok
+test_package_json_snippet_in_an_answer_is_not_flagged (test_agenticbot_agent.RunTurnTests.test_package_json_snippet_in_an_answer_is_not_flagged) ... ok
+test_parallel_read_only_calls_and_serial_mutations (test_agenticbot_agent.RunTurnTests.test_parallel_read_only_calls_and_serial_mutations) ... ok
+test_parse_json_tool_call (test_agenticbot_agent.RunTurnTests.test_parse_json_tool_call) ... ok
+test_parse_json_tool_call_after_plan (test_agenticbot_agent.RunTurnTests.test_parse_json_tool_call_after_plan) ... ok
+test_plain_prose_answer_is_still_a_final_answer (test_agenticbot_agent.RunTurnTests.test_plain_prose_answer_is_still_a_final_answer) ... ok
+test_project_instruction_file_selection_cap_and_symlink_guard (test_agenticbot_agent.RunTurnTests.test_project_instruction_file_selection_cap_and_symlink_guard) ... ok
+test_project_instructions_are_loaded (test_agenticbot_agent.RunTurnTests.test_project_instructions_are_loaded) ... ok
+test_prose_that_mentions_the_protocol_is_not_executed (test_agenticbot_agent.RunTurnTests.test_prose_that_mentions_the_protocol_is_not_executed) ... ok
+test_provider_400_includes_the_scrubbed_reason (test_agenticbot_agent.RunTurnTests.test_provider_400_includes_the_scrubbed_reason) ... ok
+test_step_budget_and_stop_event (test_agenticbot_agent.RunTurnTests.test_step_budget_and_stop_event) ... ok
+test_transient_provider_errors_retry_then_fail_cleanly (test_agenticbot_agent.RunTurnTests.test_transient_provider_errors_retry_then_fail_cleanly) ... ok
+test_unbalanced_json_tool_call_is_nudged (test_agenticbot_agent.RunTurnTests.test_unbalanced_json_tool_call_is_nudged) ... ok
+test_browse_actions_are_registered (test_agenticbot_browser.BrowserProtocolTests.test_browse_actions_are_registered) ... ok
+test_parse_accepts_browse_actions (test_agenticbot_browser.BrowserProtocolTests.test_parse_accepts_browse_actions) ... ok
+test_parse_rejects_browse_actions_without_fields (test_agenticbot_browser.BrowserProtocolTests.test_parse_rejects_browse_actions_without_fields) ... ok
+test_long_text_is_truncated_with_notice (test_agenticbot_browser.PageSummaryTests.test_long_text_is_truncated_with_notice) ... ok
+test_short_text_is_kept_whole (test_agenticbot_browser.PageSummaryTests.test_short_text_is_kept_whole) ... ok
+test_browse_actions_save_screenshot_evidence (test_agenticbot_browser.ScreenshotEvidenceTests.test_browse_actions_save_screenshot_evidence) ... ok
+test_failed_screenshot_does_not_fail_the_action (test_agenticbot_browser.ScreenshotEvidenceTests.test_failed_screenshot_does_not_fail_the_action) ... ok
+test_shot_numbering_continues_across_restarts (test_agenticbot_browser.ScreenshotEvidenceTests.test_shot_numbering_continues_across_restarts) ... ok
+test_accepts_public_http_and_https (test_agenticbot_browser.UrlGuardTests.test_accepts_public_http_and_https) ... ok
+test_rejects_hostname_that_resolves_to_private_ip (test_agenticbot_browser.UrlGuardTests.test_rejects_hostname_that_resolves_to_private_ip) ... ok
+test_rejects_local_and_private_hosts (test_agenticbot_browser.UrlGuardTests.test_rejects_local_and_private_hosts) ... ok
+test_rejects_non_http_schemes (test_agenticbot_browser.UrlGuardTests.test_rejects_non_http_schemes) ... ok
+test_rejects_unresolvable_host (test_agenticbot_browser.UrlGuardTests.test_rejects_unresolvable_host) ... ok
+test_request_allowed_covers_redirect_hops_and_schemes (test_agenticbot_browser.UrlGuardTests.test_request_allowed_covers_redirect_hops_and_schemes) ... ok
+test_route_guard_aborts_blocked_and_continues_allowed (test_agenticbot_browser.UrlGuardTests.test_route_guard_aborts_blocked_and_continues_allowed) ... ok
+test_close_then_reuse_gets_a_fresh_worker_thread (test_agenticbot_browser.WorkerThreadTests.test_close_then_reuse_gets_a_fresh_worker_thread) ... ok
+test_browse_type_requires_content (test_agenticbot_browser.WorkspaceBrowserTests.test_browse_type_requires_content) ... ok
+test_browser_is_off_by_default (test_agenticbot_browser.WorkspaceBrowserTests.test_browser_is_off_by_default) ... ok
+test_click_and_type_need_interact_opt_in (test_agenticbot_browser.WorkspaceBrowserTests.test_click_and_type_need_interact_opt_in) ... ok
+test_close_is_safe_and_idempotent (test_agenticbot_browser.WorkspaceBrowserTests.test_close_is_safe_and_idempotent) ... ok
+test_disabled_browser_is_a_clean_error (test_agenticbot_browser.WorkspaceBrowserTests.test_disabled_browser_is_a_clean_error) ... ok
+test_dispatch_uses_injected_session (test_agenticbot_browser.WorkspaceBrowserTests.test_dispatch_uses_injected_session) ... ok
+test_missing_playwright_gives_install_hint (test_agenticbot_browser.WorkspaceBrowserTests.test_missing_playwright_gives_install_hint) ... ok
+test_delegate_runs_a_bounded_subagent_and_blocks_recursion (test_agenticbot_phase345.DelegateAndPluginsTest.test_delegate_runs_a_bounded_subagent_and_blocks_recursion) ... ok
+test_plugins_register_tools_and_hooks (test_agenticbot_phase345.DelegateAndPluginsTest.test_plugins_register_tools_and_hooks) ... plugin does.not.exist failed to import: No module named 'does'
+ok
+test_local_preset_only_when_configured (test_agenticbot_phase345.LocalProviderTest.test_local_preset_only_when_configured) ... ok
+test_http_transport_pagination_sse_and_session_header (test_agenticbot_phase345.MCPHttpTest.test_http_transport_pagination_sse_and_session_header) ... ok
+test_tool_name_is_openai_safe (test_agenticbot_phase345.MCPStdioTest.test_tool_name_is_openai_safe) ... ok
+test_tools_are_registered_called_and_policy_aware (test_agenticbot_phase345.MCPStdioTest.test_tools_are_registered_called_and_policy_aware) ... ok
+test_unannotated_tools_default_to_destructive_per_mcp_spec (test_agenticbot_phase345.MCPStdioTest.test_unannotated_tools_default_to_destructive_per_mcp_spec) ... ok
+test_dedupe_update_delete_and_validation (test_agenticbot_phase345.MemoryStoreTest.test_dedupe_update_delete_and_validation) ... ok
+test_save_search_relevant_and_owner_isolation (test_agenticbot_phase345.MemoryStoreTest.test_save_search_relevant_and_owner_isolation) ... ok
+test_documented_name_and_alias_are_both_honoured (test_agenticbot_phase345.SandboxEnvNamesTest.test_documented_name_and_alias_are_both_honoured) ... ok
+test_once_is_finished_after_it_fires (test_agenticbot_phase345.ScheduleParsingTest.test_once_is_finished_after_it_fires) ... ok
+test_phrases (test_agenticbot_phase345.ScheduleParsingTest.test_phrases) ... ok
+test_rejections (test_agenticbot_phase345.ScheduleParsingTest.test_rejections) ... ok
+test_model_created_schedule_needs_approval_and_unattended_runs_cannot_schedule (test_agenticbot_phase345.ScheduleToolsTest.test_model_created_schedule_needs_approval_and_unattended_runs_cannot_schedule) ... ok
+test_scheduled_run_downgrades_saved_full_access_policy (test_agenticbot_phase345.ScheduleToolsTest.test_scheduled_run_downgrades_saved_full_access_policy) ... ok
+test_tools_require_scheduler_and_scope_to_owner (test_agenticbot_phase345.ScheduleToolsTest.test_tools_require_scheduler_and_scope_to_owner) ... ok
+test_unattended_policy_never_becomes_yolo (test_agenticbot_phase345.ScheduleToolsTest.test_unattended_policy_never_becomes_yolo) ... ok
+test_add_list_due_run_and_once_disables (test_agenticbot_phase345.SchedulerStoreTest.test_add_list_due_run_and_once_disables) ... ok
+test_limits_toggle_delete (test_agenticbot_phase345.SchedulerStoreTest.test_limits_toggle_delete) ... ok
+test_recurring_advances_and_errors_are_recorded (test_agenticbot_phase345.SchedulerStoreTest.test_recurring_advances_and_errors_are_recorded) ... ok
+test_commands_and_approval_buttons (test_agenticbot_phase345.TelegramGatewayTest.test_commands_and_approval_buttons) ... ok
+test_fails_closed_without_allowlist (test_agenticbot_phase345.TelegramGatewayTest.test_fails_closed_without_allowlist) ... ok
+test_ignores_strangers_and_answers_allowlisted_chat (test_agenticbot_phase345.TelegramGatewayTest.test_ignores_strangers_and_answers_allowlisted_chat) ... ok
+test_long_messages_are_split (test_agenticbot_phase345.TelegramGatewayTest.test_long_messages_are_split) ... ok
+test_agent_tools_see_memory_and_scheduler (test_agenticbot_phase345.WebRoutesTest.test_agent_tools_see_memory_and_scheduler) ... ok
+test_capabilities_and_mcp_status (test_agenticbot_phase345.WebRoutesTest.test_capabilities_and_mcp_status) ... ok
+test_conversation_export_and_url (test_agenticbot_phase345.WebRoutesTest.test_conversation_export_and_url) ... ok
+test_images_are_validated_and_recorded (test_agenticbot_phase345.WebRoutesTest.test_images_are_validated_and_recorded) ... ok
+test_memory_routes_and_injection (test_agenticbot_phase345.WebRoutesTest.test_memory_routes_and_injection) ... ok
+test_parse_skill_markdown (test_agenticbot_phase345.WebRoutesTest.test_parse_skill_markdown) ... ok
+test_schedule_routes_run_unattended_and_notify (test_agenticbot_phase345.WebRoutesTest.test_schedule_routes_run_unattended_and_notify) ... ok
+test_skills_export_import_roundtrip (test_agenticbot_phase345.WebRoutesTest.test_skills_export_import_roundtrip) ... ok
+test_unattended_runs_never_wait_for_approval (test_agenticbot_phase345.WebRoutesTest.test_unattended_runs_never_wait_for_approval) ... ok
+test_backup_format_stays_compatible (test_agenticbot_rename.RenameTests.test_backup_format_stays_compatible) ... ok
+test_environment_fallback_and_new_precedence (test_agenticbot_rename.RenameTests.test_environment_fallback_and_new_precedence) ... ok
+test_legacy_project_instructions (test_agenticbot_rename.RenameTests.test_legacy_project_instructions) ... ok
+test_module_commands (test_agenticbot_rename.RenameTests.test_module_commands) ... ok
+test_old_data_is_reused_and_new_installs_use_new_name (test_agenticbot_rename.RenameTests.test_old_data_is_reused_and_new_installs_use_new_name) ... ok
+test_old_imports_are_same_modules (test_agenticbot_rename.RenameTests.test_old_imports_are_same_modules) ... ok
+test_ui_brand_and_static_assets (test_agenticbot_rename.RenameTests.test_ui_brand_and_static_assets) ... /workspaces/grok-bot/test_agenticbot_rename.py:58: ResourceWarning: unclosed file <_io.BufferedReader name='/workspaces/grok-bot/agenticbot/static/app.js'>
+  self.assertEqual(client.get(asset).status_code,200,asset)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/workspaces/grok-bot/test_agenticbot_rename.py:58: ResourceWarning: unclosed file <_io.BufferedReader name='/workspaces/grok-bot/agenticbot/static/app.css'>
+  self.assertEqual(client.get(asset).status_code,200,asset)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_compact_with_model_summary_and_fallback (test_agenticbot_tools.CompactionTests.test_compact_with_model_summary_and_fallback) ... ok
+test_cut_never_separates_tool_results_from_their_call (test_agenticbot_tools.CompactionTests.test_cut_never_separates_tool_results_from_their_call) ... ok
+test_estimate_and_threshold (test_agenticbot_tools.CompactionTests.test_estimate_and_threshold) ... ok
+test_custom_provider_endpoint_uses_the_same_guard (test_agenticbot_tools.NetguardTests.test_custom_provider_endpoint_uses_the_same_guard) ... ok
+test_dns_to_private_blocked (test_agenticbot_tools.NetguardTests.test_dns_to_private_blocked) ... ok
+test_non_global_ranges_are_blocked (test_agenticbot_tools.NetguardTests.test_non_global_ranges_are_blocked) ... ok
+test_private_and_non_https_blocked (test_agenticbot_tools.NetguardTests.test_private_and_non_https_blocked) ... ok
+test_denied_command_does_not_run (test_agenticbot_tools.NoDockerApprovalTests.test_denied_command_does_not_run) ... ok
+test_docker_keeps_existing_behavior (test_agenticbot_tools.NoDockerApprovalTests.test_docker_keeps_existing_behavior) ... ok
+test_every_command_asks_without_docker_in_every_mode (test_agenticbot_tools.NoDockerApprovalTests.test_every_command_asks_without_docker_in_every_mode) ... ok
+test_explicit_full_access_never_skips_prompt (test_agenticbot_tools.NoDockerApprovalTests.test_explicit_full_access_never_skips_prompt) ... ok
+test_hardline_does_not_block_ordinary_commands (test_agenticbot_tools.NoDockerApprovalTests.test_hardline_does_not_block_ordinary_commands) ... ok
+test_hardline_refused_in_every_mode_and_never_asks (test_agenticbot_tools.NoDockerApprovalTests.test_hardline_refused_in_every_mode_and_never_asks) ... ok
+test_saved_allow_rule_ignored_without_docker (test_agenticbot_tools.NoDockerApprovalTests.test_saved_allow_rule_ignored_without_docker) ... ok
+test_windows_escape_detection (test_agenticbot_tools.NoDockerApprovalTests.test_windows_escape_detection) ... ok
+test_always_decision_persists_rule_and_skips_future_prompts (test_agenticbot_tools.RegistryTests.test_always_decision_persists_rule_and_skips_future_prompts) ... ok
+test_docker_backend_mounts_workspace_and_enforces_timeout (test_agenticbot_tools.RegistryTests.test_docker_backend_mounts_workspace_and_enforces_timeout) ... ok
+test_docker_run_args_are_hardened (test_agenticbot_tools.RegistryTests.test_docker_run_args_are_hardened)
+The container must be read-only-rooted with writable scratch space only. ... ok
+test_docker_run_args_follow_network_and_read_only_mount (test_agenticbot_tools.RegistryTests.test_docker_run_args_follow_network_and_read_only_mount) ... ok
+test_path_guards_still_apply (test_agenticbot_tools.RegistryTests.test_path_guards_still_apply) ... ok
+test_read_only_policy_asks_before_writes_and_never_denies (test_agenticbot_tools.RegistryTests.test_read_only_policy_asks_before_writes_and_never_denies) ... ok
+test_registry_has_core_tools_and_openai_schemas (test_agenticbot_tools.RegistryTests.test_registry_has_core_tools_and_openai_schemas) ... ok
+test_resolve_rejects_other_sessions (test_agenticbot_tools.RegistryTests.test_resolve_rejects_other_sessions) ... ok
+test_run_command_runs_in_workspace_and_reports_exit_code (test_agenticbot_tools.RegistryTests.test_run_command_runs_in_workspace_and_reports_exit_code) ... ok
+test_run_command_timeout_is_bounded (test_agenticbot_tools.RegistryTests.test_run_command_timeout_is_bounded) ... ok
+test_tests_read_only_blocks_test_edits_only_when_enabled (test_agenticbot_tools.RegistryTests.test_tests_read_only_blocks_test_edits_only_when_enabled)
+Benchmark integrity: a run must not be able to 'fix' a failing test by editing it. ... ok
+test_tool_output_is_bounded (test_agenticbot_tools.RegistryTests.test_tool_output_is_bounded) ... ok
+test_unknown_tool_and_bad_arguments_are_errors_not_exceptions (test_agenticbot_tools.RegistryTests.test_unknown_tool_and_bad_arguments_are_errors_not_exceptions) ... ok
+test_validate_arguments_drops_unknown_and_checks_types (test_agenticbot_tools.RegistryTests.test_validate_arguments_drops_unknown_and_checks_types) ... ok
+test_write_read_edit_glob_grep_roundtrip (test_agenticbot_tools.RegistryTests.test_write_read_edit_glob_grep_roundtrip) ... ok
+test_allow_rules_do_not_cover_chained_commands (test_agenticbot_tools.SandboxHeuristicTests.test_allow_rules_do_not_cover_chained_commands) ... ok
+test_approved_command_cannot_read_parent_secrets_from_proc (test_agenticbot_tools.SandboxHeuristicTests.test_approved_command_cannot_read_parent_secrets_from_proc) ... ok
+test_describe_reports_backend (test_agenticbot_tools.SandboxHeuristicTests.test_describe_reports_backend) ... ok
+test_destructive_detection (test_agenticbot_tools.SandboxHeuristicTests.test_destructive_detection) ... ok
+test_network_and_escape_detection (test_agenticbot_tools.SandboxHeuristicTests.test_network_and_escape_detection) ... ok
+test_policy_rules_and_patterns (test_agenticbot_tools.SandboxHeuristicTests.test_policy_rules_and_patterns) ... ok
+test_read_only_whitelist (test_agenticbot_tools.SandboxHeuristicTests.test_read_only_whitelist) ... ok
+test_exact_title_missing_detected (test_audit_verification.AutomaticAcceptanceTests.test_exact_title_missing_detected) ... ok
+test_existing_read_inputs_not_treated_as_outputs (test_audit_verification.AutomaticAcceptanceTests.test_existing_read_inputs_not_treated_as_outputs) ... ok
+test_file_title_read_and_traversal_fails_closed (test_audit_verification.AutomaticAcceptanceTests.test_file_title_read_and_traversal_fails_closed) ... ok
+test_missing_output_is_incomplete (test_audit_verification.AutomaticAcceptanceTests.test_missing_output_is_incomplete) ... ok
+test_nonempty_file_never_proves_content_correctness (test_audit_verification.AutomaticAcceptanceTests.test_nonempty_file_never_proves_content_correctness) ... ok
+test_normal_turn_is_unverified_not_model_asserted_completed (test_audit_verification.AutomaticAcceptanceTests.test_normal_turn_is_unverified_not_model_asserted_completed) ... ok
+test_normal_verdict_never_enables_skill_learning (test_audit_verification.AutomaticAcceptanceTests.test_normal_verdict_never_enables_skill_learning) ... ok
+test_real_cli_entrypoint_uses_gate (test_audit_verification.AutomaticAcceptanceTests.test_real_cli_entrypoint_uses_gate) ... (mock) got your message: Create missing.csv
+· Verification: Only explicit files and quoted titles are checked. Full request correctness is not independently verified.
+· Work remains unverified or incomplete: Output file: missing.csv
+· incomplete
+ok
+test_real_web_entrypoint_persists_verification (test_audit_verification.AutomaticAcceptanceTests.test_real_web_entrypoint_persists_verification) ... ok
+test_resume_keeps_original_and_new_request_resets_it (test_audit_verification.AutomaticAcceptanceTests.test_resume_keeps_original_and_new_request_resets_it) ... ok
+test_img_src_allows_data_urls (test_audit_verification.CspAllowsInlinePreviewImages.test_img_src_allows_data_urls) ... ok
+test_backup_of_missing_dir (test_backup.BackupTests.test_backup_of_missing_dir) ... ok
+test_rejects_corrupt_database_inside_backup (test_backup.BackupTests.test_rejects_corrupt_database_inside_backup) ... ok
+test_rejects_non_backup_zip (test_backup.BackupTests.test_rejects_non_backup_zip) ... ok
+test_rejects_path_traversal (test_backup.BackupTests.test_rejects_path_traversal) ... ok
+test_restore_into_empty_location (test_backup.BackupTests.test_restore_into_empty_location) ... ok
+test_round_trip_restores_files_and_database (test_backup.BackupTests.test_round_trip_restores_files_and_database) ... ok
+test_config_parses_the_setting (test_browser_platform.IsolationModeTests.test_config_parses_the_setting) ... ok
+test_constructor_override (test_browser_platform.IsolationModeTests.test_constructor_override) ... ok
+test_linux_always_uses_the_namespace (test_browser_platform.IsolationModeTests.test_linux_always_uses_the_namespace) ... ok
+test_other_platforms_refuse_even_with_proxy (test_browser_platform.IsolationModeTests.test_other_platforms_refuse_even_with_proxy) ... ok
+test_windows_and_mac_need_an_explicit_opt_in (test_browser_platform.IsolationModeTests.test_windows_and_mac_need_an_explicit_opt_in) ... ok
+test_mac_descendants_from_ps (test_browser_platform.ProcessTreeTests.test_mac_descendants_from_ps) ... ok
+test_mac_ps_failure_is_empty (test_browser_platform.ProcessTreeTests.test_mac_ps_failure_is_empty) ... ok
+test_posix_kill_children_first_then_reap (test_browser_platform.ProcessTreeTests.test_posix_kill_children_first_then_reap) ... ok
+test_windows_has_no_descendant_walk (test_browser_platform.ProcessTreeTests.test_windows_has_no_descendant_walk) ... ok
+test_windows_kill_tolerates_a_gone_process (test_browser_platform.ProcessTreeTests.test_windows_kill_tolerates_a_gone_process) ... ok
+test_windows_kill_uses_taskkill_tree (test_browser_platform.ProcessTreeTests.test_windows_kill_uses_taskkill_tree) ... ok
+test_hardened_args (test_browser_platform.ProxyArgsTests.test_hardened_args) ... ok
+test_ordinary_args_pass (test_browser_platform.ProxyArgsTests.test_ordinary_args_pass) ... ok
+test_rerouting_switches_are_refused (test_browser_platform.ProxyArgsTests.test_rerouting_switches_are_refused) ... ok
+test_a_different_denial_does_not_count (test_browser_platform.VerifyProxyTransportTests.test_a_different_denial_does_not_count) ... ok
+test_passes_when_the_proxy_refused_the_probe (test_browser_platform.VerifyProxyTransportTests.test_passes_when_the_proxy_refused_the_probe) ... ok
+test_refuses_when_chromium_bypassed_the_proxy (test_browser_platform.VerifyProxyTransportTests.test_refuses_when_chromium_bypassed_the_proxy) ... ok
+test_normal_stream_unaffected (test_cancel.StreamCancelTests.test_normal_stream_unaffected) ... ok
+test_stop_closes_hung_stream (test_cancel.StreamCancelTests.test_stop_closes_hung_stream) ... ok
+test_total_timeout_caps_dribbling_stream (test_cancel.StreamCancelTests.test_total_timeout_caps_dribbling_stream) ... ok
+test_finished_command_unaffected (test_cancel.SubprocessCancelTests.test_finished_command_unaffected) ... ok
+test_stop_kills_running_command (test_cancel.SubprocessCancelTests.test_stop_kills_running_command) ... ok
+test_timeout_still_kills (test_cancel.SubprocessCancelTests.test_timeout_still_kills) ... ok
+test_stop_during_run_command (test_cancel.TurnCancelTests.test_stop_during_run_command) ... ok
+test_chat_nonstop_terminal_reasons_never_saved (test_combined.CombinedTests.test_chat_nonstop_terminal_reasons_never_saved) ... ok
+test_existing_skill_cannot_grant_upload_write (test_combined.CombinedTests.test_existing_skill_cannot_grant_upload_write) ... ok
+test_low_budget_cannot_bypass_learning_gate (test_combined.CombinedTests.test_low_budget_cannot_bypass_learning_gate) ... ok
+test_skill_output_accounting_and_worker_cleanup (test_combined.CombinedTests.test_skill_output_accounting_and_worker_cleanup) ... ok
+test_task_nonstop_terminal_reasons_never_executed (test_combined.CombinedTests.test_task_nonstop_terminal_reasons_never_executed) ... ok
+test_anchor_survives_compaction_verbatim (test_completion_contract.CompactionAnchorTests.test_anchor_survives_compaction_verbatim) ... ok
+test_caller_messages_not_mutated (test_completion_contract.CompletionContractTests.test_caller_messages_not_mutated) ... ok
+test_explicit_resume_keeps_contract (test_completion_contract.CompletionContractTests.test_explicit_resume_keeps_contract) ... ok
+test_failing_verifier_repairs_twice_then_incomplete (test_completion_contract.CompletionContractTests.test_failing_verifier_repairs_twice_then_incomplete) ... ok
+test_malformed_verifiers_fail_closed (test_completion_contract.CompletionContractTests.test_malformed_verifiers_fail_closed) ... ok
+test_new_request_does_not_inherit_old_contract (test_completion_contract.CompletionContractTests.test_new_request_does_not_inherit_old_contract) ... ok
+test_passing_verifier_completes_and_prompt_lists_requirements (test_completion_contract.CompletionContractTests.test_passing_verifier_completes_and_prompt_lists_requirements) ... ok
+test_plain_chat_has_no_gate (test_completion_contract.CompletionContractTests.test_plain_chat_has_no_gate) ... ok
+test_repair_then_pass_completes (test_completion_contract.CompletionContractTests.test_repair_then_pass_completes) ... ok
+test_requirements_without_verifier_fail_closed_without_retry (test_completion_contract.CompletionContractTests.test_requirements_without_verifier_fail_closed_without_retry) ... ok
+test_truncated_reply_stays_error_and_skips_verifier (test_completion_contract.CompletionContractTests.test_truncated_reply_stays_error_and_skips_verifier) ... ok
+test_verifier_cannot_mutate_contract (test_completion_contract.CompletionContractTests.test_verifier_cannot_mutate_contract) ... ok
+test_complete_once_payload_is_sanitized (test_completion_contract.WireMessagesTests.test_complete_once_payload_is_sanitized) ... ok
+test_stream_chat_payload_is_sanitized (test_completion_contract.WireMessagesTests.test_stream_chat_payload_is_sanitized) ... ok
+test_strips_private_top_level_keys_only (test_completion_contract.WireMessagesTests.test_strips_private_top_level_keys_only) ... ok
+test_all_explicit_endpoints (test_discovery.DiscoveryTests.test_all_explicit_endpoints) ... ok
+test_blank_save_preserves_current_model_on_same_provider (test_discovery.DiscoveryTests.test_blank_save_preserves_current_model_on_same_provider) ... ok
+test_bounded_pagination_same_endpoint_only (test_discovery.DiscoveryTests.test_bounded_pagination_same_endpoint_only) ... ok
+test_cache_scoped_key_provider_refresh_and_save (test_discovery.DiscoveryTests.test_cache_scoped_key_provider_refresh_and_save) ... ok
+test_current_key_used_without_settings_mutation (test_discovery.DiscoveryTests.test_current_key_used_without_settings_mutation) ... ok
+test_custom_explicit_same_origin_public_only (test_discovery.DiscoveryTests.test_custom_explicit_same_origin_public_only) ... ok
+test_errors_never_reflect_body_key_or_exception (test_discovery.DiscoveryTests.test_errors_never_reflect_body_key_or_exception) ... ok
+test_malformed_inputs_and_empty_list (test_discovery.DiscoveryTests.test_malformed_inputs_and_empty_list) ... ok
+test_no_saved_key_cross_provider_or_guessed_custom (test_discovery.DiscoveryTests.test_no_saved_key_cross_provider_or_guessed_custom) ... ok
+test_response_and_model_caps_filter_non_chat (test_discovery.DiscoveryTests.test_response_and_model_caps_filter_non_chat) ... ok
+test_token_cursor_and_repeated_page_limits (test_discovery.DiscoveryTests.test_token_cursor_and_repeated_page_limits) ... ok
+test_markdown_headings_and_bold (test_docx.BuildTests.test_markdown_headings_and_bold) ... ok
+test_rejects_empty_and_huge (test_docx.BuildTests.test_rejects_empty_and_huge) ... ok
+test_round_trip_and_escaping (test_docx.BuildTests.test_round_trip_and_escaping) ... ok
+test_unicode_and_deterministic (test_docx.BuildTests.test_unicode_and_deterministic) ... ok
+test_corrupt_docx_is_not_auto_completed (test_docx.HarnessTests.test_corrupt_docx_is_not_auto_completed) ... ok
+test_explicit_docx_check_fails_on_missing_text (test_docx.HarnessTests.test_explicit_docx_check_fails_on_missing_text) ... ok
+test_explicit_docx_text_check (test_docx.HarnessTests.test_explicit_docx_text_check) ... ok
+test_invalid_error_teaches_the_format (test_docx.HarnessTests.test_invalid_error_teaches_the_format) ... ok
+test_invalid_replies_do_not_burn_steps_and_docx_completes (test_docx.HarnessTests.test_invalid_replies_do_not_burn_steps_and_docx_completes) ... ok
+test_too_many_invalid_blocks_with_clear_message (test_docx.HarnessTests.test_too_many_invalid_blocks_with_clear_message) ... ok
+test_invalid_help_lists_every_action (test_docx.LoopTests.test_invalid_help_lists_every_action) ... ok
+test_run_loop_invalid_not_counted_and_docx_works (test_docx.LoopTests.test_run_loop_invalid_not_counted_and_docx_works) ... ok
+test_render_doc_preview (test_docx.PreviewTests.test_render_doc_preview) ... skipped 'LibreOffice or pdftoppm not installed'
+test_render_doc_preview_missing_tools (test_docx.PreviewTests.test_render_doc_preview_missing_tools)
+A missing soffice/pdftoppm or a broken input returns a reason, never raises. ... ok
+test_write_docx_saves_preview (test_docx.PreviewTests.test_write_docx_saves_preview) ... skipped 'LibreOffice or pdftoppm not installed'
+test_control_characters_do_not_break_verification (test_docx.WorkspaceTests.test_control_characters_do_not_break_verification) ... ok
+test_rejections (test_docx.WorkspaceTests.test_rejections) ... ok
+test_write_is_verified_and_readable (test_docx.WorkspaceTests.test_write_is_verified_and_readable) ... ok
+test_delete_file_still_always_asks (test_edit_approval.EditApprovalTests.test_delete_file_still_always_asks) ... ok
+test_docx_summary_without_text_diff (test_edit_approval.EditApprovalTests.test_docx_summary_without_text_diff) ... ok
+test_edit_file_shows_unified_diff (test_edit_approval.EditApprovalTests.test_edit_file_shows_unified_diff) ... ok
+test_edit_with_missing_snippet_defers_to_tool_error (test_edit_approval.EditApprovalTests.test_edit_with_missing_snippet_defers_to_tool_error) ... ok
+test_off_by_default (test_edit_approval.EditApprovalTests.test_off_by_default) ... ok
+test_read_only_mode_still_wins (test_edit_approval.EditApprovalTests.test_read_only_mode_still_wins) ... ok
+test_write_new_file_shows_added_lines (test_edit_approval.EditApprovalTests.test_write_new_file_shows_added_lines) ... ok
+test_binary (test_file_preview.PreviewTests.test_binary) ... ok
+test_bounded_text (test_file_preview.PreviewTests.test_bounded_text) ... ok
+test_cross_owner (test_file_preview.PreviewTests.test_cross_owner) ... ok
+test_inert_unicode (test_file_preview.PreviewTests.test_inert_unicode) ... ok
+test_symlink_escape_is_rejected (test_file_preview.PreviewTests.test_symlink_escape_is_rejected) ... ok
+test_traversal_and_missing (test_file_preview.PreviewTests.test_traversal_and_missing) ... ok
+test_utf8_boundary (test_file_preview.PreviewTests.test_utf8_boundary) ... ok
+test_full_message_proxy_preserves_metadata (test_gemini_search_guard.GeminiSignatureTests.test_full_message_proxy_preserves_metadata) ... ok
+test_late_metadata_is_kept_per_call_and_nested_fields_merged (test_gemini_search_guard.GeminiSignatureTests.test_late_metadata_is_kept_per_call_and_nested_fields_merged) ... ok
+test_metadata_is_deep_copied_and_other_providers_are_unchanged (test_gemini_search_guard.GeminiSignatureTests.test_metadata_is_deep_copied_and_other_providers_are_unchanged) ... ok
+test_signature_round_trips_into_next_actual_http_payload_and_history (test_gemini_search_guard.GeminiSignatureTests.test_signature_round_trips_into_next_actual_http_payload_and_history) ... ok
+test_distinct_query_budget_counts_calls_not_steps_and_pairs_every_result (test_gemini_search_guard.LoopGuardTests.test_distinct_query_budget_counts_calls_not_steps_and_pairs_every_result) ... ok
+test_exact_read_guard_does_not_conflate_paths_and_resets_on_write (test_gemini_search_guard.LoopGuardTests.test_exact_read_guard_does_not_conflate_paths_and_resets_on_write) ... ok
+test_general_budget_cannot_be_bypassed_by_a_parallel_batch (test_gemini_search_guard.LoopGuardTests.test_general_budget_cannot_be_bypassed_by_a_parallel_batch) ... ok
+test_guard_resets_for_a_new_turn_and_distinct_queries_are_allowed (test_gemini_search_guard.LoopGuardTests.test_guard_resets_for_a_new_turn_and_distinct_queries_are_allowed) ... ok
+test_json_protocol_obeys_same_guard (test_gemini_search_guard.LoopGuardTests.test_json_protocol_obeys_same_guard) ... ok
+test_near_identical_queries_block_before_execution_and_model_can_answer (test_gemini_search_guard.LoopGuardTests.test_near_identical_queries_block_before_execution_and_model_can_answer) ... ok
+test_persistent_repeat_is_bounded_and_never_completed (test_gemini_search_guard.LoopGuardTests.test_persistent_repeat_is_bounded_and_never_completed) ... ok
+test_challenge_is_not_misreported_as_successful_empty_search (test_gemini_search_guard.SearchFeedbackTests.test_challenge_is_not_misreported_as_successful_empty_search) ... ok
+test_ddg_snippets_entities_redirects_attribute_order_and_limit (test_gemini_search_guard.SearchFeedbackTests.test_ddg_snippets_entities_redirects_attribute_order_and_limit) ... ok
+test_empty_search_is_failure_with_actionable_feedback (test_gemini_search_guard.SearchFeedbackTests.test_empty_search_is_failure_with_actionable_feedback) ... ok
+test_search_results_are_fed_back_with_urls_and_snippets (test_gemini_search_guard.SearchFeedbackTests.test_search_results_are_fed_back_with_urls_and_snippets) ... ok
+test_budgets_and_compaction_retain_original_evidence (test_harness.HarnessTests.test_budgets_and_compaction_retain_original_evidence) ... ok
+test_completion_requires_explicit_supported_checks (test_harness.HarnessTests.test_completion_requires_explicit_supported_checks) ... ok
+test_document_system_context_never_overrides_task_protocol (test_harness.HarnessTests.test_document_system_context_never_overrides_task_protocol) ... ok
+test_done_result_defaults_to_object_and_must_be_object (test_harness.HarnessTests.test_done_result_defaults_to_object_and_must_be_object) ... ok
+test_done_with_unverified_artifact_bounces_once_then_completes (test_harness.HarnessTests.test_done_with_unverified_artifact_bounces_once_then_completes) ... ok
+test_done_without_self_verification_is_returned_not_prompted (test_harness.HarnessTests.test_done_without_self_verification_is_returned_not_prompted) ... ok
+test_exact_copy_check_cannot_target_uploads_case_variant (test_harness.HarnessTests.test_exact_copy_check_cannot_target_uploads_case_variant) ... ok
+test_exact_copy_verification_preserves_bytes (test_harness.HarnessTests.test_exact_copy_verification_preserves_bytes) ... ok
+test_failed_artifact_check_never_completes (test_harness.HarnessTests.test_failed_artifact_check_never_completes) ... ok
+test_failure_fingerprint_ignores_unused_fields (test_harness.HarnessTests.test_failure_fingerprint_ignores_unused_fields) ... ok
+test_file_tool_output_does_not_overrun_output_budget (test_harness.HarnessTests.test_file_tool_output_does_not_overrun_output_budget) ... ok
+test_invalid_persisted_evidence_path_blocks_and_releases_owner (test_harness.HarnessTests.test_invalid_persisted_evidence_path_blocks_and_releases_owner) ... ok
+test_malformed_actions_stay_bounded (test_harness.HarnessTests.test_malformed_actions_stay_bounded) ... ok
+test_owner_concurrency_is_reserved_atomically (test_harness.HarnessTests.test_owner_concurrency_is_reserved_atomically) ... ok
+test_pending_copy_uses_original_snapshot_not_changed_source (test_harness.HarnessTests.test_pending_copy_uses_original_snapshot_not_changed_source) ... ok
+test_plan_adds_user_feedback_before_next_provider_call (test_harness.HarnessTests.test_plan_adds_user_feedback_before_next_provider_call) ... ok
+test_restart_reconciles_pending_write_without_replay (test_harness.HarnessTests.test_restart_reconciles_pending_write_without_replay) ... ok
+test_result_schema_gates_done_with_refund (test_harness.HarnessTests.test_result_schema_gates_done_with_refund) ... ok
+test_result_schema_input_is_validated (test_harness.HarnessTests.test_result_schema_input_is_validated) ... ok
+test_result_schema_rejects_are_bounded (test_harness.HarnessTests.test_result_schema_rejects_are_bounded) ... ok
+test_resume_normalizes_persisted_evidence_paths (test_harness.HarnessTests.test_resume_normalizes_persisted_evidence_paths) ... ok
+test_resume_race_only_one_worker_and_budget_not_reset (test_harness.HarnessTests.test_resume_race_only_one_worker_and_budget_not_reset) ... ok
+test_retention_is_explicit_and_never_prunes_active_tasks (test_harness.HarnessTests.test_retention_is_explicit_and_never_prunes_active_tasks) ... ok
+test_single_process_database_lock_and_worker_cap (test_harness.HarnessTests.test_single_process_database_lock_and_worker_cap) ... ok
+test_stop_resume_restores_counters_and_prevents_duplicate_writes (test_harness.HarnessTests.test_stop_resume_restores_counters_and_prevents_duplicate_writes) ... ok
+test_submit_loads_project_instructions_and_logs_event (test_harness.HarnessTests.test_submit_loads_project_instructions_and_logs_event) ... ok
+test_submit_without_project_file_logs_no_context_event (test_harness.HarnessTests.test_submit_without_project_file_logs_no_context_event) ... ok
+test_transient_retry_and_quota_fail_closed (test_harness.HarnessTests.test_transient_retry_and_quota_fail_closed) ... ok
+test_unverifiable_pending_write_blocks_not_replayed (test_harness.HarnessTests.test_unverifiable_pending_write_blocks_not_replayed) ... ok
+test_worker_accumulates_reported_provider_usage (test_harness.HarnessTests.test_worker_accumulates_reported_provider_usage) ... ok
+test_worker_bookkeeping_is_released_after_task_finishes (test_harness.HarnessTests.test_worker_bookkeeping_is_released_after_task_finishes) ... ok
+test_worker_passes_remaining_output_budget_to_provider (test_harness.HarnessTests.test_worker_passes_remaining_output_budget_to_provider) ... ok
+test_worker_usage_rejects_malformed_values (test_harness.HarnessTests.test_worker_usage_rejects_malformed_values) ... ok
+test_worker_usage_stays_unknown_when_provider_is_silent (test_harness.HarnessTests.test_worker_usage_stays_unknown_when_provider_is_silent) ... ok
+test_worker_verifies_artifact_and_persists_trajectory (test_harness.HarnessTests.test_worker_verifies_artifact_and_persists_trajectory) ... ok
+test_chat_rechecks_task_reservation_after_acquiring_session_lock (test_harness_http.HTTPHarnessTests.test_chat_rechecks_task_reservation_after_acquiring_session_lock) ... 127.0.0.1 - - [07/Nov/2026 14:08:28] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "GET /history HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "POST /chat HTTP/1.1" 409 -
+ok
+test_disconnect_worker_completes_and_restart_restores_session (test_harness_http.HTTPHarnessTests.test_disconnect_worker_completes_and_restart_restores_session) ... 127.0.0.1 - - [07/Nov/2026 14:08:28] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "POST /upload HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "POST /task HTTP/1.1" 202 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "POST /task HTTP/1.1" 409 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "POST /chat HTTP/1.1" 409 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "POST /clear HTTP/1.1" 409 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "GET /tasks/3d3518f8dc4cb9980ad49f25364e48e2 HTTP/1.1" 404 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "GET /tasks/3d3518f8dc4cb9980ad49f25364e48e2/events HTTP/1.1" 404 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "POST /tasks/3d3518f8dc4cb9980ad49f25364e48e2/stop HTTP/1.1" 404 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "POST /tasks/3d3518f8dc4cb9980ad49f25364e48e2/resume HTTP/1.1" 404 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "GET /tasks/3d3518f8dc4cb9980ad49f25364e48e2 HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "GET /tasks/3d3518f8dc4cb9980ad49f25364e48e2 HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "GET /files/out.txt HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "GET /tasks/3d3518f8dc4cb9980ad49f25364e48e2/events HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:28] "GET /tasks/3d3518f8dc4cb9980ad49f25364e48e2/events?after=11 HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:29] "GET /tasks/3d3518f8dc4cb9980ad49f25364e48e2 HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:29] "GET /files HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:29] "GET /history HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:29] "GET /tasks HTTP/1.1" 200 -
+ok
+test_ui_has_restore_resume_and_explicit_checks (test_harness_http.HTTPHarnessTests.test_ui_has_restore_resume_and_explicit_checks) ... 127.0.0.1 - - [07/Nov/2026 14:08:29] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:29] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:29] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:29] "GET /static/app.js HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:29] "POST /task HTTP/1.1" 400 -
+127.0.0.1 - - [07/Nov/2026 14:08:29] "POST /task HTTP/1.1" 400 -
+127.0.0.1 - - [07/Nov/2026 14:08:29] "POST /task HTTP/1.1" 400 -
+ok
+test_killed_server_restores_cookie_task_and_resumes_same_budget (test_harness_process.ProcessLifecycleTests.test_killed_server_restores_cookie_task_and_resumes_same_budget) ... ok
+test_503_retries_with_visible_notices_then_succeeds (test_key_resume_errors.ChatTests.test_503_retries_with_visible_notices_then_succeeds) ... ok
+test_auth_and_model_errors_not_retried (test_key_resume_errors.ChatTests.test_auth_and_model_errors_not_retried) ... ok
+test_failed_reply_not_saved_to_history (test_key_resume_errors.ChatTests.test_failed_reply_not_saved_to_history) ... ok
+test_gives_up_after_three_retries_with_friendly_text (test_key_resume_errors.ChatTests.test_gives_up_after_three_retries_with_friendly_text) ... ok
+test_timeout_then_ok (test_key_resume_errors.ChatTests.test_timeout_then_ok) ... ok
+test_messages (test_key_resume_errors.FriendlyTextTests.test_messages) ... ok
+test_env_key_masked_too (test_key_resume_errors.MaskTests.test_env_key_masked_too) ... ok
+test_full_key_never_returned (test_key_resume_errors.MaskTests.test_full_key_never_returned) ... ok
+test_mask_shape (test_key_resume_errors.MaskTests.test_mask_shape) ... ok
+test_auth_error_blocks_immediately_with_key_hint_and_is_resumable (test_key_resume_errors.TaskResumeTests.test_auth_error_blocks_immediately_with_key_hint_and_is_resumable) ... ok
+test_resume_route_for_blocked_task_and_other_owner_denied (test_key_resume_errors.TaskResumeTests.test_resume_route_for_blocked_task_and_other_owner_denied) ... ok
+test_streak_resets_so_two_blips_do_not_block (test_key_resume_errors.TaskResumeTests.test_streak_resets_so_two_blips_do_not_block) ... ok
+test_transient_blocks_friendly_then_resume_succeeds (test_key_resume_errors.TaskResumeTests.test_transient_blocks_friendly_then_resume_succeeds) ... ok
+test_clear_errors (test_key_resume_errors.TestButtonTests.test_clear_errors) ... ok
+test_cooldown_blocks_hammering (test_key_resume_errors.TestButtonTests.test_cooldown_blocks_hammering) ... ok
+test_get_not_allowed_and_cross_origin_denied (test_key_resume_errors.TestButtonTests.test_get_not_allowed_and_cross_origin_denied) ... ok
+test_network_errors (test_key_resume_errors.TestButtonTests.test_network_errors) ... ok
+test_no_key (test_key_resume_errors.TestButtonTests.test_no_key) ... ok
+test_ok_sends_one_tiny_request (test_key_resume_errors.TestButtonTests.test_ok_sends_one_tiny_request) ... ok
+test_conflicting_corrections_are_both_current_in_search (test_memory_supersession.CurrentBehaviorTest.test_conflicting_corrections_are_both_current_in_search) ... ok
+test_dedupe_is_exact_text_only (test_memory_supersession.CurrentBehaviorTest.test_dedupe_is_exact_text_only) ... ok
+test_like_fallback_also_returns_both_values (test_memory_supersession.CurrentBehaviorTest.test_like_fallback_also_returns_both_values) ... ok
+test_pinned_stale_fact_is_injected_first (test_memory_supersession.CurrentBehaviorTest.test_pinned_stale_fact_is_injected_first) ... ok
+test_relevant_injects_stale_and_new_value_together (test_memory_supersession.CurrentBehaviorTest.test_relevant_injects_stale_and_new_value_together) ... ok
+test_revert_to_old_text_dedupes_back_onto_original_row (test_memory_supersession.CurrentBehaviorTest.test_revert_to_old_text_dedupes_back_onto_original_row) ... ok
+test_same_text_is_one_row_regardless_of_context (test_memory_supersession.CurrentBehaviorTest.test_same_text_is_one_row_regardless_of_context) ... ok
+test_update_overwrites_in_place_and_loses_old_value (test_memory_supersession.CurrentBehaviorTest.test_update_overwrites_in_place_and_loses_old_value) ... ok
+test_ambiguous_same_key_without_supersedes_only_flags_candidate (test_memory_supersession.SupersessionContractTest.test_ambiguous_same_key_without_supersedes_only_flags_candidate) ... ok
+test_backdated_correction_fixes_history_without_replacing_current (test_memory_supersession.SupersessionContractTest.test_backdated_correction_fixes_history_without_replacing_current) ... ok
+test_backdated_row_stays_history_after_later_fact_is_superseded (test_memory_supersession.SupersessionContractTest.test_backdated_row_stays_history_after_later_fact_is_superseded) ... ok
+test_cross_key_supersedes_rejected (test_memory_supersession.SupersessionContractTest.test_cross_key_supersedes_rejected) ... ok
+test_dedup_with_conflicting_explicit_effective_from_creates_new_row (test_memory_supersession.SupersessionContractTest.test_dedup_with_conflicting_explicit_effective_from_creates_new_row) ... ok
+test_delete_midchain_row_refused_and_chain_preserved (test_memory_supersession.SupersessionContractTest.test_delete_midchain_row_refused_and_chain_preserved) ... ok
+test_deleting_superseder_restores_predecessor (test_memory_supersession.SupersessionContractTest.test_deleting_superseder_restores_predecessor) ... ok
+test_different_environment_is_not_superseded (test_memory_supersession.SupersessionContractTest.test_different_environment_is_not_superseded) ... ok
+test_explicit_backdated_supersede_stays_visible (test_memory_supersession.SupersessionContractTest.test_explicit_backdated_supersede_stays_visible) ... ok
+test_explicit_chain_with_unordered_effective_dates (test_memory_supersession.SupersessionContractTest.test_explicit_chain_with_unordered_effective_dates) ... ok
+test_explicit_supersede_hides_old_value_from_current_search (test_memory_supersession.SupersessionContractTest.test_explicit_supersede_hides_old_value_from_current_search) ... ok
+test_future_effective_correction_is_not_current_yet (test_memory_supersession.SupersessionContractTest.test_future_effective_correction_is_not_current_yet) ... ok
+test_history_orders_by_effective_from_not_save_time (test_memory_supersession.SupersessionContractTest.test_history_orders_by_effective_from_not_save_time) ... ok
+test_history_returns_all_values_oldest_first (test_memory_supersession.SupersessionContractTest.test_history_returns_all_values_oldest_first) ... ok
+test_keyless_memories_never_hide_each_other (test_memory_supersession.SupersessionContractTest.test_keyless_memories_never_hide_each_other) ... ok
+test_like_fallback_excludes_superseded (test_memory_supersession.SupersessionContractTest.test_like_fallback_excludes_superseded) ... ok
+test_list_marks_current_and_history_rows (test_memory_supersession.SupersessionContractTest.test_list_marks_current_and_history_rows) ... ok
+test_migration_backfills_old_rows_without_behavior_change (test_memory_supersession.SupersessionContractTest.test_migration_backfills_old_rows_without_behavior_change) ... ok
+test_partial_key_rows_never_hide_each_other (test_memory_supersession.SupersessionContractTest.test_partial_key_rows_never_hide_each_other) ... ok
+test_pending_future_predecessor_still_counts_against_cap (test_memory_supersession.SupersessionContractTest.test_pending_future_predecessor_still_counts_against_cap) ... ok
+test_recorded_at_is_monotonic_on_a_coarse_clock (test_memory_supersession.SupersessionContractTest.test_recorded_at_is_monotonic_on_a_coarse_clock) ... ok
+test_revert_creates_new_history_entry_not_old_row (test_memory_supersession.SupersessionContractTest.test_revert_creates_new_history_entry_not_old_row) ... ok
+test_same_effective_time_ambiguous_is_not_decided_by_save_order (test_memory_supersession.SupersessionContractTest.test_same_effective_time_ambiguous_is_not_decided_by_save_order) ... ok
+test_same_text_under_different_keys_stays_separate (test_memory_supersession.SupersessionContractTest.test_same_text_under_different_keys_stays_separate) ... ok
+test_supersede_is_owner_scoped (test_memory_supersession.SupersessionContractTest.test_supersede_is_owner_scoped) ... ok
+test_supersede_rejects_unknown_or_already_superseded_target (test_memory_supersession.SupersessionContractTest.test_supersede_rejects_unknown_or_already_superseded_target) ... ok
+test_superseded_pinned_memory_is_not_injected (test_memory_supersession.SupersessionContractTest.test_superseded_pinned_memory_is_not_injected) ... ok
+test_superseded_rows_do_not_consume_top_k (test_memory_supersession.SupersessionContractTest.test_superseded_rows_do_not_consume_top_k) ... ok
+test_update_text_on_superseded_row_refused (test_memory_supersession.SupersessionContractTest.test_update_text_on_superseded_row_refused) ... ok
+test_candidate_flagged_rows_still_count_against_owner_cap (test_memory_supersession.ToolsContractTest.test_candidate_flagged_rows_still_count_against_owner_cap) ... ok
+test_forget_on_wrong_fact_still_destroys_the_row (test_memory_supersession.ToolsContractTest.test_forget_on_wrong_fact_still_destroys_the_row) ... ok
+test_supersede_tool_errors_on_unknown_id (test_memory_supersession.ToolsContractTest.test_supersede_tool_errors_on_unknown_id) ... ok
+test_supersede_tool_exists_and_forget_no_longer_offers_deletion_for_changed_facts (test_memory_supersession.ToolsContractTest.test_supersede_tool_exists_and_forget_no_longer_offers_deletion_for_changed_facts) ... ok
+test_supersede_tool_keeps_old_value_in_history (test_memory_supersession.ToolsContractTest.test_supersede_tool_keeps_old_value_in_history) ... ok
+test_superseded_rows_do_not_count_against_owner_cap (test_memory_supersession.ToolsContractTest.test_superseded_rows_do_not_count_against_owner_cap) ... ok
+test_unlinked_duplicate_facts_count_against_owner_cap (test_memory_supersession.ToolsContractTest.test_unlinked_duplicate_facts_count_against_owner_cap) ... ok
+test_atomic_replace_failure_and_invalid_docx_preserve_original (test_output_alignment.AlignmentTests.test_atomic_replace_failure_and_invalid_docx_preserve_original) ... ok
+test_docx_extra_text_fails_exact_check (test_output_alignment.AlignmentTests.test_docx_extra_text_fails_exact_check) ... ok
+test_failed_docx_replacement_preserves_original (test_output_alignment.AlignmentTests.test_failed_docx_replacement_preserves_original) ... ok
+test_invalid_replies_do_not_use_steps_but_are_capped (test_output_alignment.AlignmentTests.test_invalid_replies_do_not_use_steps_but_are_capped) ... ok
+test_invalid_then_valid_within_two_step_budget (test_output_alignment.AlignmentTests.test_invalid_then_valid_within_two_step_budget) ... ok
+test_irrelevant_docx_completes_with_honest_review_caveat (test_output_alignment.AlignmentTests.test_irrelevant_docx_completes_with_honest_review_caveat) ... ok
+test_requirements_and_checks_reach_provider_after_compaction_restart (test_output_alignment.AlignmentTests.test_requirements_and_checks_reach_provider_after_compaction_restart) ... ok
+test_requirements_validation_and_owner_isolation (test_output_alignment.AlignmentTests.test_requirements_validation_and_owner_isolation) ... ok
+test_image_reaches_model_and_history_is_scrubbed (test_preview.AgentLoopImageTests.test_image_reaches_model_and_history_is_scrubbed) ... ok
+test_prompt_rule_included_only_when_enabled (test_preview.AgentLoopImageTests.test_prompt_rule_included_only_when_enabled) ... ok
+test_turn_end_closes_preview_session (test_preview.AgentLoopImageTests.test_turn_end_closes_preview_session) ... ok
+test_capture_real_page (test_preview.LiveChromiumTests.test_capture_real_page) ... skipped 'live Chromium test: set AGENTIC_LIVE_PREVIEW_TESTS=1 with playwright + chromium installed'
+test_close_kills_browser_and_server (test_preview.LiveChromiumTests.test_close_kills_browser_and_server) ... skipped 'live Chromium test: set AGENTIC_LIVE_PREVIEW_TESTS=1 with playwright + chromium installed'
+test_guard_blocks_external_and_page_still_renders (test_preview.LiveChromiumTests.test_guard_blocks_external_and_page_still_renders) ... skipped 'live Chromium test: set AGENTIC_LIVE_PREVIEW_TESTS=1 with playwright + chromium installed'
+test_mobile_viewport (test_preview.LiveChromiumTests.test_mobile_viewport) ... skipped 'live Chromium test: set AGENTIC_LIVE_PREVIEW_TESTS=1 with playwright + chromium installed'
+test_file_scheme_denied (test_preview.NetlocGuardTests.test_file_scheme_denied) ... ok
+test_host_header (test_preview.NetlocGuardTests.test_host_header) ... ok
+test_lan_and_internet_denied (test_preview.NetlocGuardTests.test_lan_and_internet_denied) ... ok
+test_other_loopback_port_denied (test_preview.NetlocGuardTests.test_other_loopback_port_denied) ... ok
+test_own_server_allowed (test_preview.NetlocGuardTests.test_own_server_allowed) ... ok
+test_route_guard_allows_inline_only_besides_server (test_preview.NetlocGuardTests.test_route_guard_allows_inline_only_besides_server) ... ok
+test_userinfo_and_tricks_denied (test_preview.NetlocGuardTests.test_userinfo_and_tricks_denied) ... ok
+test_directory_resolves_to_index (test_preview.PathResolutionTests.test_directory_resolves_to_index) ... ok
+test_html_file_ok (test_preview.PathResolutionTests.test_html_file_ok) ... ok
+test_missing_file (test_preview.PathResolutionTests.test_missing_file) ... ok
+test_non_html_refused (test_preview.PathResolutionTests.test_non_html_refused) ... ok
+test_traversal_and_absolute_refused (test_preview.PathResolutionTests.test_traversal_and_absolute_refused) ... ok
+test_absolute_outside_never_served (test_preview.ServerTests.test_absolute_outside_never_served) ... ok
+test_close_stops_serving (test_preview.ServerTests.test_close_stops_serving) ... ok
+test_serves_workspace_files (test_preview.ServerTests.test_serves_workspace_files) ... ok
+test_symlink_escape_denied (test_preview.ServerTests.test_symlink_escape_denied) ... ok
+test_traversal_denied (test_preview.ServerTests.test_traversal_denied) ... ok
+test_wrong_host_header_denied (test_preview.ServerTests.test_wrong_host_header_denied) ... ok
+test_available_when_enabled (test_preview.ToolTests.test_available_when_enabled) ... ok
+test_bad_viewport_rejected_by_schema (test_preview.ToolTests.test_bad_viewport_rejected_by_schema) ... ok
+test_budget_resets_on_new_turn (test_preview.ToolTests.test_budget_resets_on_new_turn) ... ok
+test_images_disabled_by_flag (test_preview.ToolTests.test_images_disabled_by_flag) ... ok
+test_missing_playwright_is_clear_error_not_crash (test_preview.ToolTests.test_missing_playwright_is_clear_error_not_crash) ... ok
+test_non_html_and_traversal_errors_are_safe_text (test_preview.ToolTests.test_non_html_and_traversal_errors_are_safe_text) ... ok
+test_off_by_default (test_preview.ToolTests.test_off_by_default) ... ok
+test_round_budget_three_per_turn (test_preview.ToolTests.test_round_budget_three_per_turn) ... ok
+test_success_returns_text_and_image_meta (test_preview.ToolTests.test_success_returns_text_and_image_meta) ... ok
+test_custom_change_requires_new_key (test_providers.CustomUrlTests.test_custom_change_requires_new_key) ... ok
+test_http_rejected (test_providers.CustomUrlTests.test_http_rejected) ... ok
+test_private_and_loopback_rejected (test_providers.CustomUrlTests.test_private_and_loopback_rejected) ... ok
+test_private_dns_resolution_rejected (test_providers.CustomUrlTests.test_private_dns_resolution_rejected) ... ok
+test_public_custom_url_accepted_and_used (test_providers.CustomUrlTests.test_public_custom_url_accepted_and_used) ... ok
+test_unresolvable_host_rejected (test_providers.CustomUrlTests.test_unresolvable_host_rejected) ... ok
+test_userinfo_rejected (test_providers.CustomUrlTests.test_userinfo_rejected) ... ok
+test_friendly_error_names_provider (test_providers.LabelTests.test_friendly_error_names_provider) ... ok
+test_key_status_labels (test_providers.LabelTests.test_key_status_labels) ... ok
+test_provider_name_mapping (test_providers.LabelTests.test_provider_name_mapping) ... ok
+test_blank_model_never_falls_back_to_grok_4_fast (test_providers.ModelHintTests.test_blank_model_never_falls_back_to_grok_4_fast) ... ok
+test_every_preset_has_a_model_that_is_not_the_xai_default (test_providers.ModelHintTests.test_every_preset_has_a_model_that_is_not_the_xai_default) ... ok
+test_nvidia_default_is_current_free_model (test_providers.ModelHintTests.test_nvidia_default_is_current_free_model) ... ok
+test_gemini_prefix_still_autodetects (test_providers.PrefixTests.test_gemini_prefix_still_autodetects) ... ok
+test_nvidia_prefix_autodetects (test_providers.PrefixTests.test_nvidia_prefix_autodetects) ... ok
+test_openrouter_and_groq_prefixes (test_providers.PrefixTests.test_openrouter_and_groq_prefixes) ... ok
+test_unknown_prefix_keeps_default_url (test_providers.PrefixTests.test_unknown_prefix_keeps_default_url) ... ok
+test_change_provider_requires_new_key (test_providers.PresetTests.test_change_provider_requires_new_key) ... ok
+test_model_hint_fills_blank_model (test_providers.PresetTests.test_model_hint_fills_blank_model) ... ok
+test_provider_and_url_together_rejected (test_providers.PresetTests.test_provider_and_url_together_rejected) ... ok
+test_providers_endpoint_lists_presets (test_providers.PresetTests.test_providers_endpoint_lists_presets) ... ok
+test_save_with_preset_url_still_works (test_providers.PresetTests.test_save_with_preset_url_still_works) ... ok
+test_save_with_provider_id (test_providers.PresetTests.test_save_with_provider_id) ... ok
+test_unknown_provider_rejected (test_providers.PresetTests.test_unknown_provider_rejected) ... ok
+test_unlisted_url_rejected (test_providers.PresetTests.test_unlisted_url_rejected) ... ok
+test_authenticated_proxy_ignores_forwarded_identity (test_regressions.AuthRegressionTests.test_authenticated_proxy_ignores_forwarded_identity) ... ok
+test_direct_loopback_still_works (test_regressions.AuthRegressionTests.test_direct_loopback_still_works) ... ok
+test_exposed_mode_requires_password_even_for_local_proxy (test_regressions.AuthRegressionTests.test_exposed_mode_requires_password_even_for_local_proxy) ... ok
+test_ipv6_loopback_works (test_regressions.AuthRegressionTests.test_ipv6_loopback_works) ... ok
+test_login_failures_are_pruned (test_regressions.AuthRegressionTests.test_login_failures_are_pruned) ... ok
+test_login_lockout_cannot_lock_out_a_known_owner_device (test_regressions.AuthRegressionTests.test_login_lockout_cannot_lock_out_a_known_owner_device) ... ok
+test_login_lockout_uses_forwarded_for_only_with_trusted_proxies (test_regressions.AuthRegressionTests.test_login_lockout_uses_forwarded_for_only_with_trusted_proxies) ... ok
+test_password_login_maps_to_one_persistent_owner (test_regressions.AuthRegressionTests.test_password_login_maps_to_one_persistent_owner) ... ok
+test_proxy_headers_do_not_authorize_local_mode (test_regressions.AuthRegressionTests.test_proxy_headers_do_not_authorize_local_mode) ... ok
+test_remote_peer_cannot_spoof_loopback_host (test_regressions.AuthRegressionTests.test_remote_peer_cannot_spoof_loopback_host) ... ok
+test_remote_peer_denied_on_sensitive_routes (test_regressions.AuthRegressionTests.test_remote_peer_denied_on_sensitive_routes) ... ok
+test_unknown_peer_and_invalid_mode_fail_closed (test_regressions.AuthRegressionTests.test_unknown_peer_and_invalid_mode_fail_closed) ... ok
+test_ambiguous_exact_copy_needs_explicit_paths (test_regressions.ByteCopyTests.test_ambiguous_exact_copy_needs_explicit_paths) ... ok
+test_copy_preserves_crlf_and_lone_cr (test_regressions.ByteCopyTests.test_copy_preserves_crlf_and_lone_cr) ... ok
+test_copy_retains_bounds_and_upload_protection (test_regressions.ByteCopyTests.test_copy_retains_bounds_and_upload_protection) ... ok
+test_copy_retains_file_count_limit (test_regressions.ByteCopyTests.test_copy_retains_file_count_limit) ... ok
+test_current_request_checks_bytes_again (test_regressions.ByteCopyTests.test_current_request_checks_bytes_again) ... ok
+test_exact_copy_rejects_unsafe_or_ambiguous_paths (test_regressions.ByteCopyTests.test_exact_copy_rejects_unsafe_or_ambiguous_paths) ... ok
+test_no_write_done_is_not_completion (test_regressions.ByteCopyTests.test_no_write_done_is_not_completion) ... ok
+test_preexisting_matching_output_is_valid_evidence (test_regressions.ByteCopyTests.test_preexisting_matching_output_is_valid_evidence) ... ok
+test_wrong_content_requires_repair (test_regressions.ByteCopyTests.test_wrong_content_requires_repair) ... ok
+test_wrong_target_cannot_satisfy_expected_artifact (test_regressions.ByteCopyTests.test_wrong_target_cannot_satisfy_expected_artifact) ... ok
+test_eof_without_done_does_not_save_partial (test_regressions.CliStreamTests.test_eof_without_done_does_not_save_partial) ... ok
+test_followup_after_interruption_has_no_partial_history (test_regressions.CliStreamTests.test_followup_after_interruption_has_no_partial_history) ... ok
+test_http_error_closes_response_and_preserves_history (test_regressions.CliStreamTests.test_http_error_closes_response_and_preserves_history) ... ok
+test_initial_connection_error_does_not_fabricate_history (test_regressions.CliStreamTests.test_initial_connection_error_does_not_fabricate_history) ... ok
+test_interactive_loop_recovers_after_failure (test_regressions.CliStreamTests.test_interactive_loop_recovers_after_failure) ... ok
+test_malformed_sse_shapes_do_not_crash (test_regressions.CliStreamTests.test_malformed_sse_shapes_do_not_crash) ... ok
+test_stream_failure_is_structured_and_not_saved (test_regressions.CliStreamTests.test_stream_failure_is_structured_and_not_saved) ... ok
+test_ambiguous_exact_copy_needs_explicit_paths (test_regressions.CopyCompletionTests.test_ambiguous_exact_copy_needs_explicit_paths) ... ok
+test_current_request_checks_bytes_again (test_regressions.CopyCompletionTests.test_current_request_checks_bytes_again) ... ok
+test_exact_copy_rejects_unsafe_or_ambiguous_paths (test_regressions.CopyCompletionTests.test_exact_copy_rejects_unsafe_or_ambiguous_paths) ... ok
+test_no_write_done_is_not_completion (test_regressions.CopyCompletionTests.test_no_write_done_is_not_completion) ... ok
+test_preexisting_matching_output_is_valid_evidence (test_regressions.CopyCompletionTests.test_preexisting_matching_output_is_valid_evidence) ... ok
+test_wrong_content_requires_repair (test_regressions.CopyCompletionTests.test_wrong_content_requires_repair) ... ok
+test_wrong_target_cannot_satisfy_expected_artifact (test_regressions.CopyCompletionTests.test_wrong_target_cannot_satisfy_expected_artifact) ... ok
+test_all_post_routes_reject_nonobjects (test_regressions.JsonShapeTests.test_all_post_routes_reject_nonobjects) ... ok
+test_ambiguous_exact_copy_needs_explicit_paths (test_regressions.RepeatTests.test_ambiguous_exact_copy_needs_explicit_paths) ... ok
+test_current_request_checks_bytes_again (test_regressions.RepeatTests.test_current_request_checks_bytes_again) ... ok
+test_exact_copy_rejects_unsafe_or_ambiguous_paths (test_regressions.RepeatTests.test_exact_copy_rejects_unsafe_or_ambiguous_paths) ... ok
+test_failed_fingerprint_ignores_unused_fields (test_regressions.RepeatTests.test_failed_fingerprint_ignores_unused_fields) ... ok
+test_no_write_done_is_not_completion (test_regressions.RepeatTests.test_no_write_done_is_not_completion) ... ok
+test_preexisting_matching_output_is_valid_evidence (test_regressions.RepeatTests.test_preexisting_matching_output_is_valid_evidence) ... ok
+test_read_write_progress_resets_failure_streak (test_regressions.RepeatTests.test_read_write_progress_resets_failure_streak) ... ok
+test_repeated_mismatch_stops_no_progress (test_regressions.RepeatTests.test_repeated_mismatch_stops_no_progress) ... ok
+test_success_between_failures_resets_streak (test_regressions.RepeatTests.test_success_between_failures_resets_streak) ... ok
+test_successful_read_loop_still_has_step_budget (test_regressions.RepeatTests.test_successful_read_loop_still_has_step_budget) ... ok
+test_successful_rereads_remain_available (test_regressions.RepeatTests.test_successful_rereads_remain_available) ... ok
+test_wrong_content_requires_repair (test_regressions.RepeatTests.test_wrong_content_requires_repair) ... ok
+test_wrong_target_cannot_satisfy_expected_artifact (test_regressions.RepeatTests.test_wrong_target_cannot_satisfy_expected_artifact) ... ok
+test_default_action_schema_is_unchanged_and_not_mutated (test_result_schema.ResultSchemaTests.test_default_action_schema_is_unchanged_and_not_mutated) ... ok
+test_empty_and_nontext_values_fail (test_result_schema.ResultSchemaTests.test_empty_and_nontext_values_fail) ... ok
+test_http_submit_and_resume_keep_result_schema (test_result_schema.ResultSchemaTests.test_http_submit_and_resume_keep_result_schema) ... ok
+test_normalized_empty_names_rejected_before_submission (test_result_schema.ResultSchemaTests.test_normalized_empty_names_rejected_before_submission) ... ok
+test_strict_provider_payload_can_return_result (test_result_schema.ResultSchemaTests.test_strict_provider_payload_can_return_result) ... ok
+test_checks_on_resume_route_validates_owner_and_publishes_verified_result (test_resume_http.ResumeHTTPTests.test_checks_on_resume_route_validates_owner_and_publishes_verified_result) ... 127.0.0.1 - - [07/Nov/2026 14:08:36] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "POST /task HTTP/1.1" 202 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "GET /tasks/bba84c9ceb2ea20af58a32548145ce5a HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "GET /tasks/bba84c9ceb2ea20af58a32548145ce5a HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "POST /tasks/bba84c9ceb2ea20af58a32548145ce5a/resume HTTP/1.1" 404 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "POST /tasks/bba84c9ceb2ea20af58a32548145ce5a/resume HTTP/1.1" 400 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "POST /tasks/bba84c9ceb2ea20af58a32548145ce5a/resume HTTP/1.1" 202 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "GET /tasks/bba84c9ceb2ea20af58a32548145ce5a HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "GET /tasks/bba84c9ceb2ea20af58a32548145ce5a HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "GET /tasks/bba84c9ceb2ea20af58a32548145ce5a/events HTTP/1.1" 200 -
+ok
+test_requirements_http_validation_prompt_and_owner_isolation (test_resume_http.ResumeHTTPTests.test_requirements_http_validation_prompt_and_owner_isolation) ... 127.0.0.1 - - [07/Nov/2026 14:08:36] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "POST /task HTTP/1.1" 400 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "POST /task HTTP/1.1" 400 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "POST /task HTTP/1.1" 400 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "POST /task HTTP/1.1" 202 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "GET /tasks/1926f6225508904c1396f02045ebf6b6 HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "GET /tasks/1926f6225508904c1396f02045ebf6b6 HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:08:36] "GET /tasks/1926f6225508904c1396f02045ebf6b6 HTTP/1.1" 404 -
+ok
+test_checks_resume_race_only_one_contract_is_admitted (test_review_fixes.ReviewFixTests.test_checks_resume_race_only_one_contract_is_admitted) ... ok
+test_existing_checks_cannot_be_changed_on_resume (test_review_fixes.ReviewFixTests.test_existing_checks_cannot_be_changed_on_resume) ... ok
+test_import_without_fcntl_uses_windows_exclusive_lock (test_review_fixes.ReviewFixTests.test_import_without_fcntl_uses_windows_exclusive_lock) ... ok
+test_missing_checks_resume_validates_persists_and_keeps_budgets (test_review_fixes.ReviewFixTests.test_missing_checks_resume_validates_persists_and_keeps_budgets) ... ok
+test_verified_answer_published_and_unverified_answer_hidden (test_review_fixes.ReviewFixTests.test_verified_answer_published_and_unverified_answer_hidden) ... ok
+test_completed_turn_logged_with_tool_calls (test_runlog.RunLogTests.test_completed_turn_logged_with_tool_calls) ... ok
+test_done_event_carries_run_id (test_runlog.RunLogTests.test_done_event_carries_run_id) ... ok
+test_error_status_and_message_logged (test_runlog.RunLogTests.test_error_status_and_message_logged) ... ok
+test_failing_tool_recorded_with_error (test_runlog.RunLogTests.test_failing_tool_recorded_with_error) ... ok
+test_nothing_logged_when_unconfigured (test_runlog.RunLogTests.test_nothing_logged_when_unconfigured) ... ok
+test_rotation_keeps_newest_lines (test_runlog.RunLogTests.test_rotation_keeps_newest_lines) ... ok
+test_concurrent_boots_share_one_secret (test_session_secret.DefaultDataDirTests.test_concurrent_boots_share_one_secret)
+O_CREAT|O_EXCL: parallel workers converge on one secret instead of racing. ... ok
+test_default_dir_is_per_user_not_the_working_directory (test_session_secret.DefaultDataDirTests.test_default_dir_is_per_user_not_the_working_directory) ... ok
+test_env_secret_wins_and_writes_no_file (test_session_secret.SessionSecretTests.test_env_secret_wins_and_writes_no_file) ... ok
+test_generated_secret_survives_restart (test_session_secret.SessionSecretTests.test_generated_secret_survives_restart) ... ok
+test_unwritable_dir_falls_back_to_ephemeral_with_warning (test_session_secret.SessionSecretTests.test_unwritable_dir_falls_back_to_ephemeral_with_warning) ... ok
+test_candidate_limit (test_skill_runtime.SkillRuntimeTests.test_candidate_limit) ... ok
+test_cooperative_stop_discards_and_clears (test_skill_runtime.SkillRuntimeTests.test_cooperative_stop_discards_and_clears) ... ok
+test_failed_verification_discards (test_skill_runtime.SkillRuntimeTests.test_failed_verification_discards) ... ok
+test_invalid_candidate_not_staged (test_skill_runtime.SkillRuntimeTests.test_invalid_candidate_not_staged) ... ok
+test_no_verifier_no_save (test_skill_runtime.SkillRuntimeTests.test_no_verifier_no_save) ... ok
+test_oversized_candidate_not_staged (test_skill_runtime.SkillRuntimeTests.test_oversized_candidate_not_staged) ... ok
+test_provider_error_discards_and_clears (test_skill_runtime.SkillRuntimeTests.test_provider_error_discards_and_clears) ... ok
+test_reuse_next_turn (test_skill_runtime.SkillRuntimeTests.test_reuse_next_turn) ... ok
+test_saves_only_after_acceptance (test_skill_runtime.SkillRuntimeTests.test_saves_only_after_acceptance) ... ok
+test_secret_candidate_rejected (test_skill_runtime.SkillRuntimeTests.test_secret_candidate_rejected) ... ok
+test_stale_revision_preserves_skill (test_skill_runtime.SkillRuntimeTests.test_stale_revision_preserves_skill) ... ok
+test_step_limit_discards (test_skill_runtime.SkillRuntimeTests.test_step_limit_discards) ... ok
+test_truncation_discards (test_skill_runtime.SkillRuntimeTests.test_truncation_discards) ... ok
+test_verified_revision_update (test_skill_runtime.SkillRuntimeTests.test_verified_revision_update) ... ok
+test_500_and_501_edit_delete_and_isolation (test_skills.LargeSkills.test_500_and_501_edit_delete_and_isolation) ... ok
+test_archives_free_slots_and_restore_cannot_exceed_500 (test_skills.LargeSkills.test_archives_free_slots_and_restore_cannot_exceed_500) ... ok
+test_bounded_paging_search_validation_and_all_names_reachable (test_skills.LargeSkills.test_bounded_paging_search_validation_and_all_names_reachable) ... ok
+test_large_index_bound_relevance_pin_recency_and_unicode (test_skills.LargeSkills.test_large_index_bound_relevance_pin_recency_and_unicode) ... ok
+test_large_library_http_count_and_model_task_context (test_skills.LargeSkills.test_large_library_http_count_and_model_task_context) ... ok
+test_atomic_failed_write (test_skills.Skills.test_atomic_failed_write) ... ok
+test_curator_boundaries_usage_archive_restore (test_skills.Skills.test_curator_boundaries_usage_archive_restore) ... ok
+test_curator_provenance_pin_and_legacy_safety (test_skills.Skills.test_curator_provenance_pin_and_legacy_safety) ... ok
+test_edit_conflict_and_delete (test_skills.Skills.test_edit_conflict_and_delete) ... ok
+test_failed_metadata_write_rolls_back_skill_content (test_skills.Skills.test_failed_metadata_write_rolls_back_skill_content) ... ok
+test_failed_new_write_leaves_no_orphan (test_skills.Skills.test_failed_new_write_leaves_no_orphan) ... ok
+test_harness_learn_then_reuse_restart (test_skills.Skills.test_harness_learn_then_reuse_restart) ... ok
+test_interrupted_save_reconcile_no_replay (test_skills.Skills.test_interrupted_save_reconcile_no_replay) ... ok
+test_invalid_inputs_limits_and_secrets (test_skills.Skills.test_invalid_inputs_limits_and_secrets) ... ok
+test_metadata_and_temp_symlinks (test_skills.Skills.test_metadata_and_temp_symlinks) ... ok
+test_persistence_and_unicode (test_skills.Skills.test_persistence_and_unicode) ... ok
+test_secret_scan_boundaries_and_orphans_do_not_consume_capacity (test_skills.Skills.test_secret_scan_boundaries_and_orphans_do_not_consume_capacity) ... ok
+test_session_isolation_and_workspace_cannot_write_skills (test_skills.Skills.test_session_isolation_and_workspace_cannot_write_skills) ... ok
+test_symlinks (test_skills.Skills.test_symlinks) ... ok
+test_tools_and_parse (test_skills.Skills.test_tools_and_parse) ... ok
+test_unverified_learning_blocked (test_skills.Skills.test_unverified_learning_blocked) ... ok
+test_bad_requests_and_csrf (test_skills.SkillsHTTP.test_bad_requests_and_csrf) ... ok
+test_crud_and_isolation (test_skills.SkillsHTTP.test_crud_and_isolation) ... ok
+test_chat_stream_honors_stop_without_stopping_next_chat (test_stop_http.StopHTTPTests.test_chat_stream_honors_stop_without_stopping_next_chat) ... 127.0.0.1 - - [07/Nov/2026 14:09:21] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:21] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:21] "GET /history HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:21] "GET /history HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:21] "POST /stop HTTP/1.1" 200 -
+ok
+test_idle_stop_is_not_reported_as_requested (test_stop_http.StopHTTPTests.test_idle_stop_is_not_reported_as_requested) ... 127.0.0.1 - - [07/Nov/2026 14:09:22] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:22] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:22] "GET /history HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:22] "GET /history HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:22] "POST /stop HTTP/1.1" 200 -
+ok
+test_stop_only_cancels_current_owners_work (test_stop_http.StopHTTPTests.test_stop_only_cancels_current_owners_work) ... 127.0.0.1 - - [07/Nov/2026 14:09:22] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:22] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:22] "GET /history HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:22] "GET /history HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:22] "POST /stop HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:22] "POST /stop HTTP/1.1" 200 -
+ok
+test_stop_reports_active_chat_and_preserves_other_session (test_stop_http.StopHTTPTests.test_stop_reports_active_chat_and_preserves_other_session) ... 127.0.0.1 - - [07/Nov/2026 14:09:23] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:23] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:23] "GET /history HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:23] "GET /history HTTP/1.1" 200 -
+127.0.0.1 - - [07/Nov/2026 14:09:23] "POST /stop HTTP/1.1" 200 -
+ok
+test_finish_and_end (test_takeover.BrokerTests.test_finish_and_end) ... ok
+test_frames (test_takeover.BrokerTests.test_frames) ... ok
+test_input_queue_and_cap (test_takeover.BrokerTests.test_input_queue_and_cap) ... ok
+test_owner_scoping (test_takeover.BrokerTests.test_owner_scoping) ... ok
+test_validate_input (test_takeover.BrokerTests.test_validate_input) ... ok
+test_click_to_unapproved_host_is_refused_and_reported (test_takeover.LiveTakeoverTests.test_click_to_unapproved_host_is_refused_and_reported) ... skipped 'live Chromium test needs playwright + chromium installed'
+test_stop_and_timeout (test_takeover.LiveTakeoverTests.test_stop_and_timeout) ... skipped 'live Chromium test needs playwright + chromium installed'
+test_user_clicks_and_types_into_the_page (test_takeover.LiveTakeoverTests.test_user_clicks_and_types_into_the_page) ... skipped 'live Chromium test needs playwright + chromium installed'
+test_failed_put_back_is_retried_within_window (test_takeover.RefusedErrorPageTests.test_failed_put_back_is_retried_within_window)
+When putting the user back fails (the page still shows chrome-error://), the loop retries while ... ok
+test_late_error_page_is_put_back_once (test_takeover.RefusedErrorPageTests.test_late_error_page_is_put_back_once) ... ok
+test_refusal_without_error_page_expires (test_takeover.RefusedErrorPageTests.test_refusal_without_error_page_expires)
+A refusal whose error page never commits must not arm the recovery forever: an unrelated ... ok
+test_done (test_takeover.RouteTests.test_done) ... ok
+test_frame (test_takeover.RouteTests.test_frame) ... ok
+test_input (test_takeover.RouteTests.test_input) ... ok
+test_turns_get_the_broker (test_takeover.RouteTests.test_turns_get_the_broker) ... ok
+test_blank_reason_rejected_and_budget_spent (test_takeover.ToolTests.test_blank_reason_rejected_and_budget_spent) ... ok
+test_browser_error_still_ends_takeover (test_takeover.ToolTests.test_browser_error_still_ends_takeover) ... ok
+test_listed_with_browse_tools_only_when_enabled (test_takeover.ToolTests.test_listed_with_browse_tools_only_when_enabled) ... ok
+test_needs_an_open_page (test_takeover.ToolTests.test_needs_an_open_page) ... ok
+test_pauses_until_done_then_returns_fresh_view (test_takeover.ToolTests.test_pauses_until_done_then_returns_fresh_view) ... ok
+test_refused_without_live_viewer (test_takeover.ToolTests.test_refused_without_live_viewer) ... ok
+test_stop_ends_takeover_as_tool_error (test_takeover.ToolTests.test_stop_ends_takeover_as_tool_error) ... ok
+test_timeout_reports_page_as_left (test_takeover.ToolTests.test_timeout_reports_page_as_left) ... ok
+test_app_js_handles_takeover_events (test_takeover.UiWiringTests.test_app_js_handles_takeover_events) ... ok
+test_image_rejection_is_retried_only_once (test_text_only_rate_limit.TextOnlyAndRateLimitTests.test_image_rejection_is_retried_only_once) ... ok
+test_long_or_unknown_rate_limit_fails_fast (test_text_only_rate_limit.TextOnlyAndRateLimitTests.test_long_or_unknown_rate_limit_fails_fast) ... ok
+test_parse_wait_units (test_text_only_rate_limit.TextOnlyAndRateLimitTests.test_parse_wait_units) ... ok
+test_rate_limit_retries_are_bounded (test_text_only_rate_limit.TextOnlyAndRateLimitTests.test_rate_limit_retries_are_bounded) ... ok
+test_reset_tokens_header_is_used (test_text_only_rate_limit.TextOnlyAndRateLimitTests.test_reset_tokens_header_is_used) ... ok
+test_same_400_without_images_is_not_retried (test_text_only_rate_limit.TextOnlyAndRateLimitTests.test_same_400_without_images_is_not_retried) ... ok
+test_short_retry_after_waits_and_retries (test_text_only_rate_limit.TextOnlyAndRateLimitTests.test_short_retry_after_waits_and_retries) ... ok
+test_text_only_model_drops_screenshots_and_keeps_text (test_text_only_rate_limit.TextOnlyAndRateLimitTests.test_text_only_model_drops_screenshots_and_keeps_text) ... ok
+test_unrelated_400_with_images_still_errors (test_text_only_rate_limit.TextOnlyAndRateLimitTests.test_unrelated_400_with_images_still_errors) ... ok
+test_cut_off_done_action_is_never_accepted (test_tool_order_truncation.LegacyLoopTests.test_cut_off_done_action_is_never_accepted) ... ok
+test_consecutive_reads_still_run_together (test_tool_order_truncation.ToolOrderTests.test_consecutive_reads_still_run_together) ... ok
+test_read_after_write_in_same_step_sees_the_write (test_tool_order_truncation.ToolOrderTests.test_read_after_write_in_same_step_sees_the_write) ... ok
+test_reads_on_each_side_of_a_write_see_old_then_new (test_tool_order_truncation.ToolOrderTests.test_reads_on_each_side_of_a_write_see_old_then_new) ... ok
+test_real_stream_dropped_before_done_is_not_completed (test_tool_order_truncation.TruncatedReplyTests.test_real_stream_dropped_before_done_is_not_completed) ... ok
+test_real_stream_finished_normally_completes (test_tool_order_truncation.TruncatedReplyTests.test_real_stream_finished_normally_completes) ... ok
+test_real_stream_hitting_output_limit_is_not_completed (test_tool_order_truncation.TruncatedReplyTests.test_real_stream_hitting_output_limit_is_not_completed) ... ok
+test_reply_cut_by_output_limit_is_not_completed (test_tool_order_truncation.TruncatedReplyTests.test_reply_cut_by_output_limit_is_not_completed) ... ok
+test_stream_cut_before_finish_is_not_completed (test_tool_order_truncation.TruncatedReplyTests.test_stream_cut_before_finish_is_not_completed) ... ok
+test_command_validation (test_verifiable_loops.CheckValidationTests.test_command_validation) ... ok
+test_eight_check_cap_still_applies (test_verifiable_loops.CheckValidationTests.test_eight_check_cap_still_applies) ... ok
+test_new_types_accepted_with_defaults_filled (test_verifiable_loops.CheckValidationTests.test_new_types_accepted_with_defaults_filled) ... ok
+test_pixel_diff_validation (test_verifiable_loops.CheckValidationTests.test_pixel_diff_validation) ... ok
+test_unknown_type_still_rejected (test_verifiable_loops.CheckValidationTests.test_unknown_type_still_rejected) ... ok
+test_command_check_expect_output_substring (test_verifiable_loops.HarnessCheckTests.test_command_check_expect_output_substring) ... ok
+test_command_check_gates_done_until_tests_pass (test_verifiable_loops.HarnessCheckTests.test_command_check_gates_done_until_tests_pass) ... ok
+test_command_check_output_mismatch_blocks_done (test_verifiable_loops.HarnessCheckTests.test_command_check_output_mismatch_blocks_done) ... ok
+test_pixel_diff_done_blocked_forever_hits_budget_not_success (test_verifiable_loops.HarnessCheckTests.test_pixel_diff_done_blocked_forever_hits_budget_not_success) ... ok
+test_pixel_diff_gates_done_until_artifact_matches (test_verifiable_loops.HarnessCheckTests.test_pixel_diff_gates_done_until_artifact_matches) ... ok
+test_pixel_diff_missing_ground_truth_is_check_failure_not_crash (test_verifiable_loops.HarnessCheckTests.test_pixel_diff_missing_ground_truth_is_check_failure_not_crash) ... ok
+test_area_present_on_one_side_only_counts_as_difference (test_verifiable_loops.PixelDiffTests.test_area_present_on_one_side_only_counts_as_difference) ... ok
+test_diff_image_highlights_differing_pixels (test_verifiable_loops.PixelDiffTests.test_diff_image_highlights_differing_pixels) ... ok
+test_identical_images_have_zero_mismatch (test_verifiable_loops.PixelDiffTests.test_identical_images_have_zero_mismatch) ... ok
+test_ignore_covering_everything_is_an_error_not_a_pass (test_verifiable_loops.PixelDiffTests.test_ignore_covering_everything_is_an_error_not_a_pass) ... ok
+test_ignore_region_is_excluded_from_both_counts (test_verifiable_loops.PixelDiffTests.test_ignore_region_is_excluded_from_both_counts) ... ok
+test_invalid_inputs_raise_clear_errors (test_verifiable_loops.PixelDiffTests.test_invalid_inputs_raise_clear_errors) ... ok
+test_known_mismatch_percent_is_exact (test_verifiable_loops.PixelDiffTests.test_known_mismatch_percent_is_exact) ... ok
+test_tolerance_ignores_small_channel_differences (test_verifiable_loops.PixelDiffTests.test_tolerance_ignores_small_channel_differences) ... ok
+test_fail_when_above_threshold_and_reports_numbers (test_verifiable_loops.VerifyVisualToolTests.test_fail_when_above_threshold_and_reports_numbers) ... ok
+test_html_side_needs_preview_flag (test_verifiable_loops.VerifyVisualToolTests.test_html_side_needs_preview_flag) ... ok
+test_note_and_ignore_document_exemptions (test_verifiable_loops.VerifyVisualToolTests.test_note_and_ignore_document_exemptions) ... ok
+test_pass_when_within_threshold (test_verifiable_loops.VerifyVisualToolTests.test_pass_when_within_threshold) ... ok
+test_requires_exactly_one_ground_truth (test_verifiable_loops.VerifyVisualToolTests.test_requires_exactly_one_ground_truth) ... ok
+test_tool_is_registered_with_schema (test_verifiable_loops.VerifyVisualToolTests.test_tool_is_registered_with_schema) ... ok
+test_url_ground_truth_needs_browser_flag (test_verifiable_loops.VerifyVisualToolTests.test_url_ground_truth_needs_browser_flag) ... ok
+test_workspace_guards_and_validation (test_verifiable_loops.VerifyVisualToolTests.test_workspace_guards_and_validation) ... ok
+test_close_terminates_active_tunnel_promptly (test_vetproxy.CloseActiveTunnelTests.test_close_terminates_active_tunnel_promptly) ... ok
+test_cap_overflow_refused (test_vetproxy.ConcurrencyCapTests.test_cap_overflow_refused) ... ok
+test_live_rebinding_refusal_lands_in_refused_hosts (test_vetproxy.DenialSplitTests.test_live_rebinding_refusal_lands_in_refused_hosts)
+Proxy-level proof (no browser needed): a mid-session public-to-private flip is ... ok
+test_result_payload_text_keeps_them_apart (test_vetproxy.DenialSplitTests.test_result_payload_text_keeps_them_apart) ... ok
+test_state_splits_blocked_and_refused (test_vetproxy.DenialSplitTests.test_state_splits_blocked_and_refused) ... ok
+test_loopback_relay_path_exists (test_vetproxy.IsolationWrapperTests.test_loopback_relay_path_exists)
+The namespace keeps a working loopback (the relay's listen side). ... ok
+test_no_direct_egress_inside_namespace (test_vetproxy.IsolationWrapperTests.test_no_direct_egress_inside_namespace)
+Structural proof: a plain process inside the same isolation cannot reach the network. ... ok
+test_https_direct_navigation_to_unapproved_refused (test_vetproxy.LiveH2CoalescingTests.test_https_direct_navigation_to_unapproved_refused)
+Direct top-level navigation to an unapproved origin while the approved h2 ... skipped 'live HTTP/2 test needs playwright, chromium, bwrap, h2'
+test_https_redirect_to_approved_loads (test_vetproxy.LiveH2CoalescingTests.test_https_redirect_to_approved_loads)
+Same hop with BOTH origins approved loads end-to-end through the proxy. ... skipped 'live HTTP/2 test needs playwright, chromium, bwrap, h2'
+test_https_redirect_to_unapproved_vetoed (test_vetproxy.LiveH2CoalescingTests.test_https_redirect_to_unapproved_vetoed)
+A 302 hop inside the established h2 session to an unapproved origin must never ... skipped 'live HTTP/2 test needs playwright, chromium, bwrap, h2'
+test_https_subresource_unapproved_vetoed (test_vetproxy.LiveH2CoalescingTests.test_https_subresource_unapproved_vetoed)
+Approved h2 connection already established; the unapproved cross-origin ... skipped 'live HTTP/2 test needs playwright, chromium, bwrap, h2'
+test_https_subresource_vetoed_even_with_resolver_ip_knowledge (test_vetproxy.LiveH2CoalescingTests.test_https_subresource_vetoed_even_with_resolver_ip_knowledge)
+Adversarial control: --host-resolver-rules hands Chromium the shared IP and the ... skipped 'live HTTP/2 test needs playwright, chromium, bwrap, h2'
+test_preconnect_to_unapproved_vetoed_at_socket_level (test_vetproxy.LiveH2CoalescingTests.test_preconnect_to_unapproved_vetoed_at_socket_level)
+Speculative preconnect/dns-prefetch to an unapproved host opens no page request ... skipped 'live HTTP/2 test needs playwright, chromium, bwrap, h2'
+test_service_worker_registration_blocked (test_vetproxy.LiveH2CoalescingTests.test_service_worker_registration_blocked)
+Read/click-only: service workers stay blocked. Measured: the registration ... skipped 'live HTTP/2 test needs playwright, chromium, bwrap, h2'
+test_js_navigation_to_unapproved_host_never_fires (test_vetproxy.LiveIsolatedBrowseTests.test_js_navigation_to_unapproved_host_never_fires)
+JS navigations are routed too: refused pre-flight by the route guard. ... skipped 'live Chromium test needs playwright, chromium, bwrap'
+test_meta_refresh_to_loopback_never_fires (test_vetproxy.LiveIsolatedBrowseTests.test_meta_refresh_to_loopback_never_fires)
+Meta-refresh navigations ARE routed by Playwright (unlike 3xx hops), so the route ... skipped 'live Chromium test needs playwright, chromium, bwrap'
+test_mid_session_rebinding_flip_never_reaches_internal (test_vetproxy.LiveIsolatedBrowseTests.test_mid_session_rebinding_flip_never_reaches_internal)
+Approved host re-resolves to an internal address MID-SESSION: the very next ... skipped 'live Chromium test needs playwright, chromium, bwrap'
+test_open_roundtrip_through_proxy (test_vetproxy.LiveIsolatedBrowseTests.test_open_roundtrip_through_proxy) ... skipped 'live Chromium test needs playwright, chromium, bwrap'
+test_redirect_to_approved_host_loads (test_vetproxy.LiveIsolatedBrowseTests.test_redirect_to_approved_host_loads) ... skipped 'live Chromium test needs playwright, chromium, bwrap'
+test_redirect_to_loopback_never_reaches_server (test_vetproxy.LiveIsolatedBrowseTests.test_redirect_to_loopback_never_reaches_server) ... skipped 'live Chromium test needs playwright, chromium, bwrap'
+test_redirect_to_unapproved_host_never_fires (test_vetproxy.LiveIsolatedBrowseTests.test_redirect_to_unapproved_host_never_fires) ... skipped 'live Chromium test needs playwright, chromium, bwrap'
+test_unapproved_subresource_blocked_and_reported (test_vetproxy.LiveIsolatedBrowseTests.test_unapproved_subresource_blocked_and_reported) ... skipped 'live Chromium test needs playwright, chromium, bwrap'
+test_browser_gets_a_new_session (test_vetproxy.LiveSandboxHardeningTests.test_browser_gets_a_new_session) ... ok
+test_no_effective_capabilities_inside (test_vetproxy.LiveSandboxHardeningTests.test_no_effective_capabilities_inside) ... ok
+test_sysv_ipc_not_visible_inside (test_vetproxy.LiveSandboxHardeningTests.test_sysv_ipc_not_visible_inside)
+A host-created SysV shm segment (test canary, removed afterwards) must not ... ok
+test_abstract_unix_socket_isolated_with_netns (test_vetproxy.LiveWrapperTests.test_abstract_unix_socket_isolated_with_netns)
+Abstract unix sockets live in the network namespace: a host-side abstract ... skipped 'live wrapper test needs bwrap'
+test_host_canaries_not_visible (test_vetproxy.LiveWrapperTests.test_host_canaries_not_visible)
+Test-created canaries only: a host /tmp file, a host /tmp FILESYSTEM unix ... skipped 'live wrapper test needs bwrap'
+test_relay_path_through_real_wrapper (test_vetproxy.LiveWrapperTests.test_relay_path_through_real_wrapper)
+The in-namespace loopback relay reaches the proxy unix socket: ping -> pong. ... skipped 'live wrapper test needs bwrap'
+test_wrapper_has_no_egress_and_no_sys (test_vetproxy.LiveWrapperTests.test_wrapper_has_no_egress_and_no_sys) ... skipped 'live wrapper test needs bwrap'
+test_approved_public_resolution_allowed_with_production_guard (test_vetproxy.ProductionGuardTests.test_approved_public_resolution_allowed_with_production_guard) ... ok
+test_private_literals_denied_with_production_guard (test_vetproxy.ProductionGuardTests.test_private_literals_denied_with_production_guard) ... ok
+test_resolved_private_denied_with_production_guard (test_vetproxy.ProductionGuardTests.test_resolved_private_denied_with_production_guard)
+An APPROVED hostname whose DNS answers a private address: refused, every family. ... ok
+test_tcp_level_private_literal_403_with_production_guard (test_vetproxy.ProductionGuardTests.test_tcp_level_private_literal_403_with_production_guard)
+Same guard over the socket interface, not just the internal function. ... ok
+test_close_leaves_no_chromium_processes (test_vetproxy.ResourceLifecycleTests.test_close_leaves_no_chromium_processes) ... skipped 'needs isolation (AGENTIC_LIVE_BROWSE_TESTS=1)'
+test_missing_bwrap_refuses_browser_start (test_vetproxy.ResourceLifecycleTests.test_missing_bwrap_refuses_browser_start)
+No bwrap -> available() False -> the session raises instead of falling back. ... ok
+test_session_refusal_leaves_no_resources (test_vetproxy.ResourceLifecycleTests.test_session_refusal_leaves_no_resources) ... skipped 'needs playwright installed'
+test_unusable_userns_refuses_browser_start (test_vetproxy.ResourceLifecycleTests.test_unusable_userns_refuses_browser_start)
+bwrap present but namespaces blocked -> probe fails -> browser stays off. ... ok
+test_broad_dirs_rejected (test_vetproxy.RuntimeMountValidationTests.test_broad_dirs_rejected) ... ok
+test_dedicated_dirs_accepted (test_vetproxy.RuntimeMountValidationTests.test_dedicated_dirs_accepted) ... ok
+test_write_wrapper_refuses_broad_runtime (test_vetproxy.RuntimeMountValidationTests.test_write_wrapper_refuses_broad_runtime) ... ok
+test_approved_public_host_tunnels (test_vetproxy.VettingUnitTests.test_approved_public_host_tunnels) ... ok
+test_drain_denials_clears (test_vetproxy.VettingUnitTests.test_drain_denials_clears) ... /workspaces/grok-bot/test_vetproxy.py:264: ResourceWarning: unclosed <socket.socket fd=14, family=2, type=1, proto=6, laddr=('127.0.0.1', 57390), raddr=('127.0.0.1', 38501)>
+  self.connect('%s:443' % OTHER)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_literal_private_denied_even_when_approved (test_vetproxy.VettingUnitTests.test_literal_private_denied_even_when_approved) ... ok
+test_literal_public_ip_allowed_only_when_approved (test_vetproxy.VettingUnitTests.test_literal_public_ip_allowed_only_when_approved) ... ok
+test_localhost_names_denied (test_vetproxy.VettingUnitTests.test_localhost_names_denied) ... ok
+test_non_public_resolution_denied (test_vetproxy.VettingUnitTests.test_non_public_resolution_denied) ... ok
+test_only_ports_80_and_443 (test_vetproxy.VettingUnitTests.test_only_ports_80_and_443) ... ok
+test_plain_http_forwarding (test_vetproxy.VettingUnitTests.test_plain_http_forwarding) ... ok
+test_plain_http_unapproved_denied (test_vetproxy.VettingUnitTests.test_plain_http_unapproved_denied) ... ok
+test_rebinding_flip_is_refused (test_vetproxy.VettingUnitTests.test_rebinding_flip_is_refused)
+Resolver answers once, then starts failing: every connection re-vets. ... ok
+test_resolver_returning_private_ip_is_refused (test_vetproxy.VettingUnitTests.test_resolver_returning_private_ip_is_refused)
+Rebinding flip: even an approved host whose resolver NOW answers a private ... ok
+test_unapproved_host_denied_before_dns (test_vetproxy.VettingUnitTests.test_unapproved_host_denied_before_dns) ... ok
+test_all_websockets_refused (test_vetproxy.WebSocketGateTests.test_all_websockets_refused)
+Read/click-only browser: WS refused even to approved, public hosts. ... ok
+
+----------------------------------------------------------------------
+Ran 752 tests in 99.760s
+
+OK (skipped=39)
+
+sys:1: ResourceWarning: unclosed file <_io.BufferedRandom name='/tmp/tmpf6ls_qb0/.tasks.sqlite3.lock'>
+EXIT:0

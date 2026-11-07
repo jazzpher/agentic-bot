@@ -12,8 +12,8 @@ REPO = Path(__file__).resolve().parent
 
 def boot_secret(workdir, env_extra=None):
     env = dict(os.environ)
-    env.pop('GROK_SESSION_SECRET', None)
-    env['GROK_WORKSPACE_DIR'] = str(Path(workdir) / 'workspaces')
+    env.pop('AGENTIC_SESSION_SECRET', None)
+    env['AGENTIC_WORKSPACE_DIR'] = str(Path(workdir) / 'workspaces')
     if env_extra:
         env.update(env_extra)
     out = subprocess.run([sys.executable, '-c', 'import webui; print(webui.app.secret_key)'],
@@ -35,7 +35,7 @@ class SessionSecretTests(unittest.TestCase):
 
     def test_env_secret_wins_and_writes_no_file(self):
         with tempfile.TemporaryDirectory() as d:
-            secret, _ = boot_secret(d, {'GROK_SESSION_SECRET': 'mine'})
+            secret, _ = boot_secret(d, {'AGENTIC_SESSION_SECRET': 'mine'})
             self.assertEqual(secret, 'mine')
             self.assertFalse((Path(d) / '.session_secret').exists())
 
@@ -56,7 +56,7 @@ class DefaultDataDirTests(unittest.TestCase):
     def test_default_dir_is_per_user_not_the_working_directory(self):
         with tempfile.TemporaryDirectory() as data, tempfile.TemporaryDirectory() as elsewhere:
             env = {k: v for k, v in os.environ.items()
-                   if k not in ('GROK_WORKSPACE_DIR', 'GROK_SESSION_SECRET')}
+                   if k not in ('AGENTIC_WORKSPACE_DIR', 'AGENTIC_SESSION_SECRET')}
             env['XDG_DATA_HOME'] = data
             # No HOME override: it would also move the user site-packages (deps installed with
             # --user become invisible) and break the subprocess on machines without a venv.
@@ -65,8 +65,8 @@ class DefaultDataDirTests(unittest.TestCase):
             out = subprocess.run([sys.executable, '-c', 'import webui; print(webui.WORKSPACES)'],
                                  cwd=elsewhere, env=env, capture_output=True, text=True, timeout=60)
             self.assertEqual(out.returncode, 0, out.stderr)
-            self.assertEqual(Path(out.stdout.strip().splitlines()[-1]), Path(data) / 'grokbot' / 'workspaces')
-            self.assertTrue((Path(data) / 'grokbot' / '.session_secret').is_file())
+            self.assertEqual(Path(out.stdout.strip().splitlines()[-1]), Path(data) / 'agenticbot' / 'workspaces')
+            self.assertTrue((Path(data) / 'agenticbot' / '.session_secret').is_file())
             # Starting from another directory must not scatter data next to it.
             self.assertEqual(list(Path(elsewhere).iterdir()), [])
 
@@ -74,8 +74,8 @@ class DefaultDataDirTests(unittest.TestCase):
         """O_CREAT|O_EXCL: parallel workers converge on one secret instead of racing."""
         with tempfile.TemporaryDirectory() as d:
             env = dict(os.environ)
-            env.pop('GROK_SESSION_SECRET', None)
-            env['GROK_WORKSPACE_DIR'] = str(Path(d) / 'workspaces')
+            env.pop('AGENTIC_SESSION_SECRET', None)
+            env['AGENTIC_WORKSPACE_DIR'] = str(Path(d) / 'workspaces')
             code = 'import webui; print(webui.app.secret_key)'
             procs = [subprocess.Popen([sys.executable, '-c', code], cwd=REPO, env=env,
                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)

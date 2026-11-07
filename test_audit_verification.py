@@ -4,10 +4,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 from agent_loop import Workspace
-from grokbot import agent, completion
-from grokbot.approvals import SandboxPolicy
-from grokbot.tools import ToolContext, default_registry
-from test_grokbot_agent import scripted, text_events
+from agenticbot import agent, completion
+from agenticbot.approvals import SandboxPolicy
+from agenticbot.tools import ToolContext, default_registry
+from test_agenticbot_agent import scripted, text_events
 
 
 class AutomaticAcceptanceTests(unittest.TestCase):
@@ -69,7 +69,7 @@ class AutomaticAcceptanceTests(unittest.TestCase):
         self.assertFalse(self.ctx.extras.get('_skill_learning_enabled', False))
 
     def test_real_cli_entrypoint_uses_gate(self):
-        from grokbot.cli import main
+        from agenticbot.cli import main
         import io
         import contextlib
         with contextlib.redirect_stdout(io.StringIO()) as out:
@@ -79,7 +79,7 @@ class AutomaticAcceptanceTests(unittest.TestCase):
 
     def test_real_web_entrypoint_persists_verification(self):
         import webui
-        from grokbot.conversations import ConversationStore
+        from agenticbot.conversations import ConversationStore
         store = ConversationStore(Path(self.tmp.name) / 'conv.sqlite3')
         with patch.dict(webui.app.config, {'MOCK': True, 'API_KEY': '', 'API_URL': '', 'MODEL': 'test'}), \
              patch.object(webui, 'conversation_store', return_value=store):
