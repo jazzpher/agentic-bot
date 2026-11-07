@@ -281,3 +281,25 @@ button:focus-visible, summary:focus-visible, .liveview:focus-visible { outline: 
   #settings { padding: 12px; }
   #composer-row { flex-wrap: wrap; }
 }
+
+/* Lightweight activity: one real-event pulse, bounded logs, no screenshot polling. */
+.toolgroup { border:1px solid var(--line, #333); border-radius:10px; margin:12px 0; min-width:0; }
+.toolgroup > summary { cursor:pointer; padding:11px 14px; color:var(--muted, #aaa); font-size:13px; }
+.toolgroup-body { padding:0 10px 6px; }
+.toolgroup .toolcard { margin:6px 0; }
+.toolcard summary code { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.toolcard .tmeta { flex-shrink:0; }
+.toolcard.quiet { opacity:.8; }
+.toolcard:not(.running) > summary::after, .toolgroup:not([open]) .toolcard > summary::after { animation:none !important; content:none; }
+.artifact { margin:8px 0; border:1px solid var(--line, #333); border-radius:8px; padding:10px 12px; min-width:0; }
+.artifact > summary { cursor:pointer; overflow-wrap:anywhere; }
+.artifact .chip { display:inline-block; margin-top:8px; }
+.artifact-text { white-space:pre-wrap; overflow-wrap:anywhere; max-height:360px; overflow:auto; font-size:12px; }
+@media (prefers-reduced-motion: reduce) {
+  .tstatus.running::before, .toolcard.running summary::after, .grok.pending::after, .subagent.running summary::after, .arow.running summary::after { animation:none !important; }
+}
+@media (max-width:600px) {
+  .toolcard summary { flex-wrap:wrap; gap:6px; }
+  .toolcard summary code { max-width:100%; }
+  .toolgroup-body { padding:0 6px 6px; }
+}

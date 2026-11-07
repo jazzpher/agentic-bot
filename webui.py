@@ -749,6 +749,35 @@ def too_large(_):
 def files():
     return Response(client()['workspace'].execute({'action': 'list_files'}), content_type='application/json')
 
+@app.route('/file-preview', methods=['GET'])
+def file_preview():
+    """On-demand, bounded inert text. Workspace.path preserves owner/path guards."""
+    try:
+        path = client()['workspace'].path(request.args.get('name', ''))
+        if not path.is_file():
+            return {'error': 'File not found'}, 404
+        with path.open('rb') as stream:
+            raw = stream.read(65537)
+        if b'\x00' in raw:
+            return {'error': 'Binary preview unavailable'}, 415
+        try:
+            text = raw[:65536].decode('utf-8')
+        except UnicodeDecodeError:
+            # A valid UTF-8 character may straddle the byte limit.
+            if len(raw) > 65536:
+                try:
+                    text = raw[:65536].decode('utf-8', errors='strict')
+                except UnicodeDecodeError as exc:
+                    if exc.end != 65536:
+                        return {'error': 'Text preview requires UTF-8'}, 415
+                    text = raw[:exc.start].decode('utf-8')
+            else:
+                return {'error': 'Text preview requires UTF-8'}, 415
+        return {'text': text, 'truncated': len(raw) > 65536}
+    except (ValueError, OSError):
+        return {'error': 'Invalid or unreadable file path'}, 400
+
+
 @app.route('/files/<path:name>', methods=['GET'])
 def download(name):
     try:
