@@ -1,0 +1,12 @@
+▸ write_file rename-proof.txt
+✓ write_file (0.0s)
+  │ Wrote rename-proof.txt (17 bytes, 1 lines).
+▸ read_file rename-proof.txt
+✓ read_file (0.0s)
+  │ rename-proof.txt (lines 1-1 of 1)
+  │ 1| AGENTIC_RENAME_OK
+Created `rename-proof.txt` and read it back. Its content is:
+
+**AGENTIC_RENAME_OK**
+· Verification: Only explicit files and quoted titles are checked. Full request correctness is not independently verified.
+· unverified

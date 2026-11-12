@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Grok-style local chat bot.
+"""Agentic Bot legacy chat client.
 
 A lightweight terminal chat app that talks to the xAI (Grok) API,
 with conversation memory, streaming replies, and session commands.
 
 Usage:
-    export GROK_API_KEY="xai-..."     # get one at https://console.x.ai
+    export AGENTIC_API_KEY="xai-..."     # get one at https://console.x.ai
     python3 bot.py                    # chat with Grok
     python3 bot.py --mock             # no key needed, fake replies for testing
 
@@ -15,6 +15,7 @@ Commands inside the chat:
     /help   show commands
     /exit   quit
 """
+from agenticbot.env import env_get
 
 import argparse
 import json
@@ -35,11 +36,11 @@ try:
 except ImportError:
     sys.exit("Missing dependency. Run: pip3 install requests")
 
-API_URL = os.environ.get("GROK_API_URL", "https://api.x.ai/v1/chat/completions")
-DEFAULT_MODEL = os.environ.get("GROK_MODEL", "grok-4-fast")
+API_URL = env_get("AGENTIC_API_URL", "https://api.x.ai/v1/chat/completions")
+DEFAULT_MODEL = env_get("AGENTIC_MODEL", "grok-4-fast")
 
 SYSTEM_PROMPT = (
-    "You are Grok, a helpful assistant with a bit of wit. "
+    "You are Agentic Bot, a helpful assistant with a bit of wit. "
     "Answer directly and honestly."
 )
 
@@ -120,32 +121,32 @@ class Chat:
         self.history = [{"role": "system", "content": SYSTEM_PROMPT}]
 
     def save(self, path=None):
-        path = path or f"grok-chat-{datetime.datetime.now():%Y%m%d-%H%M%S}.txt"
+        path = path or f"agentic-chat-{datetime.datetime.now():%Y%m%d-%H%M%S}.txt"
         with open(path, "w", encoding="utf-8") as f:
             for msg in self.history:
                 role = msg["role"]
                 if role == "system":
                     continue
-                f.write(f"{'You' if role == 'user' else 'Grok'}: {msg['content']}\n\n")
+                f.write(f"{'You' if role == 'user' else 'Agentic Bot'}: {msg['content']}\n\n")
         return path
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Local Grok-style chat bot")
+    parser = argparse.ArgumentParser(description="Agentic Bot legacy chat client")
     parser.add_argument("--mock", action="store_true", help="run without an API key (fake replies)")
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"Grok model (default: {DEFAULT_MODEL})")
     args = parser.parse_args()
 
-    api_key = os.environ.get("GROK_API_KEY", "")
+    api_key = env_get("AGENTIC_API_KEY", "")
     if not args.mock and not api_key:
         sys.exit(
             "No API key found. Get one at https://console.x.ai then:\n"
-            '  export GROK_API_KEY="xai-..."\n'
+            '  export AGENTIC_API_KEY="xai-..."\n'
             "Or test the app without a key: python3 bot.py --mock"
         )
 
     chat = Chat(api_key, args.model, mock=args.mock)
-    print(f"grok-bot ready ({'mock mode' if args.mock else 'model: ' + args.model}). "
+    print(f"Agentic Bot ready ({'mock mode' if args.mock else 'model: ' + args.model}). "
           "Type /help for commands.\n")
 
     while True:
@@ -173,7 +174,7 @@ def main():
             print(f"* saved to {path}\n")
             continue
 
-        print("grok> ", end="", flush=True)
+        print("agentic> ", end="", flush=True)
         result = chat.ask(user_text)
         if isinstance(result, InterruptedReply):
             print('[' + result.message + ']')

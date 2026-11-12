@@ -1,0 +1,510 @@
+[
+  {
+    "type": "conversation"
+  },
+  {
+    "type": "context_info"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "usage"
+  },
+  {
+    "type": "tool_start",
+    "name": "browse_open"
+  },
+  {
+    "type": "approval_required",
+    "tool": "browse_open",
+    "reason": "Opening this page lets the agent read and click around on example.com in a headless browser. No logins, cookies or saved data exist in it, and the agent cannot type - but page content is untrusted. Approve only domains you are comfortable with the agent reading."
+  },
+  {
+    "type": "approval",
+    "tool": "browse_open",
+    "reason": "Your decision."
+  },
+  {
+    "type": "tool_end",
+    "name": "browse_open",
+    "ok": true,
+    "duration": 2.431
+  },
+  {
+    "type": "preview_image",
+    "name": "browse-example.com",
+    "tool": "browse_open"
+  },
+  {
+    "type": "heartbeat"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "usage"
+  },
+  {
+    "type": "tool_start",
+    "name": "request_takeover"
+  },
+  {
+    "type": "takeover_required",
+    "reason": "Please inspect the example.com page in the browser, then tap Done so I can capture the page title with browse_see."
+  },
+  {
+    "type": "takeover",
+    "status": "done"
+  },
+  {
+    "type": "tool_end",
+    "name": "request_takeover",
+    "ok": true,
+    "duration": 0.553
+  },
+  {
+    "type": "preview_image",
+    "name": "browse-example.com",
+    "tool": "request_takeover"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "usage"
+  },
+  {
+    "type": "tool_start",
+    "name": "browse_see"
+  },
+  {
+    "type": "tool_end",
+    "name": "browse_see",
+    "ok": true,
+    "duration": 0.025
+  },
+  {
+    "type": "preview_image",
+    "name": "browse-example.com",
+    "tool": "browse_see"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "usage"
+  },
+  {
+    "type": "completion_check",
+    "passed": true,
+    "coverage": "limited",
+    "status": "unverified"
+  },
+  {
+    "type": "done",
+    "status": "unverified"
+  }
+]

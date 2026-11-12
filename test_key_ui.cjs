@@ -1,13 +1,14 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const code=fs.readFileSync(__dirname+'/grokbot/static/app.js','utf8');
-function setup(fetch){const elements={};
+const code=fs.readFileSync(__dirname+'/agenticbot/static/app.js','utf8');
+function setup(fetch, realDOM=false){const elements={};
  const mk=()=>({value:'',textContent:'',children:[],disabled:false,isConnected:true,style:{},className:'',
   classList:{_s:new Set(),add(...a){a.forEach(x=>this._s.add(x))},remove(...a){a.forEach(x=>this._s.delete(x))},toggle(x){this._s.has(x)?this._s.delete(x):this._s.add(x);return this._s.has(x)},contains(x){return this._s.has(x)}},
   appendChild(c){this.children.push(c)},append(...a){a.forEach(x=>this.children.push(x))},replaceChildren(){this.children=[]},focus(){},
   addEventListener(n,f){this[n]=f}});
  const el=id=>elements[id]||=mk();
  const ctx={console,Set,Map,JSON,Promise,TextDecoder,fetch,setTimeout:f=>f(),document:{getElementById:el,createElement:mk}};
- vm.createContext(ctx);for(const n of ['keyin','urlin','modelin','inp','wrap','chat'])ctx[n]=el(n);vm.runInContext(code.replace('restoreTasks();','').replace('restoreHistory();','').replace('loadPolicy();','').replace('refreshKeyStatus();\n',''),ctx);return {ctx,el}}
+ if(realDOM)ctx.window={Node:function(){},addEventListener(){}};
+ vm.createContext(ctx);for(const n of ['keyin','urlin','modelin','inp','wrap','chat'])ctx[n]=el(n);vm.runInContext(code.replace('if (hasDOM) boot();','').replace('restoreTasks();','').replace('restoreHistory();','').replace('loadPolicy();','').replace('refreshKeyStatus();\n',''),ctx);return {ctx,el}}
 const resp=(obj,ok=true)=>({ok,json:async()=>obj,text:async()=>typeof obj==='string'?obj:JSON.stringify(obj)});
 (async()=>{
  // Test button: shows OK / failure text, key never shown, button restored
@@ -50,21 +51,29 @@ const resp=(obj,ok=true)=>({ok,json:async()=>obj,text:async()=>typeof obj==='str
    s.ctx.TextEncoder=TextEncoder; const seen=[]; const st=s.el('status'); Object.defineProperty(st,'textContent',{get(){return this._t||''},set(v){this._t=v;seen.push(v)}});
    s.el('in').value='hi';
    await vm.runInContext('send()',s.ctx);
-   const bubbles=s.el('chat').children.filter(c=>typeof c.className==='string'&&c.className.includes('grok'));
+   const bubbles=s.el('chat').children.filter(c=>typeof c.className==='string'&&c.className.includes('agent-msg'));
    const bub=bubbles[bubbles.length-1]; assert.equal(bub.textContent,'Hello world');
-   assert(seen.includes('Google is busy right now, retrying 1 of 3...'),JSON.stringify(seen)); assert(seen.includes('retrying 2 of 3...')); assert.equal(seen[seen.length-1],'Ready');
+   assert(seen.includes('Google is busy right now, retrying 1 of 3...'),JSON.stringify(seen)); assert(seen.includes('retrying 2 of 3...')); assert.equal(seen[seen.length-1],'Completed · verified');
    assert.equal(vm.runInContext('currentConversation',s.ctx),'c1','conversation id from the stream is adopted'); }
  // tool cards: tool_start/tool_end render a card with the command and its output; approval_required renders buttons that post the decision
  { const enc=new TextEncoder(); const events=[{type:'tool_start',id:'t1',name:'run_command',arguments:{command:'ls -la'}},{type:'tool_end',id:'t1',name:'run_command',ok:true,output:'total 0',duration:0.2},{type:'approval_required',id:'a1',tool:'write_file',arguments:{path:'x.txt'},reason:'Sandbox is read-only',always_pattern:'write_file:*'},{type:'text',delta:'done'},{type:'done',status:'completed'}];
    const body=events.map(e=>JSON.stringify(e)).join('\n')+'\n'; let sent=false; const posts=[];
    const s=setup(async(u,o)=>{ if(u==='/agent') return {ok:true,body:{getReader:()=>({read:async()=>sent?{done:true}:(sent=true,{done:false,value:enc.encode(body)})})}}; if(u==='/agent/approve'){posts.push(JSON.parse(o.body));return resp({ok:true})} return resp([]);});
    s.el('in').value='run it'; await vm.runInContext('send()',s.ctx);
-   const kids=s.el('chat').children; const card=kids.find(c=>typeof c.className==='string'&&c.className.startsWith('toolcard'));
+   const kids=s.el('chat').children; const group=kids.find(c=>c.className==='toolgroup'); const card=group && group._cards[0];
    assert(card,'tool card rendered'); assert(card.className.includes('ok'),card.className);
    const flat=n=>[n.textContent||'',...(n.children||[]).map(flat)].join('|');
-   assert(flat(card).includes('ls -la'),flat(card)); assert(flat(card).includes('total 0'),flat(card));
+   card.open=true; card.toggle(); assert(flat(card).includes('ls -la'),flat(card)); assert(flat(card).includes('total 0'),flat(card));
    const approval=kids.find(c=>c.className==='approval'); assert(approval,'approval card rendered');
    const btns=approval.children.find(c=>c.className==='btns'); const allow=btns.children.find(b=>b.className==='allow');
    await allow.click(); assert.deepEqual(posts[0],{id:'a1',decision:'allow'}); }
+ // A quiet stream must stop animating, then restore its real activity on new events.
+ { const s=setup(async()=>resp([]),true);const seen=[];let tick;
+   s.ctx.clearTimeout=()=>{};s.ctx.setTimeout=f=>{tick=f;return 1};
+   const st=s.el('status');Object.defineProperty(st,'textContent',{get(){return this._t||''},set(v){this._t=v;seen.push(v)}});
+   s.ctx.consumeEventStream=async(_res,onEvent)=>{onEvent({type:'reasoning',delta:'a'});tick();assert(st.textContent.includes('No events for 45s'));onEvent({type:'reasoning',delta:'b'});assert.equal(st.textContent,'Thinking');onEvent({type:'done',status:'unverified'})};
+   s.el('in').value='watchdog';await vm.runInContext('send()',s.ctx);
+   assert.equal(st.textContent,'Unverified');assert(seen.includes('Thinking'));
+ }
  console.log('PASS key/test/resume UI');
 })().catch(e=>{console.error(e);process.exitCode=1});

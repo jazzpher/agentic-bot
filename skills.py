@@ -2,10 +2,10 @@
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
 import threading
 import time
+from pathlib import Path
 
 _LOCK = threading.RLock()
 _SECRET_PATTERN = re.compile(
@@ -150,20 +150,24 @@ class SkillStore:
                     continue
             return rows
 
+    def validate(self, name, description, content, created_by='agent'):
+        path = self.path(name)
+        if not isinstance(description, str) or not 1 <= len(description.strip()) <= 160:
+            raise ValueError('Description must be 1-160 characters.')
+        if not isinstance(content, str) or not content.strip():
+            raise ValueError('Write the workflow as Markdown text.')
+        if created_by not in ('agent', 'user'):
+            raise ValueError('Unknown skill provenance.')
+        raw = '---\nname: ' + name + '\ndescription: ' + json.dumps(description.strip(), ensure_ascii=False) + '\n---\n' + content.strip() + '\n'
+        if len(raw.encode('utf-8')) > MAX_BYTES:
+            raise ValueError('Skill exceeds 12 KB.')
+        if _SECRET_PATTERN.search(raw):
+            raise ValueError('Do not save credentials in skills.')
+        return path, raw
+
     def save(self, name, description, content, revision='', created_by='agent'):
         with _LOCK:
-            path = self.path(name)
-            if not isinstance(description, str) or not 1 <= len(description.strip()) <= 160:
-                raise ValueError('Description must be 1-160 characters.')
-            if not isinstance(content, str) or not content.strip():
-                raise ValueError('Write the workflow as Markdown text.')
-            if created_by not in ('agent', 'user'):
-                raise ValueError('Unknown skill provenance.')
-            raw = '---\nname: ' + name + '\ndescription: ' + json.dumps(description.strip(), ensure_ascii=False) + '\n---\n' + content.strip() + '\n'
-            if len(raw.encode('utf-8')) > MAX_BYTES:
-                raise ValueError('Skill exceeds 12 KB.')
-            if _SECRET_PATTERN.search(raw):
-                raise ValueError('Do not save credentials in skills.')
+            path, raw = self.validate(name, description, content, created_by)
             if path.exists():
                 existing_meta = self.metadata(name)
                 if self.read(name)['revision'] != revision:

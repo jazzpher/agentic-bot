@@ -1,0 +1,545 @@
+[
+  {
+    "type": "conversation"
+  },
+  {
+    "type": "context_info"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "usage"
+  },
+  {
+    "type": "tool_start",
+    "name": "write_file"
+  },
+  {
+    "type": "tool_end",
+    "name": "write_file",
+    "ok": true,
+    "duration": 0.052
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "usage"
+  },
+  {
+    "type": "tool_start",
+    "name": "run_command"
+  },
+  {
+    "type": "command_start"
+  },
+  {
+    "type": "tool_end",
+    "name": "run_command",
+    "ok": true,
+    "duration": 1.733
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "reasoning"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "text"
+  },
+  {
+    "type": "usage"
+  },
+  {
+    "type": "completion_check",
+    "passed": true,
+    "coverage": "limited",
+    "status": "unverified"
+  },
+  {
+    "type": "done",
+    "status": "unverified"
+  }
+]

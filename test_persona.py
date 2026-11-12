@@ -1,4 +1,4 @@
-"""System-prompt persona (GROK_PERSONA=friend|tool), the memory rule, and the memory top-up for short messages."""
+"""System-prompt persona (AGENTIC_PERSONA=friend|tool), the memory rule, and the memory top-up for short messages."""
 import os
 import shutil
 import tempfile
@@ -6,12 +6,12 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from grokbot import config
-from grokbot.agent import (FRIEND_PERSONA, FRIEND_SYSTEM_PROMPT, MEMORY_RULE, SYSTEM_PROMPT, active_persona,
+from agenticbot import config
+from agenticbot.agent import (FRIEND_PERSONA, FRIEND_SYSTEM_PROMPT, MEMORY_RULE, SYSTEM_PROMPT, active_persona,
                            build_system_prompt, run_turn)
-from grokbot.approvals import SandboxPolicy
-from grokbot.memory import MemoryStore
-from grokbot.tools import ToolContext, default_registry
+from agenticbot.approvals import SandboxPolicy
+from agenticbot.memory import MemoryStore
+from agenticbot.tools import ToolContext, default_registry
 from agent_loop import Workspace
 
 # Safety and working rules that must survive in every persona.
@@ -31,11 +31,26 @@ class PersonaPromptTests(unittest.TestCase):
             return build_system_prompt(ctx or self.ctx, self.registry, SandboxPolicy())
 
     def test_friend_is_the_default(self):
-        self.assertEqual(config._choice('GROK_PERSONA_UNSET_FOR_TEST', 'friend', ('friend', 'tool')), 'friend')
-        with mock.patch.dict(os.environ, {'GROK_PERSONA': 'TOOL '}):
-            self.assertEqual(config._choice('GROK_PERSONA', 'friend', ('friend', 'tool')), 'tool')
-        with mock.patch.dict(os.environ, {'GROK_PERSONA': 'pirate'}):
-            self.assertEqual(config._choice('GROK_PERSONA', 'friend', ('friend', 'tool')), 'friend')
+        self.assertEqual(config._choice('AGENTIC_PERSONA_UNSET_FOR_TEST', 'friend', ('friend', 'tool')), 'friend')
+        with mock.patch.dict(os.environ, {'AGENTIC_PERSONA': 'TOOL '}):
+            self.assertEqual(config._choice('AGENTIC_PERSONA', 'friend', ('friend', 'tool')), 'tool')
+        with mock.patch.dict(os.environ, {'AGENTIC_PERSONA': 'pirate'}):
+            self.assertEqual(config._choice('AGENTIC_PERSONA', 'friend', ('friend', 'tool')), 'friend')
+
+    def test_legacy_grok_persona_still_works(self):
+        env = {k: v for k, v in os.environ.items() if k not in ('AGENTIC_PERSONA', 'GROK_PERSONA')}
+        env['GROK_PERSONA'] = 'tool'
+        with mock.patch.dict(os.environ, env, clear=True):
+            self.assertEqual(config._choice('AGENTIC_PERSONA', 'friend', ('friend', 'tool')), 'tool')
+        env['AGENTIC_PERSONA'] = 'friend'
+        with mock.patch.dict(os.environ, env, clear=True):
+            self.assertEqual(config._choice('AGENTIC_PERSONA', 'friend', ('friend', 'tool')), 'friend')
+
+    def test_tool_prompt_is_byte_identical_to_main(self):
+        self.assertTrue(SYSTEM_PROMPT.startswith("You are Agentic Bot, an AI agent"))
+        self.assertTrue(SYSTEM_PROMPT.endswith("do not claim a specific vendor unless certain.\n"))
+        self.assertIn('- Final answer: concise Markdown.', SYSTEM_PROMPT)
+        self.assertNotIn('How to talk', SYSTEM_PROMPT)
 
     def test_friend_prompt_carries_the_persona(self):
         text = self.prompt('friend')
@@ -133,6 +148,13 @@ class MemoryTopUpTests(unittest.TestCase):
         self.assertNotIn('Someone else entirely', [m['text'] for m in rel])
         self.assertEqual(len(self.store.relevant('o', 'kumusta', limit=2)), 2)
         self.assertEqual([m['id'] for m in self.store.relevant('o', 'render', recent=0)], [pin['id'], match['id']])
+
+    def test_top_up_skips_superseded_notes(self):
+        old = self.store.save('o', 'Lives in Manila')
+        new = self.store.save('o', 'Lives in Lucena City', supersedes=old['id'])
+        texts = [m['text'] for m in self.store.relevant('o', 'hi')]
+        self.assertIn('Lives in Lucena City', texts)
+        self.assertNotIn('Lives in Manila', texts)
 
 
 if __name__ == '__main__':

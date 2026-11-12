@@ -1,0 +1,20 @@
+test_backup_format_stays_compatible (test_agenticbot_rename.RenameTests.test_backup_format_stays_compatible) ... ok
+test_environment_fallback_and_new_precedence (test_agenticbot_rename.RenameTests.test_environment_fallback_and_new_precedence) ... ok
+test_legacy_project_instructions (test_agenticbot_rename.RenameTests.test_legacy_project_instructions) ... ok
+test_module_commands (test_agenticbot_rename.RenameTests.test_module_commands) ... ok
+test_old_data_is_reused_and_new_installs_use_new_name (test_agenticbot_rename.RenameTests.test_old_data_is_reused_and_new_installs_use_new_name) ... ok
+test_old_imports_are_same_modules (test_agenticbot_rename.RenameTests.test_old_imports_are_same_modules) ... /home/codespace/.python/current/lib/python3.14/importlib/__init__.py:88: DeprecationWarning: grokbot is deprecated; use agenticbot
+  return _bootstrap._gcd_import(name[level:], package, level)
+ok
+test_ui_brand_and_static_assets (test_agenticbot_rename.RenameTests.test_ui_brand_and_static_assets) ... /workspaces/grok-bot/test_agenticbot_rename.py:58: ResourceWarning: unclosed file <_io.BufferedReader name='/workspaces/grok-bot/agenticbot/static/app.js'>
+  self.assertEqual(client.get(asset).status_code,200,asset)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/workspaces/grok-bot/test_agenticbot_rename.py:58: ResourceWarning: unclosed file <_io.BufferedReader name='/workspaces/grok-bot/agenticbot/static/app.css'>
+  self.assertEqual(client.get(asset).status_code,200,asset)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 1.429s
+
+OK

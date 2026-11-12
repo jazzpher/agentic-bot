@@ -1,0 +1,32 @@
+{
+ "takeover_required": 1,
+ "frames": 1,
+ "inputs": [
+  {
+   "ev": {
+    "type": "click",
+    "x": 80,
+    "y": 200
+   },
+   "queued": true
+  }
+ ],
+ "done_ok": true,
+ "errors": [],
+ "frames_after": 9,
+ "status": "completed",
+ "text": "1. **Main heading on\u202fhttps://example.com** \u2013 `Example\u202fDomain`  \n2. `request_takeover` called with reason \u201cplease click the link on the page\u201d.  \n3. After takeover, the current page still shows:  \n\n   * Heading: `Example\u202fDomain`  \n   * URL: `https://example.com/`",
+ "steps": 3,
+ "tool_calls": 3,
+ "usage": {
+  "prompt_tokens": 14182,
+  "completion_tokens": 776
+ },
+ "seconds": 69.6,
+ "wire": {
+  "calls": 10,
+  "private_key_leaks": 0,
+  "image_parts": 1
+ },
+ "model": "openai/gpt-oss-20b"
+}

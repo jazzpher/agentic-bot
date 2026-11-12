@@ -1,19 +1,19 @@
-# Architecture (grokbot 0.9)
+# Architecture (agenticbot 0.9)
 
 ```
-browser ──POST /agent (NDJSON)──▶ webui.py ──▶ grokbot.agent.run_turn ──▶ grokbot.providers.stream_chat ──▶ provider
+browser ──POST /agent (NDJSON)──▶ webui.py ──▶ agenticbot.agent.run_turn ──▶ agenticbot.providers.stream_chat ──▶ provider
    ▲                                 │                 │
-   │ approvals, policy, conversations│                 ├─▶ grokbot.tools.ToolRegistry.execute ──▶ files / shell / web / skills
-   └──────── GET /agent/current ─────┘                 │          │                         └─ grokbot.sandbox backend (subprocess | docker)
+   │ approvals, policy, conversations│                 ├─▶ agenticbot.tools.ToolRegistry.execute ──▶ files / shell / web / skills
+   └──────── GET /agent/current ─────┘                 │          │                         └─ agenticbot.sandbox backend (subprocess | docker)
                                                        │          └─ ApprovalBroker (policy → allow / ask / deny)
-                                                       └─▶ grokbot.compaction (summarise when context is ~75% full)
+                                                       └─▶ agenticbot.compaction (summarise when context is ~75% full)
 ```
 
-## One turn (`grokbot/agent.py`)
+## One turn (`agenticbot/agent.py`)
 1. Build the system prompt: identity + working rules + environment block (sandbox mode, approval policy, backend, cwd, model) +
-   the persona section (`GROK_PERSONA=friend`, default; `tool` = original prompt; sub-agents always `tool`) +
+   the persona section (`AGENTIC_PERSONA=friend`, default; `tool` = original prompt; sub-agents always `tool`) +
    the memory rule (when memory tools are available) +
-   project instructions (`AGENTS.md`/`GROKBOT.md`/`CLAUDE.md` in the workspace) + skills index + (JSON mode only)
+   project instructions (`AGENTS.md`/`AGENTICBOT.md`/`CLAUDE.md` in the workspace) + skills index + (JSON mode only)
    the tool protocol.
 2. Compact the history if `estimate_tokens(messages) > COMPACT_RATIO × context_tokens` — model summary first,
    truncation fallback, never splitting a tool result from its call.
@@ -28,11 +28,17 @@ browser ──POST /agent (NDJSON)──▶ webui.py ──▶ grokbot.agent.run
 
 `TurnResult` carries status, text, the updated message list, counts, aggregated usage and the running summary.
 
-## Tools (`grokbot/tools/`)
+## Tools (`agenticbot/tools/`)
 Each tool is a `ToolSpec` (name, description, JSON-schema parameters, handler, `mutates`, `needs_approval`,
 `available`). `default_registry()` registers: files (`read_file`, `write_file`, `edit_file`, `list_files`, `glob`,
 `grep`, `copy_file`, `compare_files`, `write_docx`, `delete_file`), misc (`calculate`, `current_time`), skills
-(`list_skills`, `read_skill`, `save_skill`), shell (`run_command`), web (`fetch_url`, `web_search`). File tools reuse
+(`list_skills`, `read_skill`, `save_skill`), shell (`run_command`), web (`fetch_url`, `web_search`), verify
+(`verify_visual` — deterministic Pillow pixel diff of an output image/HTML render against a ground-truth
+image, HTML render or public URL; mismatch percent plus a highlighted `<name>.diff.png`).
+The durable harness enforces the same idea at done-time: besides `file_text`/`exact_copy`, checks can be
+`pixel_diff` (same diff engine, numeric `max_diff`/`tolerance`/`ignore` + documented `note` exemptions) or
+`command` (owner-supplied command on the sandbox backend, network off, hardline list applied at submit).
+`done` is rejected with the measured numbers until every check passes. File tools reuse
 `agent_loop.Workspace` for path/size/count guards, so the old protections stay in force.
 
 ## Sandbox & approvals (`sandbox.py`, `approvals.py`)
@@ -60,8 +66,8 @@ Each tool is a `ToolSpec` (name, description, JSON-schema parameters, handler, `
 `POST /set_model`, `GET /capabilities`. `/models` now returns `details[model].context_length` when the provider
 exposes it; `/set_key` accepts `context_length`; `/key_status` reports it.
 
-## CLI (`grokbot/cli.py`)
-`python -m grokbot chat|exec|serve`. `exec` is non-interactive (exit code 1 unless the turn completed; `--json`
+## CLI (`agenticbot/cli.py`)
+`python -m agenticbot chat|exec|serve`. `exec` is non-interactive (exit code 1 unless the turn completed; `--json`
 prints a result object) for CI. `--mock` runs the whole loop offline.
 
 ## Added in 0.9 (phases 3–5)
@@ -72,28 +78,28 @@ webui.run_owner_turn(owner, workspace, cid, text, emit=…, stop=…, images=…
    POST /agent      Scheduler.run_job     TelegramGateway (owner tg:<chat>)
 ```
 
-- **`grokbot/memory.py`** — `MemoryStore` (SQLite + FTS5, owner-scoped). `relevant(owner, goal)` = pinned first, then
+- **`agenticbot/memory.py`** — `MemoryStore` (SQLite + FTS5, owner-scoped). `relevant(owner, goal)` = pinned first, then
   best keyword matches, bounded; `agent.build_system_prompt` appends `prompt_block(...)` when the host attaches the
-  store in `ctx.extras['memory']`. Tools in `grokbot/tools/memory.py` (`save_memory`, `search_memory`, `forget_memory`,
+  store in `ctx.extras['memory']`. Tools in `agenticbot/tools/memory.py` (`save_memory`, `search_memory`, `forget_memory`,
   `search_history`, `read_history`). The `context_info` event tells the UI what was injected (memories, skill index,
   project file, uploads, MCP servers, tool count).
-- **`grokbot/tools/delegate.py`** — sub-agents: a nested `run_turn` with a `registry.subset(...)` (no memory writes,
+- **`agenticbot/tools/delegate.py`** — sub-agents: a nested `run_turn` with a `registry.subset(...)` (no memory writes,
   no further delegation past `MAX_SUBAGENT_DEPTH`), fresh context, same workspace/policy/approvals. Nested events carry
   `agent`/`depth`; the nested `done` is renamed `subagent_done`; `subagent_start`/`subagent_end` wrap them.
-- **`grokbot/scheduler.py`** — `parse_schedule()` (cron / phrases) → spec `{kind: cron|interval|once}`; `Scheduler`
+- **`agenticbot/scheduler.py`** — `parse_schedule()` (cron / phrases) → spec `{kind: cron|interval|once}`; `Scheduler`
   stores jobs in SQLite, a tick thread runs due jobs through the host `runner(job)`; `once` jobs disable themselves.
   The host runner (`webui.run_scheduled_job`) creates a ⏰ conversation, runs an unattended turn
   (`approval=never`, `SCHEDULED_MAX_STEPS`) and queues a notification (`GET /notifications`) and, if the job was
   created from Telegram, sends the result there. Tools: `schedule_task`, `list_scheduled_tasks`, `cancel_scheduled_task`.
-- **`grokbot/mcp.py`** — JSON-RPC client for stdio (`StdioClient`, reader thread, id-matched replies) and Streamable
+- **`agenticbot/mcp.py`** — JSON-RPC client for stdio (`StdioClient`, reader thread, id-matched replies) and Streamable
   HTTP (`HttpClient`, JSON or SSE responses, `Mcp-Session-Id`). `MCPManager.register_tools(registry)` turns every
   remote tool into a `ToolSpec` named `mcp__<server>__<tool>` (sanitised, ≤64 chars) with the server's input schema;
   `mutates = not readOnlyHint`, approval required in read-only mode or when `destructiveHint` is set; failures
   disconnect so the next call reconnects.
-- **`grokbot/plugins.py`** — `GROK_PLUGINS` modules may `register(registry)` tools and hook `before_tool` /
+- **`agenticbot/plugins.py`** — `AGENTIC_PLUGINS` modules may `register(registry)` tools and hook `before_tool` /
   `after_tool` / `on_turn_end` / `on_message`; `ToolRegistry.execute` and `run_turn` call them; a failing hook is
   logged and skipped.
-- **`grokbot/gateway/telegram.py`** — `TelegramGateway(token, allowed_ids, runner, approvals, policy_store)`:
+- **`agenticbot/gateway/telegram.py`** — `TelegramGateway(token, allowed_ids, runner, approvals, policy_store)`:
   `getUpdates` long polling, strict allowlist, draft message edited every ~2 s while streaming, approvals as inline
   buttons (`ap|<id>|allow|always|deny` → `ApprovalBroker.resolve`), commands `/new /stop /policy /status /help`.
   `TelegramRunner` in `webui.py` maps a chat to its current conversation and calls `run_owner_turn`.

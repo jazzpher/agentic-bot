@@ -7,7 +7,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from grokbot import backup
+from agenticbot import backup
 
 
 class BackupTests(unittest.TestCase):

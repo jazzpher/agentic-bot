@@ -9,7 +9,7 @@ import os
 import tempfile
 from skills import SkillStore
 from browser_tools import BrowserError
-from grokbot import config as _cfg
+from agenticbot import config as _cfg
 
 
 # documents pulls in pypdf; import it only when a .docx is actually handled.
@@ -267,10 +267,10 @@ class Workspace:
     def _browse(self, action):
         from browser_tools import BrowserSession
         if not _cfg.BROWSER_ENABLED:
-            raise ToolError('Browser tools are off. Set GROK_BROWSER_ENABLED=on to allow browse_open/browse_read.')
+            raise ToolError('Browser tools are off. Set AGENTIC_BROWSER_ENABLED=on to allow browse_open/browse_read.')
         if action.get('action') in ('browse_click', 'browse_type') and not _cfg.BROWSER_INTERACT:
             raise ToolError('browse_click and browse_type need approval, and the task loop cannot ask. '
-                            'Set GROK_BROWSER_INTERACT=on to allow them. Reading pages still works.')
+                            'Set AGENTIC_BROWSER_INTERACT=on to allow them. Reading pages still works.')
         if self.browser is None:
             self.browser = BrowserSession()
         try:

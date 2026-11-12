@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "grokbot"
+name = "agentic-bot"
 version = "0.9.3"
 description = "Local tool-using coding/chat agent (web UI + CLI) for any OpenAI-compatible provider"
 readme = "README.md"
@@ -15,15 +15,19 @@ dependencies = [
   "flask",
   "pypdf>=6.0,<7",
   "defusedxml>=0.7,<1",
+  "pillow>=10.0",
 ]
 
 [project.scripts]
-grokbot = "grokbot.cli:main"
+agentic-bot = "agenticbot.cli:main"
+agenticbot = "agenticbot.cli:main"
+grokbot = "agenticbot.cli:main"
+grok-bot = "agenticbot.cli:main"
 
 [tool.setuptools]
-packages = ["grokbot", "grokbot.tools", "grokbot.gateway"]
+packages = ["agenticbot", "agenticbot.tools", "agenticbot.gateway", "grokbot"]
 py-modules = ["webui", "agent_loop", "task_harness", "skills", "documents", "model_discovery", "bot", "browser_tools"]
 include-package-data = true
 
 [tool.setuptools.package-data]
-"grokbot" = ["templates/*.html", "static/*.css", "static/*.js", "static/*.svg", "static/*.webmanifest", "static/vendor/*"]
+"agenticbot" = ["templates/*.html", "static/*.css", "static/*.js", "static/*.svg", "static/*.webmanifest", "static/vendor/*"]

@@ -37,10 +37,10 @@ class ProcessLifecycleTests(unittest.TestCase):
             pt=threading.Thread(target=provider.serve_forever,daemon=True); pt.start()
             with socket.socket() as s:
                 s.bind(('127.0.0.1',0)); port=s.getsockname()[1]
-            env=dict(os.environ,GROK_WORKSPACE_DIR=str(root/'workspaces'),GROK_TASK_DB=str(root/'tasks.db'),
-                     GROK_SESSION_SECRET='dummy-stable-session-secret-for-tests',GROK_API_KEY='DUMMY_NOT_REAL',
-                     GROK_API_URL='http://127.0.0.1:'+str(provider.server_port)+'/v1/chat/completions',
-                     GROK_APP_PASSWORD='',GROK_DEPLOYMENT_MODE='local')
+            env=dict(os.environ,AGENTIC_WORKSPACE_DIR=str(root/'workspaces'),AGENTIC_TASK_DB=str(root/'tasks.db'),
+                     AGENTIC_SESSION_SECRET='dummy-stable-session-secret-for-tests',AGENTIC_API_KEY='DUMMY_NOT_REAL',
+                     AGENTIC_API_URL='http://127.0.0.1:'+str(provider.server_port)+'/v1/chat/completions',
+                     AGENTIC_APP_PASSWORD='',AGENTIC_DEPLOYMENT_MODE='local')
             process=None
             def start():
                 p=subprocess.Popen([sys.executable,'webui.py','--port',str(port)],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)

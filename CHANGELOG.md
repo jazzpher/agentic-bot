@@ -6,20 +6,87 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-Reliability pack: real cancellation, per-run log, backup/restore, optional edit review.
+### Added
+
+- **Friend persona** (`AGENTIC_PERSONA=friend`, the default; `GROK_PERSONA` still read as an alias).
+  The chat voice is short, warm and mirrors the user's language and register (Taglish in, Taglish
+  out), with no stock filler, at most one clarifying question, opinions when asked, plain admissions
+  of mistakes and a one-line heads-up before long tool work; coding answers stay precise.
+  `AGENTIC_PERSONA=tool` keeps the original prompt byte for byte; sub-agents always use it. Safety
+  and approval rules are unchanged in both.
+- **Memory guidance in the prompt.** When memory tools are available the system prompt says what
+  personal facts to save (and what never to save), to supersede facts that change so history is
+  kept, and to use memories naturally rather than reciting them. `MemoryStore.relevant` tops up
+  with up to 4 of the newest current notes so a greeting that matches no keyword still carries the
+  basics.
+- **Agent browser and take-over on Windows and macOS (opt-in proxy mode).** New
+  `GROK_AGENT_BROWSER_ISOLATION` (`namespace` default, `proxy`). Linux always uses the bubblewrap
+  namespace and ignores the setting. Windows/macOS still refuse by default; `proxy` runs the vetting
+  proxy on a random loopback TCP port, forces Chromium through it with hardened switches, refuses args
+  that would reroute traffic, and fails closed unless a startup probe really reached the proxy. Weaker
+  than the namespace (no OS sandbox), documented in docs/AGENT_BROWSER_VETPROXY.md. Process cleanup is
+  cross-platform (`ps` on macOS, `taskkill /T` on Windows). Tests: `test_browser_platform.py`, the live
+  suites in both modes (`GROK_TEST_BROWSER_ISOLATION=proxy`), and a Windows/macOS CI job.
+
+### Fixed
+
+- Docs: SECURITY.md still said redirect hops are not vetted and the agent browser should wait for a
+  vetting-proxy fix; the vetting proxy is in, and the row now matches LIMITATIONS.md.
+
+- **Browser take-over with a live view (`request_takeover`).** When a page needs a person
+  (a login, a captcha, a payment, a consent screen) the agent can hand its browser to you: the turn
+  pauses like an approval, the web UI shows a live view of the page (JPEG frames polled from
+  `/agent/takeover/<id>/frame`), and your clicks, typing, keys and scrolls are replayed in Chromium
+  until you tap Done. The agent then gets a fresh snapshot only, never what you typed. Owner-scoped,
+  validated and capped input, same host approval and vetting-proxy rules while you drive, web UI turns
+  only, and bounded by Done, Stop, the end of the turn or `GROK_AGENT_BROWSER_TAKEOVER_TIMEOUT`
+  (default 600 seconds). New module `grokbot/takeover.py`; tests in `test_takeover.py`.
+
+- **Memory supersession (bitemporal corrections).** Memories can carry a fact key
+  (subject/environment/attribute), `effective_from` (when the fact became true) and `recorded_at`
+  (when it was learned). `save(..., supersedes=<id>)` and a new `supersede_memory` tool replace a
+  fact while keeping the old value in `history(owner, subject, environment, attribute)`; search,
+  `relevant()` and the pinned-injection step only return facts current *now*, so a future-dated
+  correction never hides its predecessor early, a backdated correction fixes history without
+  replacing the current value, and same-key facts saved without a link stay visible with an
+  advisory `candidate_supersedes` flag. Keyless or partially-keyed facts never hide one another.
+  Rows replaced by an already-effective successor no longer count against the 2000-per-owner budget;
+  predecessors of future-dated corrections (still active), ambiguous, candidate-flagged and
+  backdated rows still do. Deleting the newest value in a chain restores its predecessor; deleting a
+  mid-chain row is refused so no old value is silently resurrected. Text edits on superseded rows are
+  refused so history cannot be rewritten (`update()` keeps its legacy overwrite semantics for live
+  rows). An explicit link dominates backdate grouping, so an explicit replacement effective earlier
+  than its target stays visible instead of vanishing with it, and a keyed row can only be replaced
+  under the same key (a fully keyless legacy row may be superseded under a new key, which then
+  defines the chain). The memory panel marks superseded/history entries (pin/edit actions are only
+  offered on current rows) and counts only current memories. Existing databases migrate in place
+  (old rows are dated at `created`). Nothing is auto-superseded, pruned or
+  deleted: `forget_memory` remains the only delete, now documented for wrong facts only.
+
+Verifiable agent loops: pixel-diff and command verifiers gate task completion.
 
 ### Added
 
-- **Friend persona** (`GROK_PERSONA=friend`, the default). The chat voice is now short,
-  warm and mirrors the user's language and register (Taglish in, Taglish out), with no stock
-  filler, at most one clarifying question, opinions when asked, plain admissions of mistakes and
-  a one-line heads-up before long tool work; coding answers stay precise. `GROK_PERSONA=tool`
-  keeps the original prompt byte for byte; sub-agents always use it. Safety and approval rules
-  are unchanged in both.
-- **Memory guidance in the prompt.** When memory tools are available the system prompt now says
-  what personal facts to save (and what never to save), to replace facts that change, and to use
-  memories naturally rather than reciting them. `MemoryStore.relevant` tops up with up to 4 of
-  the newest notes so a greeting that matches no keyword still carries the basics.
+- **Verifiable agent loops.** The durable harness gates `done` on two new deterministic
+  check types alongside `file_text`/`exact_copy`: `pixel_diff` (Pillow pixel comparison of
+  an output image or headlessly rendered HTML page against a ground-truth image; numeric
+  `max_diff` threshold, per-channel `tolerance`, up to 8 `ignore` rectangles, and a `note`
+  field documenting known-irrelevant exemptions; highlighted diff saved as `<name>.diff.png`)
+  and `command` (owner-supplied acceptance command - tests pass, output matches - run on the
+  configured sandbox backend with network disabled; hardline-blocked commands refused at
+  submit). A failed check rejects `done` with the measured numbers, so the agent fixes the
+  artifact and retries within its step budget instead of declaring success on a feeling.
+- **`verify_visual` tool** for the interactive agent: the same deterministic pixel diff
+  (workspace image or rendered `.html` output vs a ground-truth image, rendered `.html`, or
+  public URL through the existing GROK_PREVIEW / GROK_BROWSER_ENABLED machinery), returning
+  the mismatch percent and saving a highlighted diff image next to the output.
+- Pillow (`pillow>=10.0`) is now a dependency; image sides need nothing else, HTML rendering
+  uses the existing Playwright setup.
+
+### Added (earlier, same unreleased cycle)
+
+Reliability pack: real cancellation, per-run log, backup/restore, optional edit review.
+
 - **Reliable cancellation.** Stop now interrupts a hung provider stream and a running shell
   command within about a second: a watchdog shuts the socket down (close alone does not wake a
   blocked read on Linux), and both sandbox backends poll the stop event and kill the process
@@ -44,6 +111,20 @@ Reliability pack: real cancellation, per-run log, backup/restore, optional edit 
 
 ### Fixed
 
+- Take-over refused-navigation recovery is one-shot per refusal. After any refused click, every later
+  `chrome-error://` page used to send the user back to the last approved page - including an unrelated
+  network error on an approved site. Now only the refusal's own late-committing error page does, and a
+  regression test simulates the late commit (no real Chromium needed).
+- Take-over refused-navigation recovery now expires. A refused click whose `chrome-error://` page never
+  committed left the recovery armed, so an unrelated error page minutes later (e.g. a network error on an
+  approved site) still sent the user back to the last approved page. The recovery now only applies within
+  `TAKEOVER_REFUSED_WINDOW` (2.5 seconds) of the refusal, in the loop and in the final check before the
+  snapshot; a failed put-back is retried while the window is open. Regression tests cover the expiry and
+  the retry.
+- Agent browser snapshots list the elements on screen first. The 40-element cap used to fill with links
+  from the top of the document, so after `browse_scroll` the buttons and links the screenshot showed were
+  often missing from the list and could not be clicked by index. Off-screen elements still fill the
+  remaining slots.
 - Docs: `preview_page`'s route guard does not see redirect hops (Playwright does not route them); it is safe
   only because the preview server never answers 3xx. Its docstrings, docs/SECURITY.md and the README's web
   browsing paragraph no longer claim per-hop checks.

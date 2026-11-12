@@ -14,9 +14,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from agent_loop import Workspace
-from grokbot import agent as agent_core, providers, sandbox
-from grokbot.approvals import SandboxPolicy
-from grokbot.tools import ToolContext, default_registry
+from agenticbot import agent as agent_core, providers, sandbox
+from agenticbot.approvals import SandboxPolicy
+from agenticbot.tools import ToolContext, default_registry
 
 
 class HangingResponse:
@@ -63,7 +63,7 @@ class StreamCancelTests(unittest.TestCase):
     def test_stop_closes_hung_stream(self):
         resp = HangingResponse()
         stop = threading.Event()
-        with patch('grokbot.providers.requests.post', return_value=resp):
+        with patch('agenticbot.providers.requests.post', return_value=resp):
             events = []
 
             def consume():
@@ -84,14 +84,14 @@ class StreamCancelTests(unittest.TestCase):
         # Bytes keep arriving (read timeout never fires) but no SSE line ever completes.
         resp = HangingResponse(chunks=[b' '] * 100000)
         started = time.monotonic()
-        with patch('grokbot.providers.requests.post', return_value=resp):
+        with patch('agenticbot.providers.requests.post', return_value=resp):
             with self.assertRaises(providers.ProviderError):
                 list(providers.stream_chat(self.cfg(), [{'role': 'user', 'content': 'hi'}], total_timeout=1))
         self.assertLess(time.monotonic() - started, 5.0)
 
     def test_normal_stream_unaffected(self):
         resp = HangingResponse(chunks=[b'data: {"choices":[{"delta":{"content":"ok"}}]}\n\n', b'data: [DONE]\n\n'])
-        with patch('grokbot.providers.requests.post', return_value=resp):
+        with patch('agenticbot.providers.requests.post', return_value=resp):
             events = list(providers.stream_chat(self.cfg(), [{'role': 'user', 'content': 'hi'}], total_timeout=10))
         self.assertEqual([e['type'] for e in events], ['text', 'finish'])
 
