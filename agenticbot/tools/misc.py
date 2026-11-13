@@ -6,8 +6,8 @@ from agenticbot.tools import ToolError
 
 
 def register(registry):
-    @registry.tool('ask_user', 'Ask one necessary question when only the user can supply missing input. '
-                   'Ends this turn as needs_input, not completed. Do not ask for passwords or codes.',
+    @registry.tool('ask_user', 'Ask one necessary question when only the user can supply missing input (a missing file, a choice, a value). '
+                   'Always use this instead of asking in reply text. Ends this turn as needs_input, not completed. Do not ask for passwords or codes.',
                    {'type': 'object', 'properties': {'question': {'type': 'string', 'minLength': 1, 'maxLength': 2000}},
                     'required': ['question']}, category='misc', parallel_safe=False)
     def ask_user(ctx, question):

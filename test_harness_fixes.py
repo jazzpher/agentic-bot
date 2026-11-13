@@ -101,3 +101,11 @@ class FetchHintTests(Base):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class AskUserNudgeTest(unittest.TestCase):
+    def test_detects_trailing_question_outside_code(self):
+        from agenticbot.agent import _asks_user
+        self.assertTrue(_asks_user('No budget sheet here.\nCould you share it?'))
+        self.assertFalse(_asks_user('Done.\n```\nprint("ok?")\n```'))
+        self.assertFalse(_asks_user('Fixed calc.py; add(2, 3) returns 5.'))
