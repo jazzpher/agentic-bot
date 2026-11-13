@@ -218,6 +218,8 @@ class TelegramGateway:
                 status = getattr(result, 'status', 'completed')
                 if status == 'stopped':
                     final = (final + '\n\n(stopped)').strip()
+                elif status == 'needs_input':
+                    final = (final + '\n\n(waiting for your reply)').strip()
                 elif status == 'max_steps':
                     final = (final + '\n\n(step budget reached — say "continue")').strip()
                 elif status == 'error' and not final:

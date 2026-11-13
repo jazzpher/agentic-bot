@@ -147,3 +147,18 @@ def automatic_check(contract, ctx, text):
     return {'passed': not missing, 'missing': missing, 'checks': checks,
             'coverage': 'limited', 'status': 'incomplete' if missing else 'unverified',
             'note': 'Only explicit files and quoted titles are checked. Full request correctness is not independently verified.'}
+
+
+def command_verifier(command, timeout=30):
+    """Capture an owner-supplied acceptance command, never model/history content.
+
+    The owner's check must protect its own expected values; a test file in a
+    model-writable workspace is not tamper-proof independent evidence.
+    """
+    from agenticbot import sandbox
+    def verify(contract, ctx):
+        result = sandbox.get_backend().run(command, ctx.workspace.root, timeout,
+                                           network=False, read_only=True, stop=ctx.stop)
+        passed = result.exit_code == 0 and not result.timed_out and not result.stopped
+        return {r: {'passed': passed, 'evidence': result.render()} for r in contract['requirements']}
+    return verify

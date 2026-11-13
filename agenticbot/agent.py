@@ -112,10 +112,13 @@ def environment_block(ctx: ToolContext, registry: ToolRegistry, policy: SandboxP
              '- OS: ' + platform.system() + ' ' + platform.release() + ' · Python ' + platform.python_version(),
              '- Workspace root: . (all file paths are relative to it)',
              '- Sandbox: ' + backend['backend'] + (' (isolated)' if backend['isolated'] else ' (host subprocess, not isolated)')
-             + ' · policy: ' + policy.label(),
+             + ' · policy: ' + policy.label()
+             + ' · shell network ' + ('on' if (policy.network or policy.mode == 'full-access') else
+                                      ('off (kernel-enforced)' if backend.get('network_enforced') else 'off (NOT enforced on this host)')),
              '- Tools available: ' + ', '.join(s.name for s in registry.specs(ctx))]
     if model_label:
         lines.append('- Model: ' + model_label)
+    lines.append('- Dependencies: create a workspace .venv; never install into the bot runtime. Shell network follows the policy (off unless network or full-access is on). Use fetch_url for public web reads when shell networking fails. Use ask_user for a necessary missing input, not a completion claim.')
     if 'run_command' not in [s.name for s in registry.specs(ctx)]:
         lines.append('- Command execution is disabled; say so instead of pretending to run code.')
     return '\n'.join(lines)
@@ -489,6 +492,7 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
     ctx.extras.setdefault('depth', 0)
     ctx.extras.update({'registry': registry, 'cfg': cfg, 'stream_fn': stream_fn, 'summarizer': summarizer,
                        'context_tokens': context_tokens, 'model_label': model_label})
+    ctx.extras.pop('_needs_input', None)
     ctx.extras['_skill_candidates'] = []
     ctx.extras['_skill_learning_enabled'] = False
     skill_verified = False
@@ -707,6 +711,12 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                         {'type': 'image_url', 'image_url': {'url': img['data_url'], 'detail': 'auto'}}]})
             if ctx.stop.is_set():
                 status = 'stopped'
+                break
+            if ctx.extras.get('_needs_input'):
+                status = 'needs_input'
+                final_text = ctx.extras['_needs_input']
+                send({'type': 'text', 'delta': final_text})
+                convo.append({'role': 'assistant', 'content': final_text})
                 break
             blocked_steps = blocked_steps + 1 if all(denials) else 0
             if guard.exhausted or blocked_steps >= 2:

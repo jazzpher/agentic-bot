@@ -655,7 +655,7 @@ async function send() {
         case 'completion_check': completionCheckShown = true; completionNote(ev); break;
         case 'done':
           terminal = true;
-          setActivity(({completed: 'Completed · verified', unverified: 'Unverified', incomplete: 'Incomplete', stopped: 'Stopped', max_steps: 'Step budget reached'})[ev.status] || ev.status || 'Outcome unknown', false);
+          setActivity(({completed: 'Completed · verified', unverified: 'Unverified', incomplete: 'Incomplete', needs_input: 'Needs input', stopped: 'Stopped', max_steps: 'Step budget reached'})[ev.status] || ev.status || 'Outcome unknown', false);
           if (ev.status === 'unverified' && !completionCheckShown) note('Unverified: automatic checks are limited, not proof the whole request is correct.');
           if (ev.status === 'incomplete') note('Incomplete: required checks did not pass.');
           if (ev.status === 'stopped') note('Stopped.');

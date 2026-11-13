@@ -262,7 +262,7 @@ class SandboxHeuristicTests(unittest.TestCase):
         # tries to read the parent's original environment through /proc.
         script = ('import sys, tempfile; sys.path.insert(0, %r)\n'
                   'from agenticbot import sandbox\n'
-                  'r = sandbox.SubprocessBackend().run("cat /proc/$PPID/environ", tempfile.mkdtemp(), 10)\n'
+                  'r = sandbox.SubprocessBackend().run("cat /proc/$PPID/environ", tempfile.mkdtemp(), 10, network=True)\n'
                   'print(r.stdout)\n') % str(Path(__file__).resolve().parent)
         canary = 'xai-canary-' + os.urandom(6).hex()
 
