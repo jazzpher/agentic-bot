@@ -658,6 +658,9 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                               + ', '.join(verdict['missing'])})
             if not calls:
                 final_text = text
+                if not text.strip() and status not in ('error', 'stopped'):
+                    # Silence is not an answer: say the turn ended without reply text.
+                    send({'type': 'status', 'text': 'The model ended the turn without reply text.'})
                 if finish in TRUNCATED_FINISH:
                     # A cut-off reply is not a finished one: keep its text, but never report it as completed.
                     status = 'error'

@@ -518,10 +518,34 @@ async function send() {
   };
   touchActivity();
   let current = '';            // text in the active bubble
-  let anyText = false, reasoningBox = null, pendingRender = false;
-  const paint = () => { if (pendingRender) return; pendingRender = true; raf(() => { pendingRender = false; renderMarkdown(bubble, current); scrollChat(); }); };
-  const finalizeBubble = () => { renderMarkdown(bubble, current); bubble.className = 'msg agent-msg'; };
-  const lastChild = () => chat.children[chat.children.length - 1];
+  let anyText = false, reasoningBox = null, pendingRender = false, staleBubble = false;
+  let renderEpoch = 0;
+  const paint = () => {
+    if (pendingRender) return;
+    pendingRender = true;
+    const epoch = renderEpoch, target = bubble;
+    raf(() => {
+      if (epoch !== renderEpoch) return;
+      pendingRender = false;
+      renderMarkdown(target, current); scrollChat();
+    });
+  };
+  const finalizeBubble = () => {
+    renderEpoch++; pendingRender = false;
+    renderMarkdown(bubble, current); bubble.className = 'msg agent-msg';
+  };
+  // The reply continues in the same bubble however many other rows (status line, context info,
+  // notes) are appended after it; only a card between two pieces of text starts a new bubble.
+  // Comparing against the last child split the reply into a bubble per chunk, which read as a
+  // dropped first character.
+  const inChat = () => { const kids = chat.children; for (let i = 0; i < kids.length; i++) if (kids[i] === bubble) return true; return false; };
+  // A tool card between two pieces of text must not glue them together ("it.The"): the next text
+  // starts a fresh bubble after the card, with the status line kept last.
+  const newBubble = () => {
+    if (!bubble.textContent && bubble.remove) bubble.remove();   // never leave an empty reply bubble behind
+    bubble = add('agent-msg pending', ''); current = ''; staleBubble = false;
+    if (statusLine) chat.appendChild(statusLine);
+  };
   try {
     const res = await fetch('/agent', {method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({message: text, conversation_id: currentConversation || undefined, images: images.length ? images : undefined})});
@@ -534,24 +558,25 @@ async function send() {
       switch (ev.type) {
         case 'conversation': currentConversation = ev.id; if (ev.title) setCrumb(ev.title); setUrl(ev.id); break;
         case 'context_info': contextInfoRow(ev); break;
-        case 'subagent_start': if (current) finalizeBubble(); subagentCard(ev); setActivity('Sub-agent ' + ev.agent); break;
+        case 'subagent_start': if (current) finalizeBubble(); current = ''; staleBubble = true; subagentCard(ev); setActivity('Sub-agent ' + ev.agent); break;
         case 'subagent_end': finishSubagent(ev); break;
         case 'memory_saved': note('Memory saved: ' + ev.text, 'mem'); refreshMemoryCount(); break;
         case 'schedule_created': note('Scheduled: ' + ev.title + ' · ' + ev.when, 'mem'); refreshScheduleCount(); break;
         case 'text':
-          if (current && lastChild() !== bubble) { finalizeBubble(); bubble = add('agent-msg pending', ''); current = ''; }
+          if (staleBubble || !inChat()) newBubble();
           current += ev.delta; anyText = true; paint(); setActivity('Replying'); break;
         case 'reasoning':
           if (!reasoningBox) { reasoningBox = el('div', 'reasoning', ''); chat.appendChild(reasoningBox); }
           reasoningBox.textContent += ev.delta; break;
         case 'tool_start':
           if (current) finalizeBubble();
+          current = ''; staleBubble = true;
           toolCard(ev); setActivity('Running ' + ev.name); break;
         case 'tool_end': finishToolCard(ev); setActivity(toolCards.size ? 'Running tools' : 'Thinking'); break;
-        case 'preview_image': previewImageCard(ev); break;
+        case 'preview_image': if (current) finalizeBubble(); current = ''; staleBubble = true; previewImageCard(ev); break;
         case 'command_start': setActivity('Bash · ' + (ev.description || ev.command || '').slice(0, 60)); break;
-        case 'approval_required': approvalCard(ev); setActivity('Waiting for your approval', false); break;
-        case 'takeover_required': if (current) finalizeBubble(); takeoverCard(ev); setActivity('Waiting for you in the browser', false); break;
+        case 'approval_required': if (current) finalizeBubble(); current = ''; staleBubble = true; approvalCard(ev); setActivity('Waiting for your approval', false); break;
+        case 'takeover_required': if (current) finalizeBubble(); current = ''; staleBubble = true; takeoverCard(ev); setActivity('Waiting for you in the browser', false); break;
         case 'takeover': finishTakeover(ev); setActivity('Reading the page'); break;
         case 'approval': if (ev.id === undefined) note('Approval: ' + ev.tool + ' → ' + ev.decision + ' (' + (ev.reason || '') + ')'); break;
         case 'compaction': note('Context compacted (' + ev.method + '): ' + ev.before_tokens + ' → ' + ev.after_tokens + ' tokens'); break;
@@ -573,8 +598,12 @@ async function send() {
         default: break;
       }
     });
-    finalizeBubble();
-    if (!anyText && !bubble.textContent) bubble.textContent = '';
+    if (!staleBubble) finalizeBubble();
+    if (!anyText) {
+      // Never leave an empty reply bubble: say the turn ended without text.
+      if (bubble.remove) bubble.remove();
+      if (status.textContent !== 'Error') note('The model ended this turn without reply text.', 'err');
+    }
     if (!terminal && status.textContent !== 'Error') setActivity('Disconnected · outcome unknown', false);
   } catch (e) {
     note('Error: ' + e.message, 'err'); status.textContent = 'Error';
