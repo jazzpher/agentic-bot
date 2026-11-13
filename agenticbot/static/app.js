@@ -145,7 +145,7 @@ function finishToolCard(ev) {
   if (card._meta) card._meta.textContent = (ok ? 'succeeded' : 'failed') + (ev.duration !== undefined ? ' · ' + Number(ev.duration).toFixed(1) + 's' : '') + (ev.truncated ? ' · truncated' : '');
   card._output = clipped(ev.output || '', LOG_LIMIT);
   if (card.open && card._out) card._out.textContent = card._output;
-  if (ev.ok && card._artifactPath) card.appendChild(artifactCard(card._artifactPath));
+  if (ev.ok && card._artifactPath) { card.appendChild(artifactCard(card._artifactPath)); addArtifact(card._artifactPath, card._tool); }
   toolCards.delete(ev.id);
 }
 function artifactCard(name) {
@@ -163,6 +163,74 @@ function artifactCard(name) {
     } catch (e) { text.textContent = e.message + ' · use Download for this file.'; }
   });
   return box;
+}
+/* ---------------- artifacts pane ---------------- */
+// Files the agent wrote or edited in this chat, newest first. Presentation only: the workspace stays the source of truth.
+const artifacts = new Map();
+let artifactSeq = 0;
+let artifactsClosedByUser = false;
+function artifactEl(id) { return typeof document !== 'undefined' && document.getElementById ? document.getElementById(id) : null; }
+function addArtifact(path, tool) {
+  if (!path || typeof path !== 'string') return;
+  const known = artifacts.get(path);
+  artifacts.set(path, {path: path, tool: tool || (known && known.tool) || '', at: ++artifactSeq});
+  renderArtifacts();
+  if (!artifactsClosedByUser) toggleArtifacts(true);
+}
+function clearArtifacts() { artifacts.clear(); artifactsClosedByUser = false; renderArtifacts(); }
+function artifactRows() { return Array.from(artifacts.values()).sort((a, b) => b.at - a.at); }
+function artifactHref(path) { return '/files/' + String(path).split('/').map(encodeURIComponent).join('/'); }
+function renderArtifacts() {
+  const count = artifactEl('artifactcount');
+  if (count) count.textContent = artifacts.size ? String(artifacts.size) : '';
+  const hint = artifactEl('artifacthint');
+  if (hint) hint.textContent = artifacts.size ? artifacts.size + (artifacts.size === 1 ? ' file' : ' files') : 'files this chat wrote';
+  const list = artifactEl('artifactlist');
+  if (!list) return;
+  if (typeof list.replaceChildren === 'function') list.replaceChildren();
+  else if (list.children) list.children.length = 0;
+  const rows = artifactRows();
+  if (!rows.length) {
+    list.appendChild(el('div', 'artifact-empty', 'Files the agent writes or edits in this chat show up here, with a preview and a download.'));
+    return;
+  }
+  for (const row of rows) list.appendChild(artifactRow(row));
+}
+function artifactRow(row) {
+  const box = el('div', 'artifact-row');
+  const head = el('div', 'name');
+  const open = el('button', '', row.path);
+  open.title = 'Preview ' + row.path;
+  const link = el('a', 'dl', 'download');
+  link.href = artifactHref(row.path);
+  head.appendChild(open); head.appendChild(link); box.appendChild(head);
+  if (row.tool) box.appendChild(el('div', 'meta', row.tool));
+  let pre = null;
+  open.addEventListener('click', async () => {
+    if (pre) { if (typeof pre.remove === 'function') pre.remove(); pre = null; return; }
+    pre = el('pre', '', 'Loading preview…');
+    const target = pre;
+    box.appendChild(target);
+    try {
+      const res = await fetch('/file-preview?name=' + encodeURIComponent(row.path));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Preview unavailable');
+      // Always inert text, including HTML/SVG. Never execute a workspace artifact.
+      target.textContent = data.text + (data.truncated ? '\n[preview clipped at 64 KiB; download for the full file]' : '');
+    } catch (e) { target.textContent = e.message + ' · use download for this file.'; }
+  });
+  return box;
+}
+function toggleArtifacts(force) {
+  const pane = artifactEl('artifacts');
+  if (!pane) return;
+  const open = typeof force === 'boolean' ? force : pane.hidden !== false;
+  pane.hidden = !open;
+  artifactsClosedByUser = !open;
+  const btn = artifactEl('artifactsbtn');
+  if (btn && btn.classList && btn.classList.toggle) btn.classList.toggle('on', open);
+  if (btn && btn.setAttribute) btn.setAttribute('aria-expanded', String(open));
+  if (typeof document !== 'undefined' && document.body && document.body.classList) document.body.classList.toggle('artifacts-open', open);
 }
 function approvalCard(ev) {
   const card = el('div', 'approval');
@@ -398,7 +466,7 @@ async function openConversation(id) {
     const res = await fetch('/conversations/' + id + '/select', {method: 'POST'}); if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
     currentConversation = data.id; setCrumb(data.title); setUrl(data.id);
-    chat.replaceChildren(); toolCards.clear();
+    chat.replaceChildren(); toolCards.clear(); clearArtifacts();
     for (const entry of data.entries || []) renderEntry(entry);
     if (!(data.entries || []).length) chat.appendChild(el('div', 'hint', 'Empty conversation.'));
     scrollChat(); loadConversations(); closeSidebar();
@@ -421,7 +489,7 @@ async function newConversation() {
     const data = await res.json();
     currentConversation = data.id; setCrumb('New chat'); setUrl(data.id);
     chat.replaceChildren(); chat.appendChild(el('div', 'hint', 'New chat. Workspace files and skills are kept.'));
-    toolCards.clear(); loadConversations(); closeSidebar(); if (inp && inp.focus) inp.focus();
+    toolCards.clear(); clearArtifacts(); loadConversations(); closeSidebar(); if (inp && inp.focus) inp.focus();
   } catch (e) { document.getElementById('status').textContent = e.message; }
 }
 let convSearchTimer;

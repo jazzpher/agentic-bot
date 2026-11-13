@@ -40,6 +40,7 @@
     <select id="modelquick" class="pill" aria-label="Switch model" hidden onchange="quickModelPicked()"></select>
     <span id="ctxmeter" class="meter" title="Estimated context usage"></span>
     <button id="exportbtn" class="pill" onclick="exportConversation('md')" title="Export this conversation as Markdown (Shift-click for JSON)">⤓</button>
+    <button id="artifactsbtn" aria-controls="artifacts" aria-expanded="false" class="pill" onclick="toggleArtifacts()" title="Files this chat produced">Artifacts <span id="artifactcount" class="count"></span></button>
     <span id="status" role="status" aria-live="polite">Ready</span>
   </div>
 
@@ -171,6 +172,15 @@
       </div>
     </div>
   </div>
+
+  <aside id="artifacts" hidden aria-label="Artifacts from this chat">
+    <div class="artifact-head">
+      <b>Artifacts</b>
+      <span id="artifacthint" class="muted">files this chat wrote</span>
+      <button class="artifact-close" onclick="toggleArtifacts(false)" aria-label="Close artifacts">✕</button>
+    </div>
+    <div id="artifactlist" class="artifact-list"></div>
+  </aside>
 </main>
 </div>
 <script src="/static/vendor/marked.min.js"></script>
