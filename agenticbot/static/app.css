@@ -303,3 +303,27 @@ button:focus-visible, summary:focus-visible, .liveview:focus-visible { outline: 
   .toolcard summary code { max-width:100%; }
   .toolgroup-body { padding:0 6px 6px; }
 }
+
+/* ---------- artifacts pane ---------- */
+#artifacts { position: fixed; top: 0; right: 0; bottom: 0; width: min(360px, 88vw); z-index: 40;
+             display: flex; flex-direction: column; background: var(--panel); border-left: 1px solid var(--border);
+             box-shadow: -10px 0 28px rgba(0,0,0,.28); }
+#artifacts[hidden] { display: none; }
+.artifact-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.artifact-head b { font-size: 12.5px; }
+.artifact-head .muted { flex: 1; }
+.artifact-close { background: transparent; border: 0; color: var(--muted); cursor: pointer; font-size: 13px; padding: 2px 4px; }
+.artifact-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.artifact-row { border: 1px solid var(--border); border-radius: 8px; background: var(--panel2); padding: 7px 9px; }
+.artifact-row .name { display: flex; align-items: center; gap: 6px; }
+.artifact-row .name button { flex: 1; min-width: 0; text-align: left; background: transparent; border: 0; color: var(--text);
+                             font-size: 12px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; }
+.artifact-row .name button:hover { color: var(--accent); }
+.artifact-row .meta { font-size: 10.5px; color: var(--muted2); margin-top: 2px; }
+.artifact-row .dl { font-size: 10.5px; color: var(--info); text-decoration: none; }
+.artifact-row pre { margin: 6px 0 0; max-height: 220px; overflow: auto; background: var(--code); border-radius: 6px;
+                    padding: 6px 8px; font-size: 11px; white-space: pre-wrap; word-break: break-word; }
+.artifact-empty { color: var(--muted2); font-size: 11.5px; padding: 10px 6px; line-height: 1.5; }
+/* Desktop: reserve the pane's width so it never covers the conversation. */
+@media (min-width: 721px) { body.artifacts-open main { margin-right: min(360px, 88vw); } }
+@media (max-width: 720px) { #artifacts { width: 100%; } }
