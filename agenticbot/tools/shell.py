@@ -85,4 +85,21 @@ def register(registry):
         if ctx.workspace is not None:
             # Files may have changed under us; do not pretend read-back state is current.
             ctx.workspace.checked.clear()
-        return result.render()
+        output = result.render()
+        network_on = policy.network or policy.mode == 'full-access'
+        enforced = backend.isolated or sandbox.network_namespace_supported()
+        if not network_on and not enforced:
+            output += ('\n[note] Network is OFF by policy but this host cannot enforce it for shell commands '
+                       '(no Docker, no Linux network namespace). Do not use the network from the shell.')
+        net_error = any(w in output.lower() for w in ('could not resolve', 'name resolution', 'network is unreachable',
+                                                      'temporary failure in resolution', 'connection refused', 'failed to connect'))
+        if result.exit_code != 0 and not network_on and (sandbox.uses_network(command) or net_error):
+            output += ('\nNetwork is OFF for shell commands. Do not work around it with another binary or path. '
+                       'For public web content use fetch_url, which has its own URL checks and approvals.')
+        elif result.exit_code != 0 and sandbox.uses_network(command):
+            output += '\nFor public web reads, try fetch_url instead of repeating failed curl/wget commands.'
+        if result.exit_code != 0 and ('pip' in command or 'venv' in command):
+            output += ('\nInstall dependencies in a workspace virtualenv: python3 -m venv .venv, then '
+                       '.venv/bin/python -m pip install ... (Windows: .venv\\Scripts\\python.exe). '
+                       'Do not install into the bot runtime.')
+        return output

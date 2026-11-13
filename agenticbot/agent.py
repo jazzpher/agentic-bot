@@ -105,6 +105,19 @@ class TurnResult:
     summary: str = ''
 
 
+ASK_USER_NUDGE = ('SYSTEM: your reply asks the user a question. If the task cannot be finished without input only '
+                  'the user can give (a missing file, a choice, a value), call the ask_user tool now with that one '
+                  'question and nothing else. If the task is already done and the question was only an optional '
+                  'offer, reply again with your final answer without the question.')
+
+
+def _asks_user(text):
+    """True when the reply's last lines put a question to the user (outside code blocks)."""
+    body = re.sub(r'```.*?```', '', text or '', flags=re.S)
+    tail = [line.strip() for line in body.strip().splitlines() if line.strip()][-3:]
+    return any('?' in line for line in tail)
+
+
 def environment_block(ctx: ToolContext, registry: ToolRegistry, policy: SandboxPolicy, model_label=''):
     backend = sandbox.describe()
     lines = ['Environment',
@@ -112,10 +125,15 @@ def environment_block(ctx: ToolContext, registry: ToolRegistry, policy: SandboxP
              '- OS: ' + platform.system() + ' ' + platform.release() + ' · Python ' + platform.python_version(),
              '- Workspace root: . (all file paths are relative to it)',
              '- Sandbox: ' + backend['backend'] + (' (isolated)' if backend['isolated'] else ' (host subprocess, not isolated)')
-             + ' · policy: ' + policy.label(),
+             + ' · policy: ' + policy.label()
+             + ' · shell network ' + ('on' if (policy.network or policy.mode == 'full-access') else
+                                      ('off (kernel-enforced)' if backend.get('network_enforced') else 'off (NOT enforced on this host)')),
              '- Tools available: ' + ', '.join(s.name for s in registry.specs(ctx))]
     if model_label:
         lines.append('- Model: ' + model_label)
+    lines.append('- Dependencies: create a workspace .venv; never install into the bot runtime. Shell network follows the policy (off unless network or full-access is on). Use fetch_url for public web reads when shell networking fails.')
+    if 'ask_user' in [s.name for s in registry.specs(ctx)]:
+        lines.append('- Missing input: when the task needs something only the user can give (a file that is not in the workspace, a choice, a value), call the ask_user tool with your question instead of writing the question in your reply. A question in plain reply text ends the turn as unverified, not as waiting for input.')
     if 'run_command' not in [s.name for s in registry.specs(ctx)]:
         lines.append('- Command execution is disabled; say so instead of pretending to run code.')
     return '\n'.join(lines)
@@ -489,6 +507,8 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
     ctx.extras.setdefault('depth', 0)
     ctx.extras.update({'registry': registry, 'cfg': cfg, 'stream_fn': stream_fn, 'summarizer': summarizer,
                        'context_tokens': context_tokens, 'model_label': model_label})
+    ctx.extras.pop('_needs_input', None)
+    ctx.extras.pop('_ask_nudged', None)
     ctx.extras['_skill_candidates'] = []
     ctx.extras['_skill_learning_enabled'] = False
     skill_verified = False
@@ -643,6 +663,17 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                         break
                     elif text:
                         send({'type': 'text', 'delta': text})
+            if (not calls and finish not in TRUNCATED_FINISH and finish != 'content_filter'
+                    and not ctx.extras.get('_ask_nudged') and _asks_user(text)
+                    and 'ask_user' in [s.name for s in registry.specs(ctx)]):
+                # A question written as reply text would end the turn as unverified: let the model
+                # decide once whether it really needs the user's input (ask_user) or was only offering more.
+                ctx.extras['_ask_nudged'] = True
+                convo.append({'role': 'assistant', 'content': text})
+                convo.append({'role': 'user', 'content': ASK_USER_NUDGE})
+                send({'type': 'status', 'text': 'Reply ends with a question; checking whether it needs your input...'})
+                steps += 1
+                continue
             if not calls and finish not in TRUNCATED_FINISH and finish != 'content_filter':
                 verdict = completion.check(contract, completion_verifier, ctx)
                 if verify_request and not contract.get('requirements'):
@@ -707,6 +738,12 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                         {'type': 'image_url', 'image_url': {'url': img['data_url'], 'detail': 'auto'}}]})
             if ctx.stop.is_set():
                 status = 'stopped'
+                break
+            if ctx.extras.get('_needs_input'):
+                status = 'needs_input'
+                final_text = ctx.extras['_needs_input']
+                send({'type': 'text', 'delta': final_text})
+                convo.append({'role': 'assistant', 'content': final_text})
                 break
             blocked_steps = blocked_steps + 1 if all(denials) else 0
             if guard.exhausted or blocked_steps >= 2:

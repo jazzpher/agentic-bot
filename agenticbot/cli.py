@@ -19,7 +19,7 @@ import time
 import threading
 from pathlib import Path
 
-from agenticbot import __version__, agent as agent_core, backup as backup_mod, config, providers, runlog
+from agenticbot import completion, __version__, agent as agent_core, backup as backup_mod, config, providers, runlog
 from agenticbot.approvals import ApprovalBroker, SandboxPolicy, MODES, APPROVALS
 from agenticbot.tools import ToolContext, default_registry
 
@@ -141,7 +141,7 @@ class Printer:
             self.out.write('· Verification: %s\n' % (event.get('note') or ('passed' if event.get('passed') else ', '.join(event.get('missing', [])))))
         elif kind == 'done':
             self._break()
-            if event.get('status') in ('unverified', 'incomplete'):
+            if event.get('status') in ('unverified', 'incomplete', 'needs_input'):
                 self.out.write('· %s\n' % event['status'])
 
     def _subagent(self, event):
@@ -170,8 +170,11 @@ def make_ctx(args, workspace, approvals):
 
 
 def run_once(args, messages, ctx, registry, cfg, emit):
+    check = getattr(args, 'check', None)
     return agent_core.run_turn(messages, registry, ctx, cfg, emit, max_steps=args.max_steps,
                                context_tokens=args.context_tokens, model_label=cfg[2], stream_fn=stream_for(args), verify_request=True,
+                               requirements=['Owner acceptance command'] if check else None,
+                               completion_verifier=completion.command_verifier(check, args.check_timeout) if check else None,
                                summarizer=None if args.mock else (lambda prompt: providers.complete_once(cfg, prompt, max_tokens=1200)))
 
 
@@ -191,7 +194,7 @@ def cmd_exec(args):
         print()
     # Exit success means the run ended without execution failure, not acceptance.
     # JSON/status output still distinguishes unverified from independently completed.
-    return 0 if result.status in ('completed', 'unverified') else 1
+    return 2 if result.status == 'needs_input' else (0 if result.status in ('completed', 'unverified') else 1)
 
 
 def cmd_chat(args):
@@ -382,6 +385,8 @@ def main(argv=None):
     p_chat = sub.add_parser('chat', help='interactive terminal agent'); common(p_chat)
     p_exec = sub.add_parser('exec', help='run one prompt non-interactively (CI friendly)'); common(p_exec)
     p_exec.add_argument('prompt', help='the task; "-" reads it from stdin')
+    p_exec.add_argument('--check', help='Owner-supplied acceptance shell command, run offline after the task. Keep trusted expectations outside model-writable files.')
+    p_exec.add_argument('--check-timeout', type=int, default=30, help='Acceptance command timeout in seconds')
     p_exec.add_argument('--json', action='store_true', help='print a JSON result object on stdout (events go to stderr)')
     p_serve = sub.add_parser('serve', help='run the web UI')
     p_serve.add_argument('--host', default='127.0.0.1')

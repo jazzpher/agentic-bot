@@ -6,8 +6,8 @@
 * ``subprocess``  — runs on the host as the server user inside the workspace
                     directory with a scrubbed environment, CPU/file-size/process
                     rlimits (POSIX), a process group that is killed on timeout and
-                    a bounded output buffer. **Not** a security boundary: it cannot
-                    block network or writes outside the workspace. The approval
+                    a bounded output buffer. **Not** a security boundary: it cannot confine filesystem writes. Network-off execution is fail-closed
+                    via a Linux network namespace; unsupported hosts need Docker. The approval
                     heuristics below exist because of that gap.
 * ``off``         — run_command is unavailable.
 """
@@ -180,6 +180,56 @@ def escapes_workspace(command, root):
     return False
 
 
+def command_environment(cwd):
+    """Keep ordinary package installs out of the running bot's environment.
+
+    This is accidental-install protection, not a filesystem security boundary.
+    """
+    env_path = env_get('PATH', '/usr/local/bin:/usr/bin:/bin')
+    prefixes = [os.environ.get('VIRTUAL_ENV'), os.environ.get('CONDA_PREFIX')]
+    if sys.prefix != sys.base_prefix:
+        prefixes.append(sys.prefix)
+    blocked = {str(pathlib.Path(p, d).absolute()) for p in prefixes if p for d in ('bin', 'Scripts')}
+    paths = [p for p in env_path.split(os.pathsep) if p and str(pathlib.Path(p).absolute()) not in blocked]
+    local = pathlib.Path(cwd, '.venv', 'Scripts' if os.name == 'nt' else 'bin')
+    if local.is_dir():
+        paths.insert(0, str(local))
+    return {'PATH': os.pathsep.join(paths), 'HOME': str(cwd), 'LANG': 'C.UTF-8',
+            'LC_ALL': 'C.UTF-8', 'PYTHONIOENCODING': 'utf-8', 'PYTHONDONTWRITEBYTECODE': '1',
+            'TERM': 'dumb', 'TMPDIR': str(cwd), 'AGENTICBOT_SANDBOX': 'subprocess',
+            'NO_COLOR': '1', 'CI': '1', 'PIP_REQUIRE_VIRTUALENV': 'true',
+            'PIP_DISABLE_PIP_VERSION_CHECK': '1'}
+
+
+_NETNS = {}
+
+
+def network_namespace_supported():
+    """Whether an unprivileged user+network namespace can be created here (probed once)."""
+    if 'ok' not in _NETNS:
+        ok = False
+        if sys.platform.startswith('linux') and shutil.which('unshare'):
+            try:
+                ok = subprocess.run(['unshare', '--user', '--net', '--', 'true'], stdin=subprocess.DEVNULL,
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5).returncode == 0
+            except (OSError, subprocess.SubprocessError):
+                ok = False
+        _NETNS['ok'] = ok
+    return _NETNS['ok']
+
+
+def offline_command(shell):
+    """Network OFF, enforced by the kernel where it can be: a fresh user+network namespace.
+
+    No uid mapping is needed (file ownership stays the caller's on the host) and loopback stays down.
+    Filesystem access is still NOT isolated. Where namespaces are unavailable (Windows, macOS, locked-down
+    Linux) the command is returned unchanged and callers must say network is not enforced.
+    """
+    if network_namespace_supported():
+        return ['unshare', '--user', '--net', '--'] + shell
+    return shell
+
+
 class SubprocessBackend:
     name = 'subprocess'
     isolated = False
@@ -188,9 +238,7 @@ class SubprocessBackend:
         return True
 
     def run(self, command, cwd, timeout, network=False, read_only=False, stop=None):
-        env = {'PATH': env_get('PATH', '/usr/local/bin:/usr/bin:/bin'), 'HOME': str(cwd), 'LANG': 'C.UTF-8',
-               'LC_ALL': 'C.UTF-8', 'PYTHONIOENCODING': 'utf-8', 'PYTHONDONTWRITEBYTECODE': '1', 'TERM': 'dumb',
-               'TMPDIR': str(cwd), 'AGENTICBOT_SANDBOX': 'subprocess', 'NO_COLOR': '1', 'CI': '1'}
+        env = command_environment(cwd)
         for key in ('SYSTEMROOT', 'SystemRoot', 'COMSPEC', 'PATHEXT', 'WINDIR', 'TEMP', 'TMP'):
             if key in os.environ:
                 env[key] = os.environ[key]
@@ -214,6 +262,8 @@ class SubprocessBackend:
                 except Exception:  # noqa: BLE001 - never block execution on rlimit support
                     pass
         shell = ['/bin/sh', '-c', command] if posix else ['cmd', '/d', '/s', '/c', command]
+        if not network:
+            shell = offline_command(shell)
         started = time.monotonic()
         popen_kwargs = {'preexec_fn': preexec, 'start_new_session': True} if posix else \
             {'creationflags': getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0)}
@@ -288,7 +338,8 @@ class DockerBackend:
                 '--tmpfs', '/tmp:rw,nosuid,size=256m,mode=1777',
                 '-v', mount, '-w', '/workspace',
                 '-e', 'HOME=/tmp', '-e', 'TMPDIR=/tmp', '-e', 'TERM=dumb', '-e', 'NO_COLOR=1', '-e', 'CI=1',
-                '-e', 'PYTHONDONTWRITEBYTECODE=1']
+                '-e', 'PYTHONDONTWRITEBYTECODE=1', '-e', 'PIP_REQUIRE_VIRTUALENV=true',
+                '-e', 'PIP_DISABLE_PIP_VERSION_CHECK=1']
         if os.name == 'posix':
             args += ['--user', '%d:%d' % (os.getuid(), os.getgid())]
         # The command's own budget is enforced inside the container with coreutils/busybox `timeout` (SIGKILL,
@@ -375,5 +426,6 @@ def get_backend(name=None):
 
 def describe():
     backend = get_backend()
+    enforced = backend.isolated or (backend.name == 'subprocess' and network_namespace_supported())
     return {'backend': backend.name, 'isolated': backend.isolated, 'image': getattr(backend, 'image', None),
-            'python': sys.executable, 'timeout': config.COMMAND_TIMEOUT}
+            'python': sys.executable, 'timeout': config.COMMAND_TIMEOUT, 'network_enforced': enforced}
