@@ -271,7 +271,7 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         elif self.path == '/many':
             body = PAGE_MANY.encode()
         elif self.path == '/busy':
-            body = b'<html><body>busy<script>setTimeout(() => { while (true) {} }, 2000)</script></body></html>'
+            body = b'<html><body>busy<script>window.wedge = () => setTimeout(() => { while (true) {} }, 0)</script></body></html>'
         elif self.path == '/redir-loop':
             self.send_response(302)
             self.send_header('Location', 'http://127.0.0.1:%d/secret' % self.server.port)
@@ -419,10 +419,14 @@ class LiveChromiumTests(unittest.TestCase):
                 self.session.open(bad, {'127.0.0.1', 'localhost'})
 
     def test_wedged_page_is_killed_not_hung(self):
+        # Finish browser startup and the first snapshot before arming the wedge.
+        # A timer from page load races slow macOS CI runners during open().
+        self.session.open(self.base_a + '/busy', {self.A}, False)
+        self.session._worker.submit(
+            lambda: self.session._page.evaluate('window.wedge()')).result(timeout=20)
+        import time as _time
+        _time.sleep(0.5)
         with mock.patch('agenticbot.agent_browser._action_deadline', return_value=6):
-            self.session.open(self.base_a + '/busy', {self.A}, False)
-            import time as _time
-            _time.sleep(3)
             started = _time.monotonic()
             with self.assertRaises(BrowserError) as cm:
                 self.session.see({self.A}, False)

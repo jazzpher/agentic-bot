@@ -498,6 +498,7 @@ async function send() {
   beginToolGroup();
   status.textContent = 'Thinking';
   let bubble = add('agent-msg pending', '');
+  let completionCheckShown = false;
   let terminal = false, quietTimer = null, activity = 'Thinking', activityAnimated = true, quietActivity = null;
   let statusLine = null;
   if (hasDOM) { statusLine = el('div', 'tstatus running', 'Thinking'); chat.appendChild(statusLine); scrollChat(); }
@@ -558,11 +559,11 @@ async function send() {
         case 'retry': setActivity(ev.text, false); break;
         case 'status': note(ev.text); break;
         case 'error': note(ev.text, 'err'); setActivity('Error', false); break;
-        case 'completion_check': completionNote(ev); break;
+        case 'completion_check': completionCheckShown = true; completionNote(ev); break;
         case 'done':
           terminal = true;
           setActivity(({completed: 'Completed · verified', unverified: 'Unverified', incomplete: 'Incomplete', stopped: 'Stopped', max_steps: 'Step budget reached'})[ev.status] || ev.status || 'Outcome unknown', false);
-          if (ev.status === 'unverified') note('Unverified: automatic checks are limited, not proof the whole request is correct.');
+          if (ev.status === 'unverified' && !completionCheckShown) note('Unverified: automatic checks are limited, not proof the whole request is correct.');
           if (ev.status === 'incomplete') note('Incomplete: required checks did not pass.');
           if (ev.status === 'stopped') note('Stopped.');
           if (ev.status === 'max_steps') note('Step budget reached — say "continue" to keep going.');

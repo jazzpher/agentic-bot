@@ -370,6 +370,7 @@ class RefusedErrorPageTests(unittest.TestCase):
         error_url = 'chrome-error://chromewebdata/'
         page = _FakePage(approved_url)
         session = agent_browser.AgentBrowserSession()
+        self.addCleanup(session.close)
         session._page = page
         session._state = lambda approved, images=True: {'snapshot': {'url': page.url}, 'image': None}
         handle = _FakeHandle()
@@ -401,6 +402,7 @@ class RefusedErrorPageTests(unittest.TestCase):
         """Drive session.takeover on ``page`` while ``script(session, handle)`` plays the browser's part,
         with TAKEOVER_REFUSED_WINDOW patched to ``window`` seconds."""
         session = agent_browser.AgentBrowserSession()
+        self.addCleanup(session.close)
         session._page = page
         session._state = lambda approved, images=True: {'snapshot': {'url': page.url}, 'image': None}
         handle = _FakeHandle()
