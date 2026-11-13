@@ -10,8 +10,11 @@ The same registry produces native OpenAI ``tools`` definitions and the prompt
 block used by the JSON fallback protocol, validates arguments before execution,
 labels output as untrusted data, and bounds its size.
 """
+import ast
 import dataclasses
+import difflib
 import json
+import re
 import threading
 import time
 from typing import Any, Callable, Dict, Optional
@@ -20,6 +23,115 @@ from agenticbot import config
 
 TYPE_MAP = {'string': str, 'integer': int, 'number': (int, float), 'boolean': bool,
             'array': list, 'object': dict}
+
+
+_FENCE = re.compile(r'^```[a-zA-Z]*\s*|\s*```$')
+_TRAILING_COMMA = re.compile(r',\s*([}\]])')
+_PY_LITERALS = ((re.compile(r'\bTrue\b'), 'true'), (re.compile(r'\bFalse\b'), 'false'),
+                (re.compile(r'\bNone\b'), 'null'))
+
+
+def _first_object(text):
+    """The first balanced {...} span in text, or None."""
+    start = text.find('{')
+    while start != -1:
+        depth, in_str, esc = 0, False, False
+        for i in range(start, len(text)):
+            ch = text[i]
+            if in_str:
+                if esc:
+                    esc = False
+                elif ch == '\\':
+                    esc = True
+                elif ch == '"':
+                    in_str = False
+                continue
+            if ch == '"':
+                in_str = True
+            elif ch == '{':
+                depth += 1
+            elif ch == '}':
+                depth -= 1
+                if depth == 0:
+                    return text[start:i + 1]
+        start = text.find('{', start + 1)
+    return None
+
+
+def repair_arguments(raw):
+    """Best-effort arguments for a weak model's malformed call: a dict, or None if nothing usable.
+
+    Small models emit trailing commas, Python literals, single quotes, a fenced block, a
+    double-encoded JSON string, or prose around the object. Each is repaired here so the call runs
+    instead of failing on syntax the model cannot see.
+    """
+    if isinstance(raw, dict):
+        return raw
+    if not isinstance(raw, str):
+        return None
+    text = raw.strip()
+    if not text:
+        return {}
+    text = _FENCE.sub('', text).strip()
+    for candidate in (text, _first_object(text)):
+        if not candidate:
+            continue
+        try:
+            data = json.loads(candidate)
+        except ValueError:
+            data = None
+        if isinstance(data, str):                      # double-encoded: a JSON string holding the object
+            try:
+                data = json.loads(data)
+            except ValueError:
+                data = None
+        if isinstance(data, dict):
+            return data
+        fixed = _TRAILING_COMMA.sub(r'\1', candidate)
+        for pattern, replacement in _PY_LITERALS:
+            fixed = pattern.sub(replacement, fixed)
+        try:
+            data = json.loads(fixed)
+        except ValueError:
+            data = None
+        if isinstance(data, dict):
+            return data
+        try:                                           # Python dict literal: single quotes, True/None
+            data = ast.literal_eval(candidate)
+        except (ValueError, SyntaxError, MemoryError, RecursionError):
+            data = None
+        if isinstance(data, dict):
+            return data
+    return None
+
+
+# Names weak models reach for, mapped to the tool that does it. Only ever used to suggest: a call is
+# never silently run as a different tool than the one the model named.
+_TOOL_ALIASES = {
+    'bash': 'run_command', 'shell': 'run_command', 'exec': 'run_command', 'execute': 'run_command',
+    'terminal': 'run_command', 'cmd': 'run_command', 'command': 'run_command', 'python': 'run_command',
+    'ls': 'list_files', 'dir': 'list_files', 'list_dir': 'list_files', 'listdir': 'list_files',
+    'cat': 'read_file', 'open': 'read_file', 'read': 'read_file', 'view': 'read_file',
+    'write': 'write_file', 'create_file': 'write_file', 'save_file': 'write_file',
+    'edit': 'edit_file', 'replace': 'edit_file', 'patch': 'edit_file',
+    'search': 'web_search', 'google': 'web_search', 'fetch': 'fetch_url', 'curl': 'fetch_url',
+    'find': 'glob', 'grep': 'grep', 'rg': 'grep',
+    'remember': 'save_memory', 'recall': 'search_memory', 'memory': 'search_memory',
+    'browse': 'browse_open', 'screenshot': 'browse_see', 'click': 'browse_click',
+}
+
+
+def suggest_tool(name, names):
+    """Close matches for a tool name a model got wrong, best first."""
+    if not isinstance(name, str) or not name:
+        return []
+    lowered = {n.lower(): n for n in names}
+    if name.lower() in lowered:
+        return [lowered[name.lower()]]
+    alias = _TOOL_ALIASES.get(name.lower().replace('-', '_').replace(' ', '_'))
+    if alias and alias in names:
+        return [alias]
+    return difflib.get_close_matches(name, list(names), n=3, cutoff=0.6)
 
 
 class ToolError(ValueError):
@@ -197,14 +309,23 @@ class ToolRegistry:
         started = time.monotonic()
         spec = self._tools.get(name)
         if spec is None:
+            close = suggest_tool(name, self._tools)
+            hint = (' Did you mean ' + ' or '.join(close) + '? Call it by that exact name.' if close else
+                    ' Call one of the listed tools by its exact name.')
             return ToolResult(name, arguments if isinstance(arguments, dict) else {},
-                              'Tool error: unknown tool ' + str(name) + '. Available: ' + ', '.join(self._tools), False,
+                              'Tool error: unknown tool ' + str(name) + '.' + hint +
+                              ' Available: ' + ', '.join(self._tools), False,
                               time.monotonic() - started)
         if isinstance(arguments, str):
             try:
                 arguments = json.loads(arguments) if arguments.strip() else {}
             except ValueError:
-                return ToolResult(name, {}, 'Tool error: arguments were not valid JSON.', False, time.monotonic() - started)
+                repaired = repair_arguments(arguments)
+                if repaired is None:
+                    return ToolResult(name, {}, 'Tool error: arguments were not valid JSON. Send a JSON object '
+                                                'of the arguments, e.g. {"path": "."}.', False,
+                                      time.monotonic() - started)
+                arguments = repaired
         from agenticbot import plugins
         result = None
         try:

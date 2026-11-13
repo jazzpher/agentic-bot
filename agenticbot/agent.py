@@ -274,9 +274,15 @@ def parse_json_tool_call(text):
         try:
             data = json.loads(candidate)
         except ValueError:
-            continue
+            from agenticbot.tools import repair_arguments
+            # A weak model's Python literals or trailing comma. Only a candidate holding one object:
+            # with several, the tail-span candidates below decide which one is the call (the last).
+            data = repair_arguments(candidate) if len(_balanced_json_objects(candidate)) <= 1 else None
         if isinstance(data, dict) and isinstance(data.get('tool'), str):
             args = data.get('arguments', data.get('args', {}))
+            if isinstance(args, str):
+                from agenticbot.tools import repair_arguments
+                args = repair_arguments(args) or {}
             return data['tool'], args if isinstance(args, dict) else {}
     return None
 
@@ -781,15 +787,26 @@ def scrub_preview_images(convo):
             message['content'] = (text + ' [screenshot omitted from history]').strip()
 
 
+def _arguments(raw):
+    """A call's arguments as a dict: parsed, repaired when a weak model's JSON is malformed, else {}."""
+    if isinstance(raw, dict):
+        return raw
+    if not isinstance(raw, str) or not raw.strip():
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except ValueError:
+        from agenticbot.tools import repair_arguments
+        return repair_arguments(raw) or {}
+    return parsed if isinstance(parsed, dict) else {'raw': str(parsed)[:500]}
+
+
 def _execute_calls(registry, ctx, calls, send, denials=None):
     """Run the calls in the model's order. A run of consecutive read-only calls runs in parallel; a mutating
     call runs alone and is a barrier, so a call that comes after a write in the same step sees that write."""
     def run(call):
         args = call.get('arguments', '')
-        try:
-            parsed = json.loads(args) if isinstance(args, str) and args.strip() else (args if isinstance(args, dict) else {})
-        except ValueError:
-            parsed = args
+        parsed = _arguments(args)
         send({'type': 'tool_start', 'id': call['id'], 'name': call['name'], 'arguments': parsed if isinstance(parsed, dict) else {'raw': str(args)[:500]}})
         result = registry.execute(ctx, call['name'], parsed)
         send({'type': 'tool_end', 'id': call['id'], 'name': call['name'], 'ok': result.ok, 'output': result.output,
@@ -873,11 +890,7 @@ class _TurnToolGuard:
             self.exhausted = True
             return 'Per-turn tool-call budget reached. Do not retry; report the blocker.'
         name = call['name']
-        raw = call.get('arguments', '')
-        try:
-            args = json.loads(raw) if isinstance(raw, str) else raw
-        except ValueError:
-            args = raw
+        args = _arguments(call.get('arguments', ''))
         key = (name, json.dumps(args, sort_keys=True, ensure_ascii=False))
         spec = registry.get(name)
         if name == 'web_search':
