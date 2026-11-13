@@ -2,6 +2,7 @@ name: Tests
 on: [push, pull_request]
 jobs:
   test:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,12 +32,14 @@ jobs:
           sysctl kernel.apparmor_restrict_unprivileged_userns
           unshare -rn ip link set lo up && echo UNSHARE-LO-OK || echo UNSHARE-LO-FAIL
           bwrap --ro-bind / / --dev /dev --proc /proc --unshare-net true && echo BWRAP-MIN-OK || echo BWRAP-MIN-FAIL
-      - run: pip install playwright h2 && python -m playwright install chromium --with-deps
+      - run: pip install "playwright>=1.60,<1.65" h2 && python -m playwright install chromium --with-deps
       # Live isolation suite with explicitly installed capabilities: a missing
       # capability here must FAIL (AGENTIC_REQUIRE_LIVE_BROWSE_CAPS=1), never skip.
-      - run: AGENTIC_REQUIRE_LIVE_BROWSE_CAPS=1 python -m unittest test_vetproxy test_agent_browse -v
+      - timeout-minutes: 10
+        run: AGENTIC_REQUIRE_LIVE_BROWSE_CAPS=1 python ci_unittest.py --timeout 90 test_vetproxy test_agent_browse -v
       # The same live suites (plus take-over) in the explicit Windows/macOS proxy mode.
-      - run: AGENTIC_TEST_BROWSER_ISOLATION=proxy AGENTIC_REQUIRE_LIVE_BROWSE_CAPS=1 python -m unittest test_vetproxy test_agent_browse test_takeover test_browser_platform -v
+      - timeout-minutes: 10
+        run: AGENTIC_TEST_BROWSER_ISOLATION=proxy AGENTIC_REQUIRE_LIVE_BROWSE_CAPS=1 python ci_unittest.py --timeout 90 test_vetproxy test_agent_browse test_takeover test_browser_platform -v
       - run: python -m py_compile webui.py agent_loop.py bot.py task_harness.py agenticbot/*.py agenticbot/tools/*.py agenticbot/gateway/*.py
       - run: for f in test_*.cjs; do node "$f" || exit 1; done
       - run: python -m agenticbot exec --mock --workspace /tmp/ci-ws -q "smoke" | grep -q "(mock) got your message"
@@ -55,20 +58,22 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
+    timeout-minutes: 20
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install -r requirements.txt playwright h2
+      - run: pip install -r requirements.txt "playwright>=1.60,<1.65" h2
       - run: python -m playwright install chromium
       - name: loopback alias for the forbidden-internal test target (macOS)
         if: runner.os == 'macOS'
         run: sudo ifconfig lo0 alias 127.0.0.2 up
       - run: python -m unittest test_browser_platform -v
       - name: live browser suites in proxy mode
+        timeout-minutes: 10
         env:
           AGENTIC_TEST_BROWSER_ISOLATION: proxy
           AGENTIC_REQUIRE_LIVE_BROWSE_CAPS: '1'
-        run: python -m unittest test_vetproxy test_agent_browse test_takeover -v
+        run: python ci_unittest.py --timeout 90 test_vetproxy test_agent_browse test_takeover -v

@@ -778,10 +778,17 @@ class AgentBrowserSession:
         if worker is None:
             return self._close()
         try:
-            return worker.submit(self._close).result()
-        finally:
-            worker.shutdown(wait=True)
+            result = worker.submit(self._close).result(timeout=_action_deadline())
+        except concurrent.futures.TimeoutError:
+            self._kill_hard()
+            return 'Browser closed after cleanup timed out.'
+        except BaseException:
+            worker.shutdown(wait=False)
             self._worker = None
+            raise
+        worker.shutdown(wait=True)
+        self._worker = None
+        return result
 
     def _close(self):
         for obj in (self._page, getattr(self, '_context', None), self._browser):

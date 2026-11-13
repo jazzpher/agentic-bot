@@ -1066,6 +1066,7 @@ class ResourceLifecycleTests(unittest.TestCase):
                           if e.startswith(WRAPPER_PREFIX)}
         with unittest.mock.patch('agenticbot.browser_isolation.available', return_value=False):
             session = agent_browser.AgentBrowserSession()
+            self.addCleanup(session.close)
             with self.assertRaises(BrowserError) as ctx:
                 session.open('https://example.com/', {'example.com'})
         self.assertIn('bubblewrap', str(ctx.exception))

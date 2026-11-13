@@ -176,3 +176,29 @@ class ProcessTreeTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class CloseDeadlineTests(unittest.TestCase):
+    def test_close_has_deadline_and_shuts_down(self):
+        session = agent_browser.AgentBrowserSession()
+        worker = mock.Mock()
+        session._worker = worker
+        worker.submit.return_value.result.return_value = 'Browser closed.'
+        with mock.patch.object(agent_browser, '_action_deadline', return_value=3):
+            self.assertEqual(session.close(), 'Browser closed.')
+        worker.submit.return_value.result.assert_called_once_with(timeout=3)
+        worker.shutdown.assert_called_once_with(wait=True)
+        self.assertIsNone(session._worker)
+
+    def test_close_timeout_kills_driver_without_waiting_on_worker(self):
+        session = agent_browser.AgentBrowserSession()
+        worker = mock.Mock()
+        session._worker = worker
+        session._driver_pid = 12345
+        worker.submit.return_value.result.side_effect = agent_browser.concurrent.futures.TimeoutError()
+        with mock.patch.object(agent_browser, '_kill_process_tree') as kill:
+            self.assertIn('timed out', session.close())
+        kill.assert_called_once_with(12345)
+        worker.shutdown.assert_called_once_with(wait=False)
+        self.assertIsNone(session._worker)
+        self.assertIsNone(session._driver_pid)
