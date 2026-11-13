@@ -8,6 +8,17 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **Friend persona** (`AGENTIC_PERSONA=friend`, the default; `GROK_PERSONA` still read as an alias).
+  The chat voice is short, warm and mirrors the user's language and register (Taglish in, Taglish
+  out), with no stock filler, at most one clarifying question, opinions when asked, plain admissions
+  of mistakes and a one-line heads-up before long tool work; coding answers stay precise.
+  `AGENTIC_PERSONA=tool` keeps the original prompt byte for byte; sub-agents always use it. Safety
+  and approval rules are unchanged in both.
+- **Memory guidance in the prompt.** When memory tools are available the system prompt says what
+  personal facts to save (and what never to save), to supersede facts that change so history is
+  kept, and to use memories naturally rather than reciting them. `MemoryStore.relevant` tops up
+  with up to 4 of the newest current notes so a greeting that matches no keyword still carries the
+  basics.
 - **Agent browser and take-over on Windows and macOS (opt-in proxy mode).** New
   `GROK_AGENT_BROWSER_ISOLATION` (`namespace` default, `proxy`). Linux always uses the bubblewrap
   namespace and ignores the setting. Windows/macOS still refuse by default; `proxy` runs the vetting

@@ -10,7 +10,9 @@ browser ──POST /agent (NDJSON)──▶ webui.py ──▶ agenticbot.agent.
 ```
 
 ## One turn (`agenticbot/agent.py`)
-1. Build the system prompt: identity + environment block (sandbox mode, approval policy, backend, cwd, model) +
+1. Build the system prompt: identity + working rules + environment block (sandbox mode, approval policy, backend, cwd, model) +
+   the persona section (`AGENTIC_PERSONA=friend`, default; `tool` = original prompt; sub-agents always `tool`) +
+   the memory rule (when memory tools are available) +
    project instructions (`AGENTS.md`/`AGENTICBOT.md`/`CLAUDE.md` in the workspace) + skills index + (JSON mode only)
    the tool protocol.
 2. Compact the history if `estimate_tokens(messages) > COMPACT_RATIO × context_tokens` — model summary first,

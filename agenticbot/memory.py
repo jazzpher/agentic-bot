@@ -50,6 +50,7 @@ MAX_TEXT = 600
 MAX_MEMORIES = 2000
 MAX_INJECT = 12
 MAX_INJECT_CHARS = 4000
+RECENT_FILL = 4   # newest notes added when the message matches little ("hi", "kumusta"), so the basics still come along
 _SECRET = re.compile(r'(sk-[A-Za-z0-9]{16,}|AIza[0-9A-Za-z_-]{20,}|nvapi-[A-Za-z0-9_-]{16,}|gsk_[A-Za-z0-9]{16,}'
                      r'|xox[baprs]-[A-Za-z0-9-]{10,}|ghp_[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----)')
 _WORD = re.compile(r'[A-Za-z0-9_À-ÿ]{3,}')
@@ -363,9 +364,10 @@ class MemoryStore:
                     ' ORDER BY m.pinned DESC, m.updated DESC LIMIT :lim', params).fetchall()
         return [self._row(r) for r in rows]
 
-    def relevant(self, owner, query, limit=MAX_INJECT):
-        """Pinned memories first, then the best matches for the query; bounded for prompt injection.
-        Only current rows are eligible in both steps."""
+    def relevant(self, owner, query, limit=MAX_INJECT, recent=RECENT_FILL):
+        """Pinned memories first, then the best matches for the query, then up to ``recent`` of the newest
+        notes (so a short greeting that matches no keyword still carries the basics); bounded for prompt
+        injection. Only current rows are eligible in every step."""
         now = float(self._now())
         with self.lock:
             pinned = [self._row(r) for r in self.db.execute(
@@ -376,6 +378,18 @@ class MemoryStore:
         for m in self.search(owner, query, limit=limit):
             if m['id'] not in seen and len(chosen) < limit:
                 chosen.append(m); seen.add(m['id'])
+        if recent and len(chosen) < limit:
+            with self.lock:
+                newest = [self._row(r) for r in self.db.execute(
+                    'SELECT m.* FROM memories m WHERE m.owner=:o AND m.pinned=0 AND ' + self._current_clause('m') +
+                    ' ORDER BY m.updated DESC, m.rowid DESC LIMIT :lim',
+                    {'o': owner, 'lim': recent + len(chosen), 'now': now}).fetchall()]
+            added = 0
+            for m in newest:
+                if added >= recent or len(chosen) >= limit:
+                    break
+                if m['id'] not in seen:
+                    chosen.append(m); seen.add(m['id']); added += 1
         out, used = [], 0
         for m in chosen:
             if used + len(m['text']) > MAX_INJECT_CHARS:

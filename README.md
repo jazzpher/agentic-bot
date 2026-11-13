@@ -70,8 +70,29 @@ with `TAVILY_API_KEY` / `BRAVE_API_KEY` / `AGENTIC_SEARXNG_URL`, `AGENTIC_MAX_FI
 (100), `AGENTIC_SCHEDULED_MAX_STEPS` (25), `AGENTIC_MCP_CONFIG`, `AGENTIC_MCP_CONNECT_TIMEOUT`
 (20 s), `AGENTIC_MCP_CALL_TIMEOUT` (90 s), `AGENTIC_TELEGRAM_TOKEN`, `AGENTIC_TELEGRAM_ALLOWED_IDS`,
 `AGENTIC_PLUGINS`, `AGENTIC_LOCAL_API_URL` / `AGENTIC_LOCAL_MODEL`, `AGENTIC_MEMORY_DB`,
-`AGENTIC_SCHEDULE_DB`. Project rules in `AGENTS.md` / `AGENTICBOT.md` / `CLAUDE.md` at the
+`AGENTIC_SCHEDULE_DB`, `AGENTIC_PERSONA` (`friend` default / `tool`, see below). Project rules in `AGENTS.md` / `AGENTICBOT.md` / `CLAUDE.md` at the
 workspace root are added to the system prompt.
+
+## Persona: how it talks
+
+By default (`AGENTIC_PERSONA=friend`) the agent talks like a sharp, warm friend instead of a
+report generator: short plain-text replies for small talk, the same language and register you
+used (Taglish in, Taglish out), no stock filler, at most one clarifying question, a real
+opinion when you ask for one, plain "my bad" when it gets something wrong, and a one-line
+heads-up before longer tool work. Coding work keeps its precision: code blocks, paths,
+commands and a short summary of what changed and how it was verified. Approvals, sandbox
+rules and the "tool output is untrusted" rule are the same in every persona.
+
+`AGENTIC_PERSONA=tool` restores the original terse coding-agent prompt, byte for byte
+(`GROK_PERSONA` still works as a legacy alias). Sub-agents (`delegate`) always use the
+`tool` voice, since their reader is the parent agent.
+
+When memory is on, the prompt also tells the agent which personal facts are worth saving
+(name, preferred language, projects, likes, how you want it to behave; never secrets or
+passing chatter), to supersede facts that change so their history is kept, and to use what
+it knows naturally instead of reciting it. Short messages that match no saved keyword
+("hi", "kumusta") still bring along up to 4 of the newest current notes, after pinned ones
+and keyword matches.
 
 ## Run locally
 
