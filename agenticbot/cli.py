@@ -113,12 +113,17 @@ class Printer:
             self.out.write(event['delta']); self.out.flush(); self.in_text = True
         elif kind == 'reasoning' and self.verbose:
             pass
-        elif kind == 'tool_start' and self.verbose:
+        elif kind == 'tool_start':
+            # Break even in quiet mode: text before and after a tool call must not run together.
             self._break()
-            args = event.get('arguments') or {}
-            label = args.get('command') or args.get('path') or args.get('query') or args.get('url') or json.dumps(args)[:120]
-            self.out.write('▸ %s %s\n' % (event['name'], label)); self.out.flush()
-        elif kind == 'tool_end' and self.verbose:
+            if self.verbose:
+                args = event.get('arguments') or {}
+                label = args.get('command') or args.get('path') or args.get('query') or args.get('url') or json.dumps(args)[:120]
+                self.out.write('▸ %s %s\n' % (event['name'], label)); self.out.flush()
+        elif kind == 'tool_end':
+            self._break()
+            if not self.verbose:
+                return
             out = (event.get('output') or '').rstrip()
             lines = out.splitlines()
             shown = '\n'.join('  │ ' + l for l in lines[:12])

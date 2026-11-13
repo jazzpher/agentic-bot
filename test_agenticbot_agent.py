@@ -74,6 +74,14 @@ class RunTurnTests(unittest.TestCase):
         self.assertIn('workspace-write', system['content'])
         self.assertTrue(fn.calls[0]['tools'])
 
+    def test_turn_with_no_reply_text_says_so(self):
+        # A model that ends the turn with no text and no tool calls must not leave the UI silent.
+        fn = scripted([[{'type': 'usage', 'prompt_tokens': 10, 'completion_tokens': 0}, {'type': 'finish', 'reason': 'stop'}]])
+        result = self.turn(fn)
+        self.assertEqual(result.text, '')
+        statuses = [e.get('text', '') for e in self.events if e['type'] == 'status']
+        self.assertTrue(any('without reply text' in t for t in statuses), self.events)
+
     def test_parallel_read_only_calls_and_serial_mutations(self):
         self.ws.path('a.txt').write_text('A'); self.ws.path('b.txt').write_text('B')
         fn = scripted([[{'type': 'tool_calls', 'calls': [
