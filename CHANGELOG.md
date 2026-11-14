@@ -8,6 +8,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **Progress loop guard for small models** (`agenticbot/loopguard.py`). Per turn it watches for a call
+  (tool + arguments) that gives the same result while the workspace is unchanged: the 2nd repeat gets a
+  harness note to do something different, the next is blocked. An exact call that already failed is
+  blocked while nothing changed, with the earlier error. A path rejected as outside the workspace gets a
+  hint (relative paths, the file's in-workspace name, top-level entries) and is refused from then on.
+  Covers mutating tools too (the same failing test run with no edit between). `AGENTIC_LOOP_GUARD=off`
+  disables it; `AGENTIC_LOOP_GUARD_REPEATS` (default 2) sets when it nudges.
 - **Friend persona** (`AGENTIC_PERSONA=friend`, the default; `GROK_PERSONA` still read as an alias).
   The chat voice is short, warm and mirrors the user's language and register (Taglish in, Taglish
   out), with no stock filler, at most one clarifying question, opinions when asked, plain admissions
