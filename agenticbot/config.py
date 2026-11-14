@@ -171,3 +171,7 @@ def protect_process():
 
 
 PROCESS_PROTECTED = protect_process()
+
+# Bounded room for desktop/mobile repair iterations.
+PREVIEW_MAX_ROUNDS = min(20, _int('AGENTIC_PREVIEW_MAX_ROUNDS', 8, 1))
+SANDBOX_PIDS = min(4096, _int('AGENTIC_SANDBOX_PIDS', 1024, 64))

@@ -11,13 +11,13 @@ import base64
 import dataclasses
 import threading
 
-from agenticbot import config
+from agenticbot import config, evidence
 from agenticbot.preview import MAX_IMAGE_BYTES, PreviewError, PreviewSession, format_capture, resolve_html_path
 from agenticbot.tools import ToolError, ToolResult
 
 _TURN_LOCAL = threading.local()
 
-MAX_ROUNDS = 3                               # preview budget per turn (matches the UI-work prompt rule)
+MAX_ROUNDS = config.PREVIEW_MAX_ROUNDS
 
 
 def _preview_enabled(ctx):
@@ -65,9 +65,16 @@ def register(registry):
             raise ToolError('Preview budget reached (%d per turn). Report what you saw and what is still off '
                             'instead of previewing again.' % MAX_ROUNDS)
         try:
+            before = evidence.visual_digest(ctx)
             capture = _session(ctx).capture(rel, viewport or 'desktop')
-        except PreviewError as exc:
+        except (PreviewError, ValueError, OSError) as exc:
             raise ToolError(str(exc)) from exc
+        if viewport == 'mobile':
+            after = evidence.visual_digest(ctx)
+            layout = capture['layout']
+            evidence.record(ctx, 'mobile', rel, before == after and not layout.get('horizontal_overflow', True),
+                            dependencies=after, scroll_width=layout.get('scroll_width'),
+                            viewport_width=capture['viewport']['width'])
         _TURN_LOCAL.turn = ctx.turn_id
         _TURN_LOCAL.count = used + 1
         text = format_capture(capture, rel)

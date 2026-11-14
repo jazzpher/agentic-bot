@@ -27,10 +27,18 @@ class AutomaticAcceptanceTests(unittest.TestCase):
         return completion.automatic_check({'request': request}, self.ctx, answer)
 
     def test_normal_turn_is_unverified_not_model_asserted_completed(self):
-        result = self.turn('Research the latest census', 'I independently verified everything.')
+        result = self.turn('Research the latest census', 'Census figures summarized from the sources above.')
         self.assertEqual(result.status, 'unverified')
         self.assertEqual(self.events[-1]['status'], 'unverified')
         self.assertEqual([e for e in self.events if e['type'] == 'completion_check'][0]['coverage'], 'limited')
+
+    def test_unsupported_blanket_verification_claim_is_withheld(self):
+        result = self.turn('Research the latest census', 'I independently verified everything.')
+        self.assertEqual(result.status, 'incomplete')
+        self.assertEqual(self.events[-1]['status'], 'incomplete')
+        shown = ''.join(e['delta'] for e in self.events if e['type'] == 'text')
+        self.assertNotIn('independently verified everything', shown)
+        self.assertIn('Not verified', result.text)
 
     def test_missing_output_is_incomplete(self):
         result = self.turn('Create report.csv with three rows.')
