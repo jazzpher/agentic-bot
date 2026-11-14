@@ -265,15 +265,15 @@ class ToolTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn('Playwright', result.output)
 
-    def test_round_budget_three_per_turn(self):
-        for _ in range(3):
+    def test_round_budget_configurable_per_turn(self):
+        for _ in range(preview_tool.MAX_ROUNDS):
             self.assertTrue(self.run_tool().ok)
         result = self.run_tool()
         self.assertFalse(result.ok)
         self.assertIn('budget', result.output)
 
     def test_budget_resets_on_new_turn(self):
-        for _ in range(3):
+        for _ in range(preview_tool.MAX_ROUNDS):
             self.run_tool()
         self.ctx.turn_id = 'turn2'
         self.assertTrue(self.run_tool().ok)
@@ -399,6 +399,13 @@ class LiveChromiumTests(unittest.TestCase):
         # Page rendered despite the blocked subrequests; url stayed on the preview server.
         self.assertTrue(capture['url'].startswith('http://127.0.0.1:'))
         self.assertTrue(preview.preview_netloc_allowed(capture['layout']['url'], self.session.server.port))
+
+    def test_clipped_wide_element_is_not_mobile_fit(self):
+        (self.ws.root / 'style.css').write_text(
+            'html,body{margin:0;overflow-x:hidden}#wide{width:900px;height:10px}', encoding='utf-8')
+        capture = self.session.capture('index.html', viewport='mobile')
+        self.assertTrue(capture['layout']['horizontal_overflow'])
+        self.assertTrue(capture['layout']['outside_viewport'])
 
     def test_mobile_viewport(self):
         capture = self.session.capture('index.html', viewport='mobile')

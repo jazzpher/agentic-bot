@@ -255,7 +255,7 @@ class SubprocessBackend:
                     resource.setrlimit(resource.RLIMIT_FSIZE, (config.MAX_FILE_BYTES * 4, config.MAX_FILE_BYTES * 4))
                     try:
                         soft, hard = resource.getrlimit(resource.RLIMIT_NPROC)
-                        limit = 256 if hard == resource.RLIM_INFINITY else min(256, hard)
+                        limit = config.SANDBOX_PIDS if hard == resource.RLIM_INFINITY else min(config.SANDBOX_PIDS, hard)
                         resource.setrlimit(resource.RLIMIT_NPROC, (limit, hard))
                     except (ValueError, OSError):
                         pass
@@ -331,7 +331,7 @@ class DockerBackend:
                 '--network', 'bridge' if network else 'none',
                 # Reuse a cached image; never pull silently in the middle of a turn.
                 '--pull', 'missing',
-                '--memory', config.SANDBOX_MEMORY, '--cpus', config.SANDBOX_CPUS, '--pids-limit', '256',
+                '--memory', config.SANDBOX_MEMORY, '--cpus', config.SANDBOX_CPUS, '--pids-limit', str(config.SANDBOX_PIDS),
                 '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
                 '--read-only',
                 # Writable scratch space; 1777 so it works under --user <host uid>.

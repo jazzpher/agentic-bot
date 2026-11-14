@@ -232,13 +232,24 @@ class PreviewServer:
 # In-page measurement (Phase B): numbers the model cannot get from the pixels alone.
 _LAYOUT_JS = """() => {
   const out = {title: document.title || '', url: location.href,
-               scroll_width: document.documentElement.scrollWidth,
-               client_width: document.documentElement.clientWidth,
+               scroll_width: Math.max(document.documentElement.scrollWidth, document.body ? document.body.scrollWidth : 0),
+               client_width: window.innerWidth,
                scroll_height: document.documentElement.scrollHeight,
                element_count: document.getElementsByTagName('*').length,
                body_background: ''};
   try { out.body_background = getComputedStyle(document.body).backgroundColor || ''; } catch (e) {}
-  out.horizontal_overflow = out.scroll_width > out.client_width + 1;
+  out.horizontal_overflow = out.scroll_width > out.client_width;
+  // Root clipping can conceal a fixed-width layout. Conservatively report visible
+  // boxes beyond the viewport even when overflow-x:hidden removes the scrollbar.
+  out.outside_viewport = [];
+  for (const el of Array.from(document.querySelectorAll('body *')).slice(0, 4000)) {
+    const r = el.getBoundingClientRect(), st = getComputedStyle(el);
+    if (r.width > 0 && r.height > 0 && st.visibility !== 'hidden' && st.display !== 'none'
+        && (r.right > window.innerWidth + 0.5 || r.left < -0.5)) {
+      if (out.outside_viewport.length < 10) out.outside_viewport.push({tag: el.tagName, left: r.left, right: r.right});
+    }
+  }
+  out.horizontal_overflow = out.horizontal_overflow || out.outside_viewport.length > 0;
   const boxes = [];
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT);
   let node, count = 0;

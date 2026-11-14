@@ -363,9 +363,9 @@ class ToolRegistry:
 
 def default_registry(plugins_too=True):
     """All built-in tools. Availability of shell/web/memory/scheduler tools is decided per context."""
-    from agenticbot.tools import browse, delegate, files, memory, misc, preview, schedule, shell, skills, verify, web
+    from agenticbot.tools import browse, delegate, files, memory, misc, preview, schedule, shell, skills, sortcheck, verify, web
     registry = ToolRegistry()
-    for module in (files, misc, skills, shell, web, memory, delegate, schedule, preview, browse, verify):
+    for module in (files, misc, skills, shell, web, memory, delegate, schedule, preview, browse, verify, sortcheck):
         module.register(registry)
     if plugins_too:
         from agenticbot import plugins
