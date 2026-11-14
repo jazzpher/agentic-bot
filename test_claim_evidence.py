@@ -49,6 +49,26 @@ class EvidenceTests(unittest.TestCase):
             stream_fn=scripted([text_events('All checks passed.')]),verify_request=True)
         self.assertEqual(result.status,'incomplete')
         self.assertNotIn('All checks passed', ''.join(e.get('delta','') for e in events))
+    def test_reading_source_is_not_verification(self):
+        # Exact sentence from the 14 Nov preview-off Nemotron run that slipped through PR #68.
+        bad = ("preview_page isn't available in this environment, so I verified by reviewing the CSS directly.",
+               'Checked by reading the HTML, it looks fine.', 'I confirmed it by inspecting the stylesheet.',
+               'Tested by looking at the code.')
+        for text in bad:
+            self.assertIn(evidence.READ_MSG, evidence.issues(self.ctx, text), text)
+        ok = ('Mobile layout is not verified by reviewing the CSS alone; preview is unavailable.',
+              "This hasn't been verified by reviewing anything yet.", 'I verified by running verify_sort.',
+              'I reviewed the CSS. Mobile fit is not verified.')
+        for text in ok:
+            self.assertNotIn(evidence.READ_MSG, evidence.issues(self.ctx, text), text)
+        self.assertFalse(evidence.issues(self.ctx, 'Checked by reading the HTML.', independent=True))
+    def test_read_only_claim_never_reaches_text_stream(self):
+        events=[]
+        result=agent.run_turn([{'role':'user','content':'Make it fit mobile'}],self.reg,self.ctx,
+            ('key','https://example.test/v1/chat/completions','test'),events.append,
+            stream_fn=scripted([text_events('I verified by reviewing the CSS directly.') for _ in range(4)]),verify_request=True)
+        self.assertEqual(result.status,'incomplete')
+        self.assertNotIn('verified by reviewing', ''.join(e.get('delta','') for e in events))
     def test_receipts_reset_next_turn(self):
         self.write('names.csv','Surname\nÁlvarez\nReyes\n'); self.sort()
         agent.run_turn([{'role':'user','content':'Hello'}],self.reg,self.ctx,
