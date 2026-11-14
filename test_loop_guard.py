@@ -104,6 +104,30 @@ class ProgressGuardTurnTests(LoopTestCase):
         self.assertIn('ERROR Timeout', out['3'])
         self.assertEqual(ex.call_count, 2)
 
+    def test_no_op_edit_is_flagged_and_does_not_reset_the_repeat_count(self):
+        self.ws.path('calc.py').write_text('x = 1\n')
+        def execute(ctx, name, args):
+            if name == 'edit_file':
+                self.ws.path('calc.py').write_text('x = 1\n')     # same text rewritten: mtime moves, content doesn't
+                return ToolResult(name, args, 'Edited calc.py (1 replacement, +0 -0 lines).', True, 0.0)
+            return ToolResult(name, args, 'exit code 1\nFAIL', True, 0.0)
+        edit = {'path': 'calc.py', 'old_text': 'x = 1', 'new_text': 'x = 1'}
+        cmd = {'command': 'python3 test_calc.py'}
+        with patch.object(self.registry, 'execute', side_effect=execute) as ex:
+            result = self.turn(scripted([batch('r1', 'run_command', **cmd), batch('e1', 'edit_file', **edit),
+                                         batch('r2', 'run_command', **cmd), batch('e2', 'edit_file', **edit),
+                                         batch('r3', 'run_command', **cmd), final('stuck')]))
+        out = self.tool_output(result)
+        self.assertIn('that call changed nothing', out['e1'])
+        self.assertIn('HARNESS NOTE', out['r2'])
+        self.assertIn('Tool error: Loop guard', out['r3'])
+
+    def test_real_edit_is_not_flagged(self):
+        self.ws.path('calc.py').write_text('x = 1\n')
+        result = self.turn(scripted([batch('e', 'edit_file', path='calc.py', old_text='x = 1', new_text='x = 2'),
+                                     final('done')]))
+        self.assertNotIn('Loop guard', self.tool_output(result)['e'])
+
     def test_dot_as_a_file_points_to_list_files(self):
         result = self.turn(scripted([batch('1', 'read_file', path='.'), final('done')]))
         self.assertIn('Use list_files', self.tool_output(result)['1'])

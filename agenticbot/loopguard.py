@@ -29,6 +29,7 @@ from agenticbot import config
 PATH_ERROR = 'Path must stay inside this workspace'
 SKIP_DIRS = {'__pycache__', '.pytest_cache', '.mypy_cache', '.ruff_cache'}
 PATH_KEYS = ('path', 'source_path')
+FILE_WRITERS = {'edit_file', 'write_file'}
 FINGERPRINT_LIMIT = 5000
 CONTENT_FILE_LIMIT = 256 * 1024
 CONTENT_TOTAL_LIMIT = 8 * 1024 * 1024
@@ -51,16 +52,18 @@ def workspace_fingerprint(root, limit=FINGERPRINT_LIMIT):
                 st = os.lstat(os.path.join(dirpath, name))
             except OSError:
                 continue
-            digest.update(('%s/%s\0%d\0%d\n' % (rel_dir, name, st.st_size, st.st_mtime_ns)).encode('utf-8', 'replace'))
-            # mtimes can tick coarsely (a same-size rewrite within one tick looks unchanged), so small files
-            # are hashed by content too, within a total byte budget.
+            # Small files are known by their content alone, so rewriting a file with the same text (a no-op
+            # edit) is no change; larger ones, past a byte budget, by size and mtime.
+            content = None
             if st.st_size <= CONTENT_FILE_LIMIT and hashed + st.st_size <= CONTENT_TOTAL_LIMIT:
                 try:
                     with open(os.path.join(dirpath, name), 'rb') as fh:
-                        digest.update(hashlib.sha1(fh.read()).digest())
+                        content = hashlib.sha1(fh.read()).hexdigest()
                     hashed += st.st_size
                 except OSError:
-                    pass
+                    content = None
+            stamp = content if content is not None else '%d\0%d' % (st.st_size, st.st_mtime_ns)
+            digest.update(('%s/%s\0%s\n' % (rel_dir, name, stamp)).encode('utf-8', 'replace'))
             count += 1
             if count > limit:
                 return None
@@ -171,6 +174,11 @@ class ProgressGuard:
                             'repeat it: use this result and do something different next.')
                 else:
                     count = 1
+                if (not note and certain and call.get('name') in FILE_WRITERS and end is not None
+                        and end == self._start):
+                    note = ('Loop guard: that call changed nothing: the text written is identical to what was '
+                            'already there. Change the code itself (new text that differs from the old) or take '
+                            'another approach.')
                 self.seen[key] = {'fp': end, 'out': digest, 'count': count}
                 self.failed.pop(key, None)
             if note:
