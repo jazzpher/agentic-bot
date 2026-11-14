@@ -18,7 +18,7 @@ from typing import Callable, Dict, List, Optional
 
 import requests
 
-from agenticbot import compaction, completion, config, providers, runlog, sandbox
+from agenticbot import compaction, completion, config, loopguard, providers, runlog, sandbox
 from agenticbot.approvals import SandboxPolicy
 from agenticbot.tools import ToolContext, ToolRegistry, ToolResult
 
@@ -539,6 +539,7 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
     retries = 0
     nudges = 0
     guard = _TurnToolGuard()
+    progress = loopguard.ProgressGuard(ctx.workspace) if config.LOOP_GUARD == 'on' else None
     blocked_steps = 0
     summary = previous_summary
     final_text = ''
@@ -716,11 +717,18 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                 convo.append({'role': 'assistant', 'content': text or None,
                               'tool_calls': [_assistant_tool_call(c) for c in calls]})
             # Reserve in model order before any parallel workers start.
-            denials = [guard.reserve(call, registry) for call in calls]
+            # The progress guard (repeats with no change, retried failures, outside paths) speaks first;
+            # a call it blocks never reaches the budget guard, so it is not counted as run.
+            early = progress.check_batch(calls, registry) if progress else [None] * len(calls)
+            denials = [block or guard.reserve(call, registry) for block, call in zip(early, calls)]
             results = _execute_calls(registry, ctx, calls, send, denials=denials)
             tool_count += len(results)
-            for call, result in zip(calls, results):
+            notes = progress.observe(calls, results, denials) if progress else [''] * len(calls)
+            for call, result, note in zip(calls, results, notes):
                 body = 'UNTRUSTED TOOL RESULT (' + call['name'] + '):\n' + result.output
+                if note:
+                    body += '\n\nHARNESS NOTE (from Agentic Bot itself, not the tool): ' + note
+                    send({'type': 'status', 'text': note})
                 if json_mode:
                     convo.append({'role': 'user', 'content': body})
                 else:

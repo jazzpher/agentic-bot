@@ -38,6 +38,9 @@ MAX_PARALLEL_TOOLS = _int('AGENTIC_MAX_PARALLEL_TOOLS', 8, 1)
 MAX_TOOL_CALLS_PER_TURN = _int('AGENTIC_MAX_TOOL_CALLS_PER_TURN', 120, 1)
 MAX_SEARCHES_PER_TURN = _int('AGENTIC_MAX_SEARCHES_PER_TURN', 6, 1)
 MAX_SUBAGENT_DEPTH = _int('AGENTIC_MAX_SUBAGENT_DEPTH', 1, 0)
+# Progress guard (agenticbot/loopguard.py): nudge, then block, a call repeated with nothing changed.
+LOOP_GUARD = _choice('AGENTIC_LOOP_GUARD', 'on', {'on', 'off'})
+LOOP_GUARD_REPEATS = _int('AGENTIC_LOOP_GUARD_REPEATS', 2, 1)
 
 # MCP (Model Context Protocol) client: config file with {"mcpServers": {...}} (Codex/Claude layout)
 MCP_CONFIG = env_get('AGENTIC_MCP_CONFIG', '')            # default: ./mcp.json next to webui.py if present
