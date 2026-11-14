@@ -68,6 +68,12 @@ def valid(ctx, kind):
 _SORT = re.compile(r'\b(?:sorted\b[^\n.!?]{0,90}(?:a\s*[-–,→]\s*z|alphabet|surname)|(?:a\s*[-–,→]\s*z|alphabetical(?:ly)?)\s+(?:sort(?:ed|ing)?|order)|(?:correctly|properly)\s+sorted)\b', re.I)
 _MOBILE = re.compile(r'\b(?:no\s+(?:(?:horizontal|mobile)\s+)?overflow|(?:fits?|works?|verified|tested|checked|passes?|responsive)\b[^\n.!?]{0,65}\bmobile|mobile\b[^\n.!?]{0,65}\b(?:fits?|works?|verified|tested|checked|passes?|responsive|overflow.free)|overflow\s*:\s*(?:none|no|false))\b', re.I)
 _ALL = re.compile(r'\b(?:(?:all|every)\s+(?:the\s+)?(?:checks?|tests?|requirements?)\b[^\n.!?]{0,50}\b(?:pass(?:ed)?|met|satisfied|complete)|(?:fully|independently)\s+verified|(?:verified|checked)\s+(?:everything|all)|self[- ]check\s*:\s*(?:pass|ok)|logic\b[^\n.!?]{0,30}\b(?:verified|validated|correct))\b', re.I)
+# "Verified by reviewing the CSS" names reading as the check: reading source is not a check.
+_READ_VERIFY = re.compile(r"\b(?:verified|confirmed|checked|tested|validated|ensured)\b[^\n.!?]{0,40}?\bby\s+(?:just\s+)?(?:re-?)?(?:review(?:ing)?|read(?:ing)?|inspect(?:ing|ion)?|look(?:ing)?\s+(?:at|over|through)|examin(?:ing|ation)|eyeball(?:ing)?|scan(?:ning)?)\b", re.I)
+_READ_NEG = re.compile(r"\b(?:not|never|cannot|can't|couldn't|unable|haven't|hasn't|wasn't|isn't)\s+(?:been\s+|be\s+)?$", re.I)
+READ_MSG = ('Reading or reviewing the source is not verification: run the matching check '
+            '(verify_sort, preview_page viewport="mobile") or say plainly that it is not verified.')
+
 _NEGATIVE = re.compile(r"\b(?:not|never|cannot|can't|couldn't|unverified|unconfirmed|unable|needs?|pending|still|remaining|failed|failure|without|before|don't|do not|must|should|whether|if)\b", re.I)
 
 
@@ -88,6 +94,9 @@ def issues(ctx, text, independent=False):
     text = re.sub(r'```[\s\S]*?```', '', text)
     missing = set()
     for sentence in re.split(r'(?<=[.!?])\s+|\n', text):
+        m = _READ_VERIFY.search(sentence)
+        if m and not independent and not _READ_NEG.search(sentence[:m.start()]):
+            missing.add(READ_MSG)
         if re.search(r"\b(?:not|never|cannot|can't|couldn't|unverified|unconfirmed|unable|pending|failed|without)\b[^.!?]{0,35}(?:verified|checked|sorted|fits?|overflow|pass|correct)", sentence, re.I):
             continue
         if _SORT.search(sentence) and not supports(ctx, 'sort', sentence):
@@ -103,5 +112,6 @@ PROMPT = '''\nEvidence rules (host enforced for known claim patterns):
 - For CSV/XLSX surname A–Z claims, run verify_sort(path, column) on the FINAL artifact. It uses accent-insensitive Unicode ordering (Álvarez before Reyes); disclose that convention. It checks ordering only, not completeness or other columns.
 - For mobile-fit/no-overflow claims, use preview_page(viewport="mobile") AFTER your last HTML/CSS/JS edit and inspect its image and measured widths. A desktop screenshot or a successful shell command is not a mobile check. After Chrome/thread failures in run_command, use preview_page instead of launching another sandbox browser. If preview is unavailable, say mobile layout is not verified.
 - Never say "all checks passed", "logic verified", "fully verified" or equivalent on the strength of your own self-review or tests you wrote. Give specific evidence and limitations. Essay logic requires actual review of the argument, not a success label. Say "not independently verified" when no trusted verifier exists.
+- Reading or reviewing code/CSS is not a check. Never write "verified by reviewing ..."; run the real check or say it is not verified.
 - A failed check means unfinished work: fix and recheck within budget, or report the exact unresolved issue. Do not conceal overflow with overflow-x:hidden and call it fixed.
 '''
