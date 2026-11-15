@@ -49,6 +49,8 @@ jobs:
           /tmp/pkgenv/bin/pip install -q .
           cd /tmp
           /tmp/pkgenv/bin/python -c "import agenticbot.gateway.telegram, webui; c = webui.app.test_client(); assert c.get('/').status_code == 200; assert c.get('/static/app.js').status_code == 200; print('wheel smoke OK')"
+          # Every POSIX shell command goes through agenticbot/_sandbox_exec.py: a wheel without it would fail them all.
+          /tmp/pkgenv/bin/python -c "from agenticbot.sandbox import SubprocessBackend; r = SubprocessBackend().run('echo hi', '/tmp', 10); assert r.exit_code == 0 and 'hi' in r.stdout, r; print('wheel shell OK')"
       - run: |
           python -m agenticbot exec --mock --workspace /tmp/ci-ws -q '!tool delegate {"task": "say hi", "max_steps": 1}' | grep -q "Sub-agent"
 

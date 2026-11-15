@@ -6,14 +6,12 @@ busy sessions answering 503, and the documentation values.
 """
 import os
 import pathlib
-import re
 import tempfile
-import threading
 import time
 import unittest
 from unittest import mock
 
-from agenticbot import approvals, config, loopguard
+from agenticbot import config, loopguard
 from agenticbot.approvals import SandboxPolicy
 
 
@@ -22,9 +20,12 @@ class LoopGuardLargeWorkspaceTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = pathlib.Path(self.tmp.name)
+        small = mock.patch.object(loopguard, 'FINGERPRINT_LIMIT', 10)   # ~20 files prove the same semantics
+        small.start()
+        self.addCleanup(small.stop)
 
     def test_ignored_directories_do_not_count_towards_the_limit(self):
-        for i in range(loopguard.FINGERPRINT_LIMIT + 500):
+        for i in range(loopguard.FINGERPRINT_LIMIT + 10):
             p = self.root / 'node_modules' / ('pkg%d' % (i % 50)) / ('f%d.js' % i)
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text('x')
@@ -33,7 +34,7 @@ class LoopGuardLargeWorkspaceTests(unittest.TestCase):
                              'node_modules must not push the tree past the limit')
 
     def test_a_workspace_over_the_limit_still_fingerprints(self):
-        for i in range(loopguard.FINGERPRINT_LIMIT + 50):
+        for i in range(loopguard.FINGERPRINT_LIMIT + 10):
             (self.root / ('f%05d.txt' % i)).write_text('x')
         first = loopguard.workspace_fingerprint(str(self.root))
         self.assertIsNotNone(first, 'repeat protection must not switch itself off on a big tree')
@@ -42,7 +43,7 @@ class LoopGuardLargeWorkspaceTests(unittest.TestCase):
 
     def test_repeat_detection_works_in_a_large_workspace(self):
         from agenticbot.tools import ToolResult
-        for i in range(loopguard.FINGERPRINT_LIMIT + 50):
+        for i in range(loopguard.FINGERPRINT_LIMIT + 10):
             (self.root / ('f%05d.txt' % i)).write_text('x')
         guard = loopguard.ProgressGuard(type('W', (), {'root': str(self.root)})(), repeats=2)
         call = {'name': 'read_file', 'arguments': '{"path": "f00001.txt"}'}
@@ -54,6 +55,24 @@ class LoopGuardLargeWorkspaceTests(unittest.TestCase):
             guard.observe([call], [result])
         self.assertTrue(guard.check_batch([call], registry)[0], 'third identical call must be blocked')
 
+    def _guard_and_count(self, tool, mutates):
+        from agenticbot.tools import ToolResult
+        (self.root / 'a.txt').write_text('a')
+        guard = loopguard.ProgressGuard(type('W', (), {'root': str(self.root)})(), repeats=2)
+        registry = mock.Mock()
+        registry.get.return_value = mock.Mock(mutates=mutates)
+        call = {'name': tool, 'arguments': '{"path": "a.txt"}'}
+        with mock.patch.object(loopguard, 'workspace_fingerprint', wraps=loopguard.workspace_fingerprint) as fp:
+            guard.check_batch([call], registry)
+            guard.observe([call], [ToolResult(tool, {}, 'a', True, 0.0)])
+        return fp.call_count
+
+    def test_read_only_batch_walks_the_tree_once(self):
+        self.assertEqual(self._guard_and_count('read_file', False), 1)
+
+    def test_writing_batch_walks_again(self):
+        self.assertEqual(self._guard_and_count('write_file', True), 2)
+
     def test_skipped_directories_match_the_grader(self):
         for name in ('.git', '.venv', 'node_modules', 'dist', 'build'):
             self.assertIn(name, loopguard.SKIP_DIRS)
@@ -62,7 +81,6 @@ class LoopGuardLargeWorkspaceTests(unittest.TestCase):
 class EmptyReplyTests(unittest.TestCase):
     def test_empty_reply_is_not_completed(self):
         from agenticbot import agent as agent_core
-        from agenticbot.providers import mock_stream
         from agenticbot.tools import default_registry
         from agent_loop import Workspace
 
@@ -95,6 +113,15 @@ class UnattendedNetworkTests(unittest.TestCase):
         self.assertTrue(policy.for_unattended(allow_network=True).network)
         self.assertFalse(SandboxPolicy(mode='workspace-write', network=False)
                          .for_unattended(allow_network=True).network)
+
+    def test_scheduled_runs_pass_the_network_opt_in(self):
+        self.assertFalse(config.UNATTENDED_NETWORK if 'AGENTIC_UNATTENDED_NETWORK' not in os.environ else False)
+        self.assertIn('for_unattended(gconfig.UNATTENDED_FULL_ACCESS, gconfig.UNATTENDED_NETWORK)',
+                      pathlib.Path('webui.py').read_text())
+
+    def test_unattended_network_is_documented(self):
+        for doc in ('README.md', 'docs/SECURITY.md', 'docs/LIMITATIONS.md'):
+            self.assertIn('AGENTIC_UNATTENDED_NETWORK', pathlib.Path(doc).read_text(), doc)
 
     def test_unattended_never_waits_for_approval(self):
         policy = SandboxPolicy(mode='full-access', approval='on-request', network=True).for_unattended()
@@ -160,6 +187,9 @@ class NotificationCursorTests(unittest.TestCase):
         fresh = self.c.get('/notifications?since=%s' % cursor).get_json()
         self.assertEqual([n['title'] for n in fresh], ['Two'])
 
+    def test_notifications_last_a_day(self):
+        self.assertGreaterEqual(self.webui.NOTIFICATION_TTL, 24 * 3600)
+
     def test_old_notifications_are_pruned(self):
         self.webui.notify('owner-c', {'title': 'Stale', 'conversation_id': 'c1'})
         with self.c.session_transaction() as s:
@@ -189,6 +219,14 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn('%d chars' % memory.MAX_INJECT_CHARS, limits)
         arch = pathlib.Path('docs/ARCHITECTURE.md').read_text()
         self.assertIn('%d%% full' % round(config.COMPACT_RATIO * 100), arch)
+
+
+class GraderDefaultTests(unittest.TestCase):
+    @unittest.skipIf('AGENTIC_GRADER' in os.environ, 'AGENTIC_GRADER set in this environment')
+    def test_grader_is_off_by_default(self):
+        from agenticbot import grader
+        self.assertEqual(config.GRADER, 'off')
+        self.assertFalse(grader.enabled())
 
 
 if __name__ == '__main__':

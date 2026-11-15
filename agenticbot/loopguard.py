@@ -37,10 +37,12 @@ CONTENT_FILE_LIMIT = 256 * 1024
 CONTENT_TOTAL_LIMIT = 8 * 1024 * 1024
 
 
-def workspace_fingerprint(root, limit=FINGERPRINT_LIMIT):
+def workspace_fingerprint(root, limit=None):
     """Hash all tracked tree metadata; bound content reads, not repeat protection."""
     if not root or not os.path.isdir(root):
         return None
+    if limit is None:
+        limit = FINGERPRINT_LIMIT
     digest = hashlib.sha1()
     count = hashed = 0
     for dirpath, dirnames, filenames in os.walk(root):
@@ -97,6 +99,7 @@ class ProgressGuard:
         self.nudges = self.blocks = 0
         self._start = None
         self._certain = []
+        self._batch_mutates = True
 
     def fingerprint(self):
         return workspace_fingerprint(self.root) if self.root else None
@@ -106,6 +109,7 @@ class ProgressGuard:
         """One denial reason (or None) per call, in the model's order."""
         self._start = self.fingerprint()
         self._certain = []
+        self._batch_mutates = False
         denials = []
         changed = False
         for call in calls:
@@ -114,6 +118,8 @@ class ProgressGuard:
             reason = self._check_repeat(call) if certain else None
             denials.append(reason or self._check_path(call))
             spec = registry.get(call.get('name')) if registry is not None else None
+            if spec is None or spec.mutates:
+                self._batch_mutates = True   # unknown tools count as writers
             if spec is not None and spec.mutates:
                 changed = True
         self.blocks += sum(1 for d in denials if d)
@@ -145,7 +151,8 @@ class ProgressGuard:
     # After the step's calls ran ---------------------------------------------------------
     def observe(self, calls, results, denials=None):
         """Record what happened; a harness note (or '') per call to add to its result."""
-        end = self.fingerprint()
+        # A batch of read-only tools can't change the tree: reuse check_batch's fingerprint instead of a second walk.
+        end = self.fingerprint() if self._batch_mutates else self._start
         notes = []
         for i, (call, result) in enumerate(zip(calls, results)):
             if denials and denials[i]:
