@@ -561,7 +561,10 @@ class WebRoutesTest(unittest.TestCase):
         self.assertEqual(notes[0]['title'], 'Ping')
         conv = self.c.get('/conversations/' + notes[0]['conversation_id']).get_json()
         self.assertTrue(conv['title'].startswith('⏰'))
-        self.assertEqual(self.c.get('/notifications').get_json(), [], 'notifications are delivered once')
+        again = self.c.get('/notifications').get_json()
+        self.assertEqual([n['title'] for n in again], ['Ping'], 'a second read must not lose it')
+        self.assertEqual(self.c.get('/notifications?since=%s' % again[-1]['time']).get_json(), [],
+                         'the cursor returns only what is newer')
         self.assertFalse(self.c.post('/schedules/%s/toggle' % jid).get_json()['enabled'])
         self.assertEqual(self.c.post('/schedules/%s/delete' % jid).status_code, 200)
         self.assertEqual(self.c.post('/schedules/%s/delete' % jid).status_code, 404)

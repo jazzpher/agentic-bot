@@ -25,7 +25,7 @@ class LoopGuardLargeWorkspaceTests(unittest.TestCase):
 
     def test_ignored_directories_do_not_count_towards_the_limit(self):
         for i in range(loopguard.FINGERPRINT_LIMIT + 500):
-            p = self.root / 'node_modules' / 'pkg%d' % (i % 50) / ('f%d.js' % i)
+            p = self.root / 'node_modules' / ('pkg%d' % (i % 50)) / ('f%d.js' % i)
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text('x')
         (self.root / 'a.txt').write_text('alpha')
@@ -48,7 +48,7 @@ class LoopGuardLargeWorkspaceTests(unittest.TestCase):
         call = {'name': 'read_file', 'arguments': '{"path": "f00001.txt"}'}
         registry = mock.Mock()
         registry.get.return_value = None
-        result = ToolResult(ok=True, output='x')
+        result = ToolResult('read_file', {}, 'x', True, 0.0)
         for _ in range(2):
             self.assertEqual(guard.check_batch([call], registry), [None])
             guard.observe([call], [result])
@@ -64,7 +64,7 @@ class EmptyReplyTests(unittest.TestCase):
         from agenticbot import agent as agent_core
         from agenticbot.providers import mock_stream
         from agenticbot.tools import default_registry
-        from agenticbot.workspace import Workspace
+        from agent_loop import Workspace
 
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -72,11 +72,12 @@ class EmptyReplyTests(unittest.TestCase):
         events = []
 
         def silent(messages, model, tools=None, **kw):
-            yield {'type': 'text', 'text': ''}
+            yield {'type': 'text', 'delta': ''}
             yield {'type': 'finish', 'reason': 'stop'}
 
-        result = agent_core.run_turn([{'role': 'user', 'content': 'say nothing'}], default_registry(),
-                                     mock.Mock(workspace=ws, session_id='s', policy=SandboxPolicy()),
+        from agenticbot.tools import ToolContext
+        ctx = ToolContext(workspace=ws, session_id='s', policy=SandboxPolicy(mode='workspace-write'))
+        result = agent_core.run_turn([{'role': 'user', 'content': 'say nothing'}], default_registry(), ctx,
                                      ('', '', 'mock'), events.append, stream_fn=silent)
         self.assertNotEqual(result.status, 'completed', 'an empty reply must never report completed')
         self.assertEqual(result.status, 'error')

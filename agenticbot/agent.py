@@ -744,6 +744,7 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                 if not text.strip() and status not in ('error', 'stopped'):
                     # Silence is not successful completion, even if tools ran first.
                     status = 'error'
+                    send({'type': 'status', 'text': 'The model ended the turn without reply text.'})
                     send({'type': 'error', 'text': 'The model ended the turn without reply text.'})
                 if finish in TRUNCATED_FINISH:
                     # A cut-off reply is not a finished one: keep its text, but never report it as completed.
