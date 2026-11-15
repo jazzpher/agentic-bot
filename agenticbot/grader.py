@@ -50,12 +50,13 @@ Bind each criterion to the strongest check that fits, using only files listed be
   {"kind": "sort", "path": "<csv/xlsx>", "column": "<header>"}
   {"kind": "mobile", "path": "<html file>"}
   {"kind": "tests", "command": "<python -m unittest ... | python -m pytest ... | node --test ... | npm test>"}
-  {"kind": "file", "path": "<output file>"}
+  {"kind": "file", "path": "<output file>"}  (ONLY checks existence/nonempty, never content or row count)
   {"kind": "judge", "paths": ["<files to read>"]}   (only when nothing above can measure it)
 Reply with JSON only: {"criteria": [{"text": "...", "check": {...}}]}'''
 
 JUDGE_PROMPT = '''You are an independent grader. You did NOT do this work and you have not seen the worker's messages or claims.
-Decide each criterion strictly from the file contents below. If the files do not clearly show it, it fails.
+Decide EACH criterion separately, strictly from the file contents below. Return one result for EVERY listed id,
+even when criteria overlap. Never combine multiple criteria into one result. If the files do not clearly show it, it fails.
 Reply with JSON only: {"results": [{"id": <id>, "passed": true|false, "reason": "<one short sentence citing the file>"}]}'''
 
 
@@ -74,7 +75,14 @@ def max_rounds():
 def model_grader(cfg, max_tokens=1500):
     """The grader's own model call: a new conversation every time (fresh context)."""
     from agenticbot import providers
-    return lambda messages: providers.complete_once(cfg, messages, max_tokens=max_tokens)
+    # NVIDIA Nemotron spends the entire small structured-output budget thinking
+    # by default, returning content=null. Disable thinking only for this model
+    # family on NVIDIA's endpoint; other providers must not get vendor fields.
+    from urllib.parse import urlparse
+    host = (urlparse(cfg[1]).hostname or '').lower()
+    extra = ({'chat_template_kwargs': {'enable_thinking': False}}
+             if host == 'integrate.api.nvidia.com' and 'nemotron' in cfg[2].lower() else None)
+    return lambda messages: providers.complete_once(cfg, messages, max_tokens=max_tokens, extra=extra)
 
 
 # ---------------------------------------------------------------- workspace state
@@ -358,7 +366,7 @@ def _judge(ctx, request, criteria, files, grader_fn):
     listing = '\n'.join('%d. %s' % (c['id'], c['text']) for c in criteria)
     messages = [{'role': 'system', 'content': JUDGE_PROMPT},
                 {'role': 'user', 'content': 'User request:\n' + json.dumps(request, ensure_ascii=False)
-                 + '\n\nCriteria:\n' + listing + '\n\nFiles:\n' + ('\n\n'.join(parts) or '(no readable files)')}]
+                 + '\n\nCriteria:\n' + listing + '\n\nRequired result ids (return every one): ' + json.dumps([c['id'] for c in criteria]) + '\n\nFiles:\n' + ('\n\n'.join(parts) or '(no readable files)')}]
     data = _parse_json(grader_fn(messages))
     answers = {}
     for item in data.get('results') or []:
