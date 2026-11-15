@@ -61,6 +61,24 @@ class GraderTests(unittest.TestCase):
                       'check': {'kind': 'sort', 'path': 'people.csv', 'column': 'Surname'}},
                      {'text': 'people.csv exists', 'check': {'kind': 'file', 'path': 'people.csv'}}]
 
+    def test_nvidia_nemotron_grader_disables_thinking_for_json_budget(self):
+        cfg = ('key', 'https://integrate.api.nvidia.com/v1/chat/completions',
+               'nvidia/nemotron-3.5-super-vl-120b-a12b')
+        messages = [{'role': 'system', 'content': grader.CRITERIA_PROMPT}]
+        with patch('agenticbot.providers.complete_once', return_value='{"criteria": []}') as call:
+            self.assertEqual(grader.model_grader(cfg)(messages), '{"criteria": []}')
+        call.assert_called_once_with(cfg, messages, max_tokens=1500,
+                                     extra={'chat_template_kwargs': {'enable_thinking': False}})
+
+    def test_other_providers_do_not_receive_nvidia_template_options(self):
+        for url, model in [('https://api.example.test/v1/chat/completions', 'nemotron'),
+                           ('https://integrate.api.nvidia.com/v1/chat/completions', 'other-model'),
+                           ('https://integrate.api.nvidia.com.evil.test/v1/chat/completions', 'nemotron')]:
+            cfg = ('key', url, model)
+            with self.subTest(url=url, model=model), patch('agenticbot.providers.complete_once') as call:
+                grader.model_grader(cfg, max_tokens=2000)([])
+                call.assert_called_once_with(cfg, [], max_tokens=2000, extra=None)
+
     def test_false_done_is_caught_then_fixed_with_only_failed_items_sent_back(self):
         fake = FakeGrader(self.SORT_CRITERIA)
         result, stream = self.turn('Sort people.csv by Surname', [
@@ -132,6 +150,34 @@ class GraderTests(unittest.TestCase):
         judge_calls = [m for m in fake.seen if m[0]['content'] == grader.JUDGE_PROMPT]
         self.assertIn('Dear Sir,', judge_calls[0][1]['content'])
         self.assertEqual(self.checks()[-1]['checks'][0]['by'], 'judge')
+
+    def test_missing_judge_verdict_stays_unverified(self):
+        (self.ctx.workspace.root / 'essay.md').write_text('A short essay.')
+        criteria = [{'id': 2, 'text': 'length requirement', 'check': {'kind': 'judge', 'paths': ['essay.md']}},
+                    {'id': 3, 'text': 'logic requirement', 'check': {'kind': 'judge', 'paths': ['essay.md']}}]
+        seen = []
+        def judge(messages):
+            seen.append(messages)
+            return '{"results": [{"id": 2, "passed": true, "reason": "read file"}]}'
+        results = grader._judge(self.ctx, 'Write an essay', criteria, ['essay.md'], judge)
+        self.assertTrue(results[0]['passed'])
+        self.assertFalse(results[1]['passed'])
+        self.assertFalse(results[1]['fixable'])
+        self.assertIn('Required result ids (return every one): [2, 3]', seen[0][1]['content'])
+
+    def test_file_check_cannot_prove_content(self):
+        for text in ('dashboard.html preserves all office data',
+                     'dashboard.html exists and preserves data',
+                     'dashboard.html has working search'):
+            fake = FakeGrader([{'text': text, 'check': {'kind': 'file', 'path': 'dashboard.html'}}])
+            cs = grader.make_criteria('Fix dashboard', self.ctx, ['dashboard.html'], ['dashboard.html'], fake)
+            self.assertEqual(cs[0]['check'], {'kind': 'judge', 'paths': ['dashboard.html']})
+
+    def test_file_check_accepts_only_existence(self):
+        for text in ('people.csv exists', 'people.csv exists and is nonempty', 'people.csv is non-empty'):
+            fake = FakeGrader([{'text': text, 'check': {'kind': 'file', 'path': 'people.csv'}}])
+            cs = grader.make_criteria('Write file', self.ctx, ['people.csv'], ['people.csv'], fake)
+            self.assertEqual(cs[0]['check']['kind'], 'file')
 
     def test_no_file_changes_means_no_grader_call(self):
         fake = FakeGrader(self.SORT_CRITERIA)
