@@ -287,7 +287,7 @@ def client():
                 # Only inactive oldest sessions are evicted.
                 inactive = [k for k, v in clients.items() if not v['busy'].locked() and not task_manager().busy(k)]
                 if not inactive:
-                    raise RuntimeError('All sessions busy.')
+                    raise SessionsBusy('All sessions busy.')
                 del clients[inactive[0]]
             workspace = Workspace(WORKSPACES / sid)
             uploads = {}
@@ -745,6 +745,18 @@ def upload():
     finally:
         c['busy'].release()
 
+class SessionsBusy(RuntimeError):
+    """Every session slot is in use: a temporary condition, so it answers 503 with Retry-After."""
+
+
+@app.errorhandler(SessionsBusy)
+def sessions_busy(_):
+    response = json_response({'error': 'All sessions busy. Try again shortly.'})
+    response.status_code = 503
+    response.headers['Retry-After'] = '5'
+    return response
+
+
 @app.errorhandler(413)
 def too_large(_):
     return {'error': 'Upload too large (1 MB maximum).'}, 413
@@ -1040,7 +1052,8 @@ MEMORY = None
 SCHEDULER = None
 MCP = None
 TELEGRAM = None
-NOTIFICATIONS = collections.defaultdict(list)     # owner -> [{...}] delivered to the web UI by /notifications
+NOTIFICATIONS = collections.defaultdict(list)     # owner -> [{...}] read by /notifications (cursor-based, never drained)
+NOTIFICATION_TTL = 3600                           # seconds a notification stays readable
 PERSISTED_EVENTS = ('completion_check', 'tool_start', 'tool_end', 'approval', 'compaction', 'error', 'status', 'subagent_start', 'subagent_end',
                     'memory_saved', 'schedule_created')
 UNATTENDED_NOTE = ('This is an unattended scheduled run: nobody can answer questions or approve actions, and anything that needs '
@@ -1650,10 +1663,18 @@ def schedule_action(jid, action):
 
 @app.route('/notifications')
 def notifications_route():
+    """Notifications newer than the caller's cursor. Reading never removes them, so a second tab
+    (or a reload) cannot swallow another tab's copy; old ones are pruned by age."""
     sid = session['sid']
-    box = NOTIFICATIONS.get(sid) or []
-    NOTIFICATIONS[sid] = []
-    return json_response(box)
+    try:
+        since = float(request.args.get('since', 0))
+    except (TypeError, ValueError):
+        since = 0.0
+    cutoff = time.time() - NOTIFICATION_TTL
+    box = [n for n in (NOTIFICATIONS.get(sid) or []) if n.get('time', 0) >= cutoff]
+    NOTIFICATIONS[sid] = box
+    fresh = [n for n in box if n.get('time', 0) > since]
+    return json_response(fresh)
 
 
 @app.route('/mcp', methods=['GET'])

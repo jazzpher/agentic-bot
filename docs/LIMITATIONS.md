@@ -36,7 +36,7 @@
 - **Single-process state.** Sessions, pending approvals and running turns live in process memory; run one worker
   process (as `webui.py` does). Conversations, policies and tasks are on disk.
 - **Memory is keyword-ranked, not semantic.** Relevant memories are chosen with FTS5/LIKE matching plus pinning
-  (bounded to ~12 items / 2400 chars per turn). There is no embedding store; phrase facts the way you would search
+  (bounded to ~12 items / 4000 chars per turn). There is no embedding store; phrase facts the way you would search
   for them, or pin the ones that must always apply.
 - **Scheduled runs are unattended by design.** They run with `approval=never`, so anything outside the sandbox policy
   is denied rather than queued; results land in a ⏰ conversation. The scheduler lives in the web process (one

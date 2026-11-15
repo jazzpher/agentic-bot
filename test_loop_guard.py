@@ -164,7 +164,9 @@ class FingerprintTests(LoopTestCase):
     def test_too_big_or_missing_is_unknown_and_never_blocks(self):
         self.ws.path('a.txt').write_text('a')
         self.ws.path('b.txt').write_text('b')
-        self.assertIsNone(loopguard.workspace_fingerprint(str(self.ws.root), limit=1))
+        # A tree past the content-read limit still fingerprints (repeat protection stays on); only a missing
+        # root is unknown.
+        self.assertIsNotNone(loopguard.workspace_fingerprint(str(self.ws.root), limit=1))
         self.assertIsNone(loopguard.workspace_fingerprint(str(self.ws.root / 'nope')))
         guard = loopguard.ProgressGuard(None)
         call = {'name': 'read_file', 'arguments': '{"path": "a.txt"}'}

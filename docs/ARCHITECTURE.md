@@ -6,7 +6,7 @@ browser ──POST /agent (NDJSON)──▶ webui.py ──▶ agenticbot.agent.
    │ approvals, policy, conversations│                 ├─▶ agenticbot.tools.ToolRegistry.execute ──▶ files / shell / web / skills
    └──────── GET /agent/current ─────┘                 │          │                         └─ agenticbot.sandbox backend (subprocess | docker)
                                                        │          └─ ApprovalBroker (policy → allow / ask / deny)
-                                                       └─▶ agenticbot.compaction (summarise when context is ~75% full)
+                                                       └─▶ agenticbot.compaction (summarise when context is ~70% full)
 ```
 
 ## One turn (`agenticbot/agent.py`)

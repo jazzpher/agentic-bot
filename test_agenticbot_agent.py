@@ -81,6 +81,7 @@ class RunTurnTests(unittest.TestCase):
         self.assertEqual(result.text, '')
         statuses = [e.get('text', '') for e in self.events if e['type'] == 'status']
         self.assertTrue(any('without reply text' in t for t in statuses), self.events)
+        self.assertEqual(result.status, 'error', 'an empty reply is never completed')
 
     def test_parallel_read_only_calls_and_serial_mutations(self):
         self.ws.path('a.txt').write_text('A'); self.ws.path('b.txt').write_text('B')

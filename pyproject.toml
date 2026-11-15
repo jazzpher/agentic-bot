@@ -13,6 +13,7 @@ license = {file = "LICENSE"}
 dependencies = [
   "requests",
   "flask",
+  "itsdangerous>=2.1",
   "pypdf>=6.0,<7",
   "defusedxml>=0.7,<1",
   "pillow>=10.0",

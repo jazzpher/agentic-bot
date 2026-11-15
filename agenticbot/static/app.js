@@ -1449,18 +1449,22 @@ async function scheduleAction(id, action) {
   refreshSchedules();
 }
 let notifyTimer;
+// Cursor, not a drain: every tab sees every notification once; a reload doesn't repeat seen ones.
+let notifySince = 0;
+try { notifySince = parseFloat(localStorage.getItem('agenticbot-notify-since') || '0') || 0; } catch (_) { /* storage blocked */ }
 async function pollNotifications() {
   clearTimeout(notifyTimer);
   try {
     if (!turnRunning) {
-      const res = await fetch('/notifications');
+      const res = await fetch('/notifications?since=' + encodeURIComponent(notifySince));
       if (res.ok) {
         const rows = await res.json();
         for (const n of rows || []) {
+          if (typeof n.time === 'number' && n.time > notifySince) notifySince = n.time;
           const d = note('⏰ ' + n.title + ' → ' + n.status + (n.preview ? ': ' + n.preview.slice(0, 120) : ''), 'mem');
           if (n.conversation_id) { const b = el('button', 'linkbtn', 'open'); b.addEventListener('click', () => openConversation(n.conversation_id)); d.appendChild(b); }
         }
-        if ((rows || []).length) { loadConversations(); refreshScheduleCount(); }
+        if ((rows || []).length) { try { localStorage.setItem('agenticbot-notify-since', String(notifySince)); } catch (_) { /* ignore */ } loadConversations(); refreshScheduleCount(); }
       }
     }
   } catch (_) { /* offline */ }
