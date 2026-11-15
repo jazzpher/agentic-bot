@@ -79,8 +79,8 @@ class RunTurnTests(unittest.TestCase):
         fn = scripted([[{'type': 'usage', 'prompt_tokens': 10, 'completion_tokens': 0}, {'type': 'finish', 'reason': 'stop'}]])
         result = self.turn(fn)
         self.assertEqual(result.text, '')
-        statuses = [e.get('text', '') for e in self.events if e['type'] == 'status']
-        self.assertTrue(any('without reply text' in t for t in statuses), self.events)
+        notes = [e for e in self.events if e['type'] in ('status', 'error') and 'without reply text' in e.get('text', '')]
+        self.assertEqual([e['type'] for e in notes], ['error'], 'the empty-reply message is sent once: %r' % self.events)
         self.assertEqual(result.status, 'error', 'an empty reply is never completed')
 
     def test_parallel_read_only_calls_and_serial_mutations(self):

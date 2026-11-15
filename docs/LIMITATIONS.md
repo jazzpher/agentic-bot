@@ -39,7 +39,8 @@
   (bounded to ~12 items / 4000 chars per turn). There is no embedding store; phrase facts the way you would search
   for them, or pin the ones that must always apply.
 - **Scheduled runs are unattended by design.** They run with `approval=never`, so anything outside the sandbox policy
-  is denied rather than queued; results land in a ⏰ conversation. The scheduler lives in the web process (one
+  is denied rather than queued, and shell commands get no network even if the saved policy allows it
+  (`AGENTIC_UNATTENDED_NETWORK=on` to opt in); results land in a ⏰ conversation. The scheduler lives in the web process (one
   process, one scheduler); jobs missed while the server was down run once at the next tick.
 - **Sub-agents share the workspace and policy** of the parent — isolation is about context and tool set, not about
   files. Depth is limited (`AGENTIC_MAX_SUBAGENT_DEPTH`, default 1) and sub-agents run sequentially inside the parent's turn.

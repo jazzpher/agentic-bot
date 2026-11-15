@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- The independent grader is off by default (`AGENTIC_GRADER=on` to enable): it costs an extra model call per check.
+- Scheduled runs keep shell network off unless `AGENTIC_UNATTENDED_NETWORK=on`; this is now documented.
+- Notifications stay readable for 24 hours (was 1 hour).
+- The loop guard reuses its fingerprint after a batch of read-only tools instead of walking the workspace again.
+- An empty model reply sends one error event (was a status and an error with the same text).
+
 ### Added
 - Independent grader (`agenticbot/grader.py`): before any normal request that changed files is accepted as done, a separate fresh-context model call (never the builder) writes 3-5 fixed pass/fail criteria, and the host checks them itself: A-Z sort is measured, mobile fit is rendered at 390 px and measured, tests are run by the grader (a builder that edits test files never passes), files must exist. Only judgement criteria go to a model, which reads the files, never the builder's reply.
 - Only failed criteria go back to the builder, at most 3 rounds (`AGENTIC_GRADER_ROUNDS`), and every round's files are kept under `~/.local/share/agenticbot/grader-runs` (`AGENTIC_GRADER_DIR`).

@@ -1053,7 +1053,7 @@ SCHEDULER = None
 MCP = None
 TELEGRAM = None
 NOTIFICATIONS = collections.defaultdict(list)     # owner -> [{...}] read by /notifications (cursor-based, never drained)
-NOTIFICATION_TTL = 3600                           # seconds a notification stays readable
+NOTIFICATION_TTL = 24 * 3600                      # seconds a notification stays readable (a day: runs happen while you are away)
 PERSISTED_EVENTS = ('completion_check', 'tool_start', 'tool_end', 'approval', 'compaction', 'error', 'status', 'subagent_start', 'subagent_end',
                     'memory_saved', 'schedule_created')
 UNATTENDED_NOTE = ('This is an unattended scheduled run: nobody can answer questions or approve actions, and anything that needs '
@@ -1151,7 +1151,7 @@ def run_owner_turn(owner, workspace, cid, text, *, emit, stop, images=None, uplo
     mock = bool(app.config['MOCK'] and not cfg[0])
     policy = policy or POLICIES.load(owner)
     if unattended:
-        policy = policy.for_unattended(gconfig.UNATTENDED_FULL_ACCESS)
+        policy = policy.for_unattended(gconfig.UNATTENDED_FULL_ACCESS, gconfig.UNATTENDED_NETWORK)
     mcp_manager()
     ctx_extras = {'json_mode': json_mode, 'owner': owner, 'memory': memory_store(), 'conversations': store,
                   'scheduler': scheduler(), 'uploads': list(uploads or []), 'unattended': unattended,

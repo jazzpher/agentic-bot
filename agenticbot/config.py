@@ -77,6 +77,9 @@ APPROVE_EDITS = _choice('AGENTIC_APPROVE_EDITS', 'off', ('on', 'off')) == 'on'
 # workspace-write for them, so no host command runs without a human. Set AGENTIC_UNATTENDED_FULL_ACCESS=on only if you
 # really want scheduled jobs to run shell commands with no approval at all.
 UNATTENDED_FULL_ACCESS = _choice('AGENTIC_UNATTENDED_FULL_ACCESS', 'off', ('on', 'off')) == 'on'
+# Scheduled runs also get no shell network, even when the saved policy allows it. AGENTIC_UNATTENDED_NETWORK=on keeps
+# the saved policy's network setting for them.
+UNATTENDED_NETWORK = _choice('AGENTIC_UNATTENDED_NETWORK', 'off', ('on', 'off')) == 'on'
 
 # Sandbox
 # AGENTIC_SANDBOX_BACKEND is the documented name; AGENTIC_SANDBOX is accepted as a short alias.
@@ -177,5 +180,5 @@ PREVIEW_MAX_ROUNDS = min(20, _int('AGENTIC_PREVIEW_MAX_ROUNDS', 8, 1))
 SANDBOX_PIDS = min(4096, _int('AGENTIC_SANDBOX_PIDS', 1024, 64))
 
 # Independent grader: a fresh-context check of every "done" (agenticbot/grader.py).
-GRADER = _choice('AGENTIC_GRADER', 'on', {'on', 'off'})
+GRADER = _choice('AGENTIC_GRADER', 'off', {'on', 'off'})   # off by default: each check is an extra model call
 GRADER_ROUNDS = min(5, _int('AGENTIC_GRADER_ROUNDS', 3, 1))
