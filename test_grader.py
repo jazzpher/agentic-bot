@@ -165,6 +165,20 @@ class GraderTests(unittest.TestCase):
         self.assertFalse(results[1]['fixable'])
         self.assertIn('Required result ids (return every one): [2, 3]', seen[0][1]['content'])
 
+    def test_file_check_cannot_prove_content(self):
+        for text in ('dashboard.html preserves all office data',
+                     'dashboard.html exists and preserves data',
+                     'dashboard.html has working search'):
+            fake = FakeGrader([{'text': text, 'check': {'kind': 'file', 'path': 'dashboard.html'}}])
+            cs = grader.make_criteria('Fix dashboard', self.ctx, ['dashboard.html'], ['dashboard.html'], fake)
+            self.assertEqual(cs[0]['check'], {'kind': 'judge', 'paths': ['dashboard.html']})
+
+    def test_file_check_accepts_only_existence(self):
+        for text in ('people.csv exists', 'people.csv exists and is nonempty', 'people.csv is non-empty'):
+            fake = FakeGrader([{'text': text, 'check': {'kind': 'file', 'path': 'people.csv'}}])
+            cs = grader.make_criteria('Write file', self.ctx, ['people.csv'], ['people.csv'], fake)
+            self.assertEqual(cs[0]['check']['kind'], 'file')
+
     def test_no_file_changes_means_no_grader_call(self):
         fake = FakeGrader(self.SORT_CRITERIA)
         result, _ = self.turn('What is 2+2?', [text_events('4')], fake)

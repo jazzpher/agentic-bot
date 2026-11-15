@@ -253,8 +253,15 @@ def make_criteria(request, ctx, files, changed_files, grader_fn):
             item = {'text': item}
         if not isinstance(item, dict) or not str(item.get('text', '')).strip():
             continue
-        criteria.append({'id': len(criteria) + 1, 'text': str(item['text']).strip()[:300],
-                         'check': _clean_check(item.get('check'), set(files))})
+        text = str(item['text']).strip()[:300]
+        check = _clean_check(item.get('check'), set(files))
+        # Existence proves no content property. Only a narrow existence-only
+        # statement may use this cheap check; everything else needs a judge.
+        if check['kind'] == 'file':
+            residue = text.lower().replace(check['path'].lower(), '').strip(' .:')
+            if not re.fullmatch(r'(?:file\s+)?(?:exists?|is\s+(?:present|non[- ]?empty)|exists?\s+and\s+is\s+non[- ]?empty)', residue):
+                check = {'kind': 'judge', 'paths': [check['path']]}
+        criteria.append({'id': len(criteria) + 1, 'text': text, 'check': check})
     if not criteria:
         raise ValueError('grader returned no usable criteria')
     return criteria
