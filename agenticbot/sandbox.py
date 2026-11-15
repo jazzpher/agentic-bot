@@ -245,27 +245,16 @@ class SubprocessBackend:
         if network:
             env['AGENTICBOT_NETWORK'] = '1'
         posix = os.name == 'posix'
-        preexec = None
-        if posix:
-            def preexec():
-                try:
-                    import resource
-                    cpu = int(timeout) + 5
-                    resource.setrlimit(resource.RLIMIT_CPU, (cpu, cpu + 5))
-                    resource.setrlimit(resource.RLIMIT_FSIZE, (config.MAX_FILE_BYTES * 4, config.MAX_FILE_BYTES * 4))
-                    try:
-                        soft, hard = resource.getrlimit(resource.RLIMIT_NPROC)
-                        limit = config.SANDBOX_PIDS if hard == resource.RLIM_INFINITY else min(config.SANDBOX_PIDS, hard)
-                        resource.setrlimit(resource.RLIMIT_NPROC, (limit, hard))
-                    except (ValueError, OSError):
-                        pass
-                except Exception:  # noqa: BLE001 - never block execution on rlimit support
-                    pass
         shell = ['/bin/sh', '-c', command] if posix else ['cmd', '/d', '/s', '/c', command]
+        if posix:
+            # Run Python setup only after exec, never in a forked threaded parent.
+            helper = str(pathlib.Path(__file__).with_name('_sandbox_exec.py').resolve())
+            shell = [sys.executable, helper, str(int(timeout) + 5),
+                     str(config.MAX_FILE_BYTES * 4), str(config.SANDBOX_PIDS), *shell]
         if not network:
             shell = offline_command(shell)
         started = time.monotonic()
-        popen_kwargs = {'preexec_fn': preexec, 'start_new_session': True} if posix else \
+        popen_kwargs = {'start_new_session': True} if posix else \
             {'creationflags': getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0)}
         proc = subprocess.Popen(shell, cwd=str(cwd), env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, **popen_kwargs)

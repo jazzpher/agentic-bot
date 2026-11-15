@@ -23,11 +23,13 @@ its state may have changed. AGENTIC_LOOP_GUARD=off turns the guard off.
 import hashlib
 import json
 import os
+import stat
 
 from agenticbot import config
 
 PATH_ERROR = 'Path must stay inside this workspace'
-SKIP_DIRS = {'__pycache__', '.pytest_cache', '.mypy_cache', '.ruff_cache'}
+SKIP_DIRS = {'__pycache__', '.pytest_cache', '.mypy_cache', '.ruff_cache',
+             '.git', '.venv', 'venv', 'node_modules', 'dist', 'build'}
 PATH_KEYS = ('path', 'source_path')
 FILE_WRITERS = {'edit_file', 'write_file'}
 FINGERPRINT_LIMIT = 5000
@@ -36,7 +38,7 @@ CONTENT_TOTAL_LIMIT = 8 * 1024 * 1024
 
 
 def workspace_fingerprint(root, limit=FINGERPRINT_LIMIT):
-    """A hash of the tree's names, sizes and mtimes, or None when it can't tell (missing or too big)."""
+    """Hash all tracked tree metadata; bound content reads, not repeat protection."""
     if not root or not os.path.isdir(root):
         return None
     digest = hashlib.sha1()
@@ -55,7 +57,8 @@ def workspace_fingerprint(root, limit=FINGERPRINT_LIMIT):
             # Small files are known by their content alone, so rewriting a file with the same text (a no-op
             # edit) is no change; larger ones, past a byte budget, by size and mtime.
             content = None
-            if st.st_size <= CONTENT_FILE_LIMIT and hashed + st.st_size <= CONTENT_TOTAL_LIMIT:
+            if (count < limit and stat.S_ISREG(st.st_mode) and st.st_size <= CONTENT_FILE_LIMIT
+                    and hashed + st.st_size <= CONTENT_TOTAL_LIMIT):
                 try:
                     with open(os.path.join(dirpath, name), 'rb') as fh:
                         content = hashlib.sha1(fh.read()).hexdigest()
@@ -65,8 +68,6 @@ def workspace_fingerprint(root, limit=FINGERPRINT_LIMIT):
             stamp = content if content is not None else '%d\0%d' % (st.st_size, st.st_mtime_ns)
             digest.update(('%s/%s\0%s\n' % (rel_dir, name, stamp)).encode('utf-8', 'replace'))
             count += 1
-            if count > limit:
-                return None
     return digest.hexdigest()
 
 

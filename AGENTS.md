@@ -14,7 +14,7 @@ agent — including agentic-bot itself — editing this repo.
   Telegram) uses to run a turn.
 - `agent_loop.py`, `task_harness.py`, `skills.py`, `documents.py`, `model_discovery.py` — original modules,
   still used (Workspace path guards, durable task worker, skills store, PDF/DOCX extraction, model listing).
-- `agenticbot/templates/index.html`, `agenticbot/static/app.js`, `agenticbot/static/app.css` — the UI. No inline scripts (CSP `script-src 'self'`).
+- `agenticbot/templates/index.html`, `agenticbot/static/app.js`, `agenticbot/static/app.css` — the UI. The template still has inline `onclick=` handlers, so the CSP keeps `script-src 'self' 'unsafe-inline'`; new code uses `addEventListener`, and Markdown output is sanitised with DOMPurify.
 - Tests: `test_*.py` (unittest, offline — no provider calls) and `test_*.cjs` (Node, exercise `agenticbot/static/app.js`
   against a fake DOM).
 

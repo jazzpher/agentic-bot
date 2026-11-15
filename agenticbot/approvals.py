@@ -62,13 +62,14 @@ class SandboxPolicy:
     def label(self):
         return self.mode + ' · ' + self.approval + (' · network' if self.network else '')
 
-    def for_unattended(self, allow_full_access=False):
+    def for_unattended(self, allow_full_access=False, allow_network=False):
         """Policy for a run nobody is watching: approval is impossible (``never``), and full-access is downgraded to
-        workspace-write unless explicitly allowed, so ``full-access + on-request`` can never turn into YOLO."""
+        workspace-write unless explicitly allowed. Network is disabled unless separately opted in."""
         mode = self.mode
         if mode == 'full-access' and not allow_full_access:
             mode = 'workspace-write'
-        return dataclasses.replace(self, mode=mode, approval='never', allow=list(self.allow), deny=list(self.deny))
+        return dataclasses.replace(self, mode=mode, approval='never', network=self.network and allow_network,
+                                   allow=list(self.allow), deny=list(self.deny))
 
 
 def _browse_host(arguments):

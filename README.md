@@ -61,7 +61,7 @@ read-only root, command timeout enforced inside the container. `off` disables `r
 container, which is the recommended way to let it work on untrusted code.
 
 Configuration (environment): `AGENTIC_API_KEY`, `AGENTIC_API_URL`, `AGENTIC_MODEL`,
-`AGENTIC_SANDBOX_BACKEND`, `AGENTIC_SANDBOX_IMAGE`, `AGENTIC_MAX_STEPS` (default 40),
+`AGENTIC_SANDBOX_BACKEND`, `AGENTIC_SANDBOX_IMAGE`, `AGENTIC_MAX_STEPS` (default 50),
 `AGENTIC_CONTEXT_TOKENS` (default 128000, auto-filled from the model list when
 available), `AGENTIC_SEARCH_BACKEND` (`auto`/`tavily`/`brave`/`searxng`/`duckduckgo`/`off`)
 with `TAVILY_API_KEY` / `BRAVE_API_KEY` / `AGENTIC_SEARXNG_URL`, `AGENTIC_MAX_FILE_BYTES`
