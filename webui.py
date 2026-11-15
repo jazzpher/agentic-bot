@@ -31,6 +31,7 @@ import agenticbot
 from agenticbot import agent as agent_core, compaction, config as gconfig, netguard, providers as provider_client, sandbox as sandbox_mod
 from agenticbot.approvals import ApprovalBroker, PolicyStore, SandboxPolicy, MODES as SANDBOX_MODES, APPROVALS as APPROVAL_MODES
 from agenticbot.takeover import TakeoverBroker
+from agenticbot import grader as agent_grader
 from agenticbot.conversations import ConversationStore
 from agenticbot.memory import MemoryStore
 from agenticbot.scheduler import Scheduler, ScheduleError
@@ -1158,7 +1159,8 @@ def run_owner_turn(owner, workspace, cid, text, *, emit, stop, images=None, uplo
         max_steps=gconfig.SCHEDULED_MAX_STEPS if unattended else None,
         context_tokens=current_context_tokens(), model_label=cfg[2] + (' via ' + provider_label(cfg[1]) if cfg[1] else ''),
         system_extra=extra_prompt, summarizer=None if mock else make_summarizer(cfg), previous_summary=summary,
-        stream_fn=mock_stream if mock else agent_stream_fn, verify_request=True)
+        stream_fn=mock_stream if mock else agent_stream_fn, verify_request=True,
+        grader_fn=None if mock else agent_grader.model_grader(cfg))
     store.append_entry(cid, owner, 'assistant', result.text or '', events=kept)
     store.set_context(cid, owner, result.messages, result.summary)
     return result, ctx

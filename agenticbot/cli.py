@@ -19,7 +19,7 @@ import time
 import threading
 from pathlib import Path
 
-from agenticbot import completion, __version__, agent as agent_core, backup as backup_mod, config, providers, runlog
+from agenticbot import completion, grader, __version__, agent as agent_core, backup as backup_mod, config, providers, runlog
 from agenticbot.approvals import ApprovalBroker, SandboxPolicy, MODES, APPROVALS
 from agenticbot.tools import ToolContext, default_registry
 
@@ -175,7 +175,8 @@ def run_once(args, messages, ctx, registry, cfg, emit):
                                context_tokens=args.context_tokens, model_label=cfg[2], stream_fn=stream_for(args), verify_request=True,
                                requirements=['Owner acceptance command'] if check else None,
                                completion_verifier=completion.command_verifier(check, args.check_timeout) if check else None,
-                               summarizer=None if args.mock else (lambda prompt: providers.complete_once(cfg, prompt, max_tokens=1200)))
+                               summarizer=None if args.mock else (lambda prompt: providers.complete_once(cfg, prompt, max_tokens=1200)),
+                               grader_fn=None if args.mock else grader.model_grader(cfg))
 
 
 def cmd_exec(args):
@@ -239,7 +240,8 @@ def cmd_chat(args):
             result = agent_core.run_turn(messages + [{'role': 'user', 'content': line}], registry, ctx, cfg, printer,
                                          max_steps=args.max_steps, context_tokens=args.context_tokens, model_label=cfg[2],
                                          previous_summary=summary, stream_fn=stream_for(args), verify_request=True,
-                                         summarizer=None if args.mock else (lambda prompt: providers.complete_once(cfg, prompt, max_tokens=1200)))
+                                         summarizer=None if args.mock else (lambda prompt: providers.complete_once(cfg, prompt, max_tokens=1200)),
+                                         grader_fn=None if args.mock else grader.model_grader(cfg))
         except KeyboardInterrupt:
             ctx.stop.set(); print('\n(stopped)'); continue
         messages, summary = result.messages, result.summary

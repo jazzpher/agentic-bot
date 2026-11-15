@@ -540,3 +540,8 @@ When renaming your checkout folder, keep Docker's previous Compose project name
 (`docker compose -p grok-bot up -d`) to reuse its existing named volume.
 Saved UI theme settings fall back to the old key. Provider names such as
 `grok-4-fast` remain unchanged because those are actual model identifiers.
+
+
+## Independent grader
+
+Every "done" on a request that changed files is checked by a separate grader with fresh context, not by the model that did the work. It sets 3-5 pass/fail criteria once, measures what it can itself (sorting, 390 px mobile fit, running the tests, files present), sends only the failed items back, and stops after 3 rounds. Each round's files are kept. Settings: `AGENTIC_GRADER=off`, `AGENTIC_GRADER_ROUNDS`, `AGENTIC_GRADER_DIR`.
