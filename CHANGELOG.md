@@ -7,6 +7,11 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- Independent grader (`agenticbot/grader.py`): before any normal request that changed files is accepted as done, a separate fresh-context model call (never the builder) writes 3-5 fixed pass/fail criteria, and the host checks them itself: A-Z sort is measured, mobile fit is rendered at 390 px and measured, tests are run by the grader (a builder that edits test files never passes), files must exist. Only judgement criteria go to a model, which reads the files, never the builder's reply.
+- Only failed criteria go back to the builder, at most 3 rounds (`AGENTIC_GRADER_ROUNDS`), and every round's files are kept under `~/.local/share/agenticbot/grader-runs` (`AGENTIC_GRADER_DIR`).
+- If the grader can't run, the turn stays `unverified`, never `completed`. `AGENTIC_GRADER=off` turns it off.
+
+### Added
 
 - **Progress loop guard for small models** (`agenticbot/loopguard.py`). Per turn it watches for a call
   (tool + arguments) that gives the same result while the workspace is unchanged: the 2nd repeat gets a

@@ -18,7 +18,7 @@ from typing import Callable, Dict, List, Optional
 
 import requests
 
-from agenticbot import compaction, completion, config, evidence, loopguard, providers, runlog, sandbox
+from agenticbot import compaction, completion, config, evidence, grader, loopguard, providers, runlog, sandbox
 from agenticbot.approvals import SandboxPolicy
 from agenticbot.tools import ToolContext, ToolRegistry, ToolResult
 
@@ -491,7 +491,8 @@ def _rate_limit_wait(exc):
 def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg, emit: Callable[[dict], None],
              *, max_steps=None, context_tokens=None, tool_mode=None, model_label='', system_extra='',
              summarizer: Optional[Callable[[List[dict]], str]] = None, previous_summary='', stream_fn=None,
-             requirements=None, completion_verifier=None, completion_resume=False, verify_request=False) -> TurnResult:
+             requirements=None, completion_verifier=None, completion_resume=False, verify_request=False,
+             grader_fn=None) -> TurnResult:
     """Run one user turn to completion. ``messages`` is the conversation without the system prompt
     and already includes the newest user message. Returns the updated conversation."""
     max_steps = max_steps or config.MAX_STEPS
@@ -518,6 +519,12 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
     contract = completion.attach(convo, requirements, resume=completion_resume or (verify_request and completion._latest_request(convo).strip().lower() in ('continue', 'resume', 'keep going')))
     ctx.extras['_skill_learning_enabled'] = completion_verifier is not None and bool(contract.get('requirements'))
     completion_attempts = 0
+    # Independent grader: only for normal requests without an owner acceptance command, and only
+    # when a separate grader call is available (never the builder grading itself).
+    grader_state = None
+    if (grader_fn is not None and verify_request and completion_verifier is None
+            and not contract.get('requirements') and ctx.extras.get('depth', 0) == 0 and grader.enabled()):
+        grader_state = grader.start(ctx)
     goal = ''
     for m in reversed(convo):
         if m.get('role') != 'user':
@@ -705,6 +712,19 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                 if verify_request and not contract.get('requirements'):
                     verdict = completion.automatic_check(contract, ctx, text)
                     status = 'incomplete' if claim_missing else verdict['status']
+                    if grader_state is not None and not claim_missing and grader.changed(grader_state, ctx):
+                        send({'type': 'status', 'text': 'Independent grader is checking the work (round %d)...'
+                              % (grader_state['rounds'] + 1)})
+                        verdict = grader.grade(grader_state, ctx, contract.get('request', ''), grader_fn)
+                        status = verdict['status']
+                        if (verdict['status'] == 'incomplete' and grader_state['rounds'] < grader.max_rounds()
+                                and steps + 1 < max_steps and not ctx.stop.is_set()):
+                            # Only the failed criteria go back to the builder; the criteria stay fixed.
+                            send({'type': 'completion_check', **verdict})
+                            convo.append({'role': 'assistant', 'content': text})
+                            convo.append({'role': 'user', 'content': grader.repair_note(verdict)})
+                            steps += 1
+                            continue
                 skill_verified = bool(completion_verifier is not None and verdict and verdict.get('passed'))
                 if verdict is not None:
                     send({'type': 'completion_check', **verdict})
@@ -716,7 +736,7 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                             convo.append({'role': 'user', 'content': completion.repair_note(verdict)})
                             steps += 1
                             continue
-                        status = 'incomplete'
+                        status = verdict['status'] if verdict.get('grader') else 'incomplete'
                         send({'type': 'status', 'text': 'Work remains unverified or incomplete: '
                               + ', '.join(verdict['missing'])})
             if not calls:

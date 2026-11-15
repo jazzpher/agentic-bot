@@ -5,6 +5,38 @@ from agenticbot import evidence
 from agenticbot.tools import ToolError
 
 
+def read_column(ctx, path, column, sheet=None):
+    """The column's values (header row excluded), raising ToolError when it can't be checked."""
+    p = ctx.workspace.path(path)
+    if p.suffix.lower() == '.csv':
+        with p.open(encoding='utf-8-sig', newline='') as f:
+            reader = csv.DictReader(f)
+            if column not in (reader.fieldnames or []):
+                raise ToolError('Column missing: ' + column)
+            values = [row.get(column) for row in reader]
+    elif p.suffix.lower() == '.xlsx':
+        try:
+            import openpyxl
+        except ImportError as exc:
+            raise ToolError('XLSX checking requires openpyxl.') from exc
+        book = openpyxl.load_workbook(p, read_only=True, data_only=False)
+        try:
+            ws = book[sheet] if sheet else book.worksheets[0]
+            rows = ws.iter_rows(values_only=True)
+            header = list(next(rows, ()))
+            if column not in header:
+                raise ToolError('Column missing: ' + column)
+            idx = header.index(column)
+            values = [row[idx] if idx < len(row) else None for row in rows]
+        finally:
+            book.close()
+    else:
+        raise ToolError('verify_sort supports CSV and XLSX only.')
+    if not values or any(v is None or not str(v).strip() or str(v).startswith('=') for v in values):
+        raise ToolError('No rows, blank keys, or formula keys: order not verified.')
+    return values
+
+
 def register(registry):
     @registry.tool('verify_sort', 'Check an existing CSV/XLSX column in accent-insensitive Unicode A–Z order. '
                    'Álvarez sorts before Reyes. Checks ordering only, not row completeness or content correctness. '
@@ -14,34 +46,8 @@ def register(registry):
                        'sheet': {'type': 'string', 'description': 'XLSX sheet name, default first sheet'}},
                     'required': ['path', 'column']}, category='verify', parallel_safe=False)
     def verify_sort(ctx, path, column, sheet=None):
-        p = ctx.workspace.path(path)
         before = evidence.digest(ctx, path)
-        if p.suffix.lower() == '.csv':
-            with p.open(encoding='utf-8-sig', newline='') as f:
-                reader = csv.DictReader(f)
-                if column not in (reader.fieldnames or []):
-                    raise ToolError('Column missing: ' + column)
-                values = [row.get(column) for row in reader]
-        elif p.suffix.lower() == '.xlsx':
-            try:
-                import openpyxl
-            except ImportError as exc:
-                raise ToolError('XLSX checking requires openpyxl.') from exc
-            book = openpyxl.load_workbook(p, read_only=True, data_only=False)
-            try:
-                ws = book[sheet] if sheet else book.worksheets[0]
-                rows = ws.iter_rows(values_only=True)
-                header = list(next(rows, ()))
-                if column not in header:
-                    raise ToolError('Column missing: ' + column)
-                idx = header.index(column)
-                values = [row[idx] if idx < len(row) else None for row in rows]
-            finally:
-                book.close()
-        else:
-            raise ToolError('verify_sort supports CSV and XLSX only.')
-        if not values or any(v is None or not str(v).strip() or str(v).startswith('=') for v in values):
-            raise ToolError('No rows, blank keys, or formula keys: order not verified.')
+        values = read_column(ctx, path, column, sheet)
         if evidence.digest(ctx, path) != before:
             raise ToolError('File changed during verification; recheck.')
         keys = [evidence.sort_key(v) for v in values]
