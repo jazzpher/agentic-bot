@@ -1165,6 +1165,10 @@ def run_owner_turn(owner, workspace, cid, text, *, emit, stop, images=None, uplo
         if event.get('type') in PERSISTED_EVENTS:
             kept.append(event)
         emit(event)
+    def checkpoint(messages, summary):
+        if not store.set_context(cid, owner, messages, summary):
+            raise RuntimeError('Conversation checkpoint could not be saved')
+
     extra_prompt = '\n\n'.join(x for x in (system_extra, UNATTENDED_NOTE if unattended else '') if x)
     messages = list(prior) + [{'role': 'user', 'content': user_content(text, images)}]
     result = agent_core.run_turn(
@@ -1173,7 +1177,7 @@ def run_owner_turn(owner, workspace, cid, text, *, emit, stop, images=None, uplo
         context_tokens=current_context_tokens(), model_label=cfg[2] + (' via ' + provider_label(cfg[1]) if cfg[1] else ''),
         system_extra=extra_prompt, summarizer=None if mock else make_summarizer(cfg), previous_summary=summary,
         stream_fn=mock_stream if mock else agent_stream_fn, verify_request=True,
-        grader_fn=None if mock else agent_grader.model_grader(cfg))
+        grader_fn=None if mock else agent_grader.model_grader(cfg), checkpoint=checkpoint)
     store.append_entry(cid, owner, 'assistant', result.text or '', events=kept)
     store.set_context(cid, owner, result.messages, result.summary)
     return result, ctx
