@@ -731,7 +731,7 @@ class TaskManager:
             state['elapsed'] = elapsed_before + time.monotonic() - started
             return (state['elapsed'] >= state['budgets']['elapsed']
                     or state['output'] >= state['budgets']['output'])
-        def finish_at_budget(reason):
+        def finish_at_budget(reason, fallback='budget_exhausted'):
             """Run the acceptance checks once more before giving up on a budget.
 
             A task can finish its work and run out of time in the same step: the
@@ -752,7 +752,16 @@ class TaskManager:
                               {'type': 'verification', 'text': text, 'step': state['steps']},
                               [{'type': 'result', 'text': text, 'step': state['steps']}])
                     return
-            finish('budget_exhausted', reason)
+            finish(fallback, reason)
+        def finish_after_provider_failure(reason):
+            """Re-run the owner's checks before pausing on a provider failure.
+
+            The model can make the tests pass and then lose its provider before it
+            gets to say done. A check that passes now is a checked result; the
+            pause would only throw it away. A failing or unrunnable check keeps
+            the pause, so Resume still works as before.
+            """
+            finish_at_budget(reason, fallback='blocked')
         workspace = None
         try:
             workspace = Workspace(self.workspaces / owner)
@@ -808,7 +817,7 @@ class TaskManager:
                     transient = is_transient(exc)
                     state['retry_streak'] += 1
                     if not transient or state['retry_streak'] > MAX_RETRIES:
-                        finish('blocked', friendly_provider_error(exc) + ' Task paused, nothing was lost. Press Resume to continue.'); return
+                        finish_after_provider_failure(friendly_provider_error(exc) + ' Task paused, nothing was lost. Press Resume to continue.'); return
                     self.save(tid, 'running', state, {'type': 'retry', 'text': friendly_provider_error(exc).rstrip('.') + ', retrying %d of %d...' % (state['retry_streak'], MAX_RETRIES)})
                     self.stops[tid].wait(min(RETRY_DELAY * state['retry_streak'], 4))
                     continue
