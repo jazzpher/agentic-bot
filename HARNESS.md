@@ -153,7 +153,14 @@ from PR #3 remain. The password is single-owner access, not multi-user accounts.
 ```sh
 python -m unittest discover -v
 python -m py_compile bot.py agent_loop.py webui.py task_harness.py
+python benchmark.py        # task reliability and Stop latency, scripted provider
+python bench_harness.py    # harness overhead: checkpoints, events, compaction, file tools
 ```
+
+`bench_harness.py` exits non-zero when a measured value crosses its ceiling, so a
+harness regression fails the Benchmark workflow instead of hiding inside model
+latency. Ceilings are loose on purpose (an order of magnitude, not 20%); read a
+run against another run on the same runner, not as an absolute guarantee.
 
 Tests exercise real SQLite reopen/thread workers; HTTP server disconnect and
 restart with same cookie; subprocess kill/restart against a dummy local HTTP

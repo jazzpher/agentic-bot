@@ -1,0 +1,22 @@
+name: Benchmark
+# Performance and reliability numbers, separate from the correctness suite so a
+# regression in either is visible on its own: `python benchmark.py` measures
+# end-to-end task reliability and Stop latency, `python bench_harness.py` measures
+# harness overhead (checkpoints, events, compaction, file tools) with a scripted
+# provider, so no key and no network are needed.
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  harness:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python -m py_compile bench_harness.py
+      - name: harness overhead benchmark
+        run: python bench_harness.py
+      - name: reliability benchmark
+        run: python benchmark.py
