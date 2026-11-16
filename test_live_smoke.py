@@ -47,8 +47,11 @@ class DebugCycleTests(unittest.TestCase):
         self.addCleanup(on.stop)
 
     def run_phase(self, replies):
+        # A small elapsed budget keeps a hung phase from eating the job: wait_for
+        # gives up 120 s after it, so a broken run fails fast instead of hanging.
         return self.smoke.phase_debug(('fake', 'https://example.invalid/v1', 'fake-model'),
-                                      self.root, call_model=scripted(replies))
+                                      self.root, elapsed_budget=45,
+                                      call_model=scripted(replies))
 
     def test_a_correct_fix_passes_the_command_check(self):
         row, elapsed, fixed, commands, gate = self.run_phase([
