@@ -24,6 +24,9 @@ jobs:
       NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY || secrets.AGENTIC_API_KEY || vars.NVIDIA_API_KEY }}
       # Phase 3 only runs when the durable loop may use the shell.
       AGENTIC_TASK_SHELL: 'on'
+      # Phase 4 is a real debug cycle (run tests, fix, run again): 159-329 s live, so
+      # the 300 s default would cut it. This is the operator raising the ceiling.
+      AGENTIC_TASK_MAX_ELAPSED: '600'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

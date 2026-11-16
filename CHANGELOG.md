@@ -13,14 +13,17 @@ All notable changes to this project are documented here. The format follows
   done. A model's own claim never completes at that boundary, a Stop never does, and a failing artifact still
   exhausts; the read-back prompt is skipped there because nobody can act on it any more.
 - **The elapsed ceiling can be raised by the operator** (`AGENTIC_TASK_MAX_ELAPSED`, seconds; default stays 300).
-  A client can still only lower a budget, and every other budget keeps its server cap.
+  A client can still only lower a budget, and every other budget keeps its server cap. The shipped container sets
+  it to 600, since the code fix alone left a deployment on the 300 s default that had just discarded a finished run.
 - **A resent completion claim is refused instead of burning the budget.** The same `done` text with an unchanged
   workspace is rejected up to twice, and the third is `blocked` with the gate's reason; any real tool result
   resets the count. A live run had a model repeat "re-ran it green" after the tests could not even start.
 - **A goal/check conflict is surfaced instead of being resolved silently.** When a goal names a short value
-  (quoted or ALL-CAPS) that a `file_text` check expects differently, the task records a context event, puts the
-  discrepancy in front of the model on every step with "never silently pick one", and repeats it on the result.
-  The check still owns the artifact; the person reading the task sees that the two disagreed.
+  (quoted or ALL-CAPS) that a check expects differently — a `file_text` expectation or a command check's
+  `expect_output` — the task records a context event, puts the discrepancy in front of the model on every step
+  with "never silently pick one", and repeats it on the result. Both sides must be word-shaped, so a goal that
+  merely mentions API or JSON never clashes with a check that expects a document. The check still owns the
+  artifact; the person reading the task sees that the two disagreed.
 
 ### Changed
 - The independent grader is off by default (`AGENTIC_GRADER=on` to enable): it costs an extra model call per check.

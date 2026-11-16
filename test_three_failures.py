@@ -198,6 +198,36 @@ class ConflictTests(Base):
         self.assertEqual(contract_conflicts('Write hello to out.txt',
                                             [{'type': 'file_text', 'path': 'out.txt', 'text': 'hello'}]), [])
 
+    def test_a_command_checks_expected_output_is_covered_too(self):
+        notes = contract_conflicts('Make the tool print ALPHA',
+                                   [{'type': 'command', 'command': 'python tool.py', 'expect_output': 'BETA'}])
+        self.assertEqual(len(notes), 1)
+        self.assertIn('ALPHA', notes[0])
+        self.assertIn('BETA', notes[0])
+
+    def test_a_document_expectation_is_not_a_named_value(self):
+        # The goal mentioning API/JSON is not a disagreement with a check that
+        # expects a document: only word-shaped values on both sides can clash.
+        self.assertEqual(contract_conflicts('Build a REST API returning JSON',
+                                            [{'type': 'file_text', 'path': 'out.json',
+                                              'text': '{"ok": true}'}]), [])
+        self.assertEqual(contract_conflicts('Write ALPHA to out.txt',
+                                            [{'type': 'file_text', 'path': 'out.txt',
+                                              'text': '{"ok": true}'}]), [])
+
+    def test_a_value_that_contains_the_other_is_not_a_conflict(self):
+        self.assertEqual(contract_conflicts('Write ALPHA to out.txt',
+                                            [{'type': 'file_text', 'path': 'out.txt',
+                                              'text': 'ALPHA-v2'}]), [])
+
+    def test_the_container_ships_a_raised_elapsed_ceiling(self):
+        # The code fix is worthless if the deployed image keeps the 300 s default:
+        # a live debug cycle took 159-329 s, so the ceiling is what decides.
+        import pathlib
+        dockerfile = pathlib.Path('Dockerfile').read_text()
+        self.assertIn('AGENTIC_TASK_MAX_ELAPSED', dockerfile)
+        self.assertIn('AGENTIC_TASK_SHELL=on', dockerfile)
+
     def test_the_conflict_is_recorded_and_put_in_front_of_the_model(self):
         m = self.manager()
         seen = []

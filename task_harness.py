@@ -76,29 +76,49 @@ def goal_literals(goal):
     return found
 
 
+# A short value that looks like a word: the shape a user names when they specify a
+# value ("ALPHA", "draft-v2.txt"). Deliberately not "anything short", so a JSON
+# payload, a path or a sentence in a check is never mistaken for a named value.
+VALUE_WORD = re.compile(r'[A-Za-z][A-Za-z0-9_.-]{1,39}')
+
+
+def _value_word(value):
+    return isinstance(value, str) and bool(VALUE_WORD.fullmatch(value.strip()))
+
+
 def contract_conflicts(goal, checks):
     """Goal values that a deterministic check expects differently.
 
-    Deliberately narrow, and never a rejection: it compares short file_text
-    expectations against quoted or ALL-CAPS values named in the goal. The check
-    still owns the artifact — the harness must not overrule either side — but a
-    silent switch between two different values is exactly what this surfaces, so
-    the model is asked to say what it did and the result repeats the discrepancy.
+    Compares the values a goal names (quoted text or ALL-CAPS words) against what a
+    check expects: a ``file_text`` expectation or a command check's
+    ``expect_output``. Both sides must be word-shaped, which is what separates a
+    real disagreement -- the goal says ALPHA, the check says BETA -- from a goal
+    that merely mentions API or JSON while the check expects a document.
+
+    Never a rejection: the check still owns the artifact, and the harness must not
+    overrule either side. What it does is refuse to let the disagreement pass in
+    silence, which is the failure this exists for -- a model that quietly picked
+    one value and reported success.
     """
-    literals = goal_literals(goal)
+    literals = [v for v in goal_literals(goal) if _value_word(v)]
     if not literals:
         return []
     notes = []
     for check in checks or []:
-        if check.get('type') != 'file_text':
+        kind = check.get('type')
+        if kind == 'file_text':
+            expected, where = check.get('text'), check.get('path') or ''
+        elif kind == 'command':
+            expected, where = check.get('expect_output'), 'the command check'
+        else:
             continue
-        expected, path = check.get('text'), check.get('path') or ''
-        if not isinstance(expected, str) or not 0 < len(expected) <= 40 or expected in (goal or ''):
+        if not _value_word(expected) or expected in (goal or ''):
             continue
-        clashes = [v for v in literals if v != expected and v not in expected and v not in path]
+        clashes = [v for v in literals
+                   if v != expected and v not in expected and expected not in v]
         if clashes:
-            notes.append('the goal names %s but the %s check expects %s'
-                         % (', '.join(clashes[:3]), path, expected))
+            notes.append('the goal names %s but %s expects %s'
+                         % (', '.join(clashes[:3]), where, expected))
     return notes
 
 

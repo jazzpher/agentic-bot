@@ -14,8 +14,11 @@ USER agent
 # AGENTIC_TASK_SHELL turns on run_command for durable /task runs: the container boundary IS the sandbox here
 # (non-root user, dedicated /data), which is why the subprocess backend is safe to use inside it. Network for
 # shell commands stays off. Remove that one variable to keep /task to file tools only.
+# AGENTIC_TASK_MAX_ELAPSED raises the elapsed ceiling for those runs: a real debug cycle (run the tests, read
+# the failures, fix, run again) took 159-329 s live, so the 300 s default discarded runs that had finished.
+# A client still cannot ask for more than this; lower it, or drop it, to keep the stricter default.
 ENV AGENTIC_WORKSPACE_DIR=/data/workspaces AGENTIC_DEPLOYMENT_MODE=exposed AGENTIC_SANDBOX_BACKEND=subprocess AGENTIC_IN_CONTAINER=1 \
-    AGENTIC_TASK_SHELL=on
+    AGENTIC_TASK_SHELL=on AGENTIC_TASK_MAX_ELAPSED=600
 # Provider defaults for a bare `docker run`: NVIDIA NIM, whose key arrives as AGENTIC_API_KEY. Every value is
 # overridable at run time (-e, compose, Cloud Run env), and the UI's own provider settings win over all of them.
 ENV AGENTIC_API_URL=https://integrate.api.nvidia.com/v1/chat/completions \

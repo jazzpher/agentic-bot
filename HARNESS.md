@@ -79,6 +79,15 @@ workspace, is refused up to twice and the third is `blocked` with the gate's rea
 a model cannot burn the step budget by resending one sentence. Any real tool result
 resets that count.
 
+When a goal names a value (quoted text or an ALL-CAPS word) that a check expects
+differently, the disagreement is recorded as a context event, repeated in front of the
+model on every step with "never silently pick one", and repeated again on the result.
+It covers a `file_text` expectation and a command check's `expect_output`; both sides
+must be word-shaped, so a goal that mentions API or JSON does not clash with a check
+that expects a document. It never rejects the artifact — the check still owns that —
+because the harness must not overrule either side. What it refuses to allow is a silent
+switch, where the model quietly picks one value and reports success.
+
 This is bounded execution, not a security boundary beyond the backend: with the
 subprocess backend the command runs as the host's own user, so use the container (or
 `AGENTIC_SANDBOX_BACKEND=docker`) for untrusted work. Owner-supplied `command`
