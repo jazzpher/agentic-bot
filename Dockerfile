@@ -12,6 +12,8 @@ RUN mkdir -p /data && chown -R agent:agent /app /data
 USER agent
 # Requests arrive from the Docker bridge, not loopback, so the app must run in exposed mode with a password.
 ENV AGENTIC_WORKSPACE_DIR=/data/workspaces AGENTIC_DEPLOYMENT_MODE=exposed AGENTIC_SANDBOX_BACKEND=subprocess AGENTIC_IN_CONTAINER=1
-EXPOSE 5000
-HEALTHCHECK --interval=30s --timeout=5s CMD python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:5000/key_status')" || exit 1
-CMD ["python", "webui.py", "--host", "0.0.0.0", "--port", "5000"]
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s CMD python -c "import os,urllib.request;urllib.request.urlopen('http://127.0.0.1:' + os.environ.get('PORT', '8080') + '/key_status')" || exit 1
+# Platform hosts (Cloud Run, Fly, FreeMilk) route to $PORT, so the server must listen there; 8080
+# matches the EXPOSE above for a plain `docker run`/compose. `exec` keeps Flask as PID 1 for signals.
+CMD ["sh", "-c", "exec python webui.py --host 0.0.0.0 --port ${PORT:-8080}"]
