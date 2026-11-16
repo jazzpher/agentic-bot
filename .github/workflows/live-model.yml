@@ -18,7 +18,10 @@ jobs:
     timeout-minutes: 20
     runs-on: ubuntu-latest
     env:
-      NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+      # Accept the key from either name, and from an Actions variable as well as a
+      # secret: a key pasted into the Variables tab is a common mistake, and this
+      # keeps the check useful instead of silently skipping.
+      NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY || secrets.AGENTIC_API_KEY || vars.NVIDIA_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -32,5 +35,5 @@ jobs:
       - name: no key secret yet, skipped
         if: env.NVIDIA_API_KEY == ''
         run: |
-          echo "::notice::Add NVIDIA_API_KEY under Settings -> Secrets and variables -> Actions to run the live model check."
+          echo "::notice::No key found. Add NVIDIA_API_KEY under Settings -> Secrets and variables -> Actions -> Secrets (a Repository secret, not a Variable and not an Environment secret)."
           python live_nim_smoke.py || test $? -eq 2
