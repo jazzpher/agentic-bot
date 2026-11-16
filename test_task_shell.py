@@ -183,7 +183,9 @@ class DurableShellTests(unittest.TestCase):
                         action('done', text='nothing to produce; the command was refused')])
         tid = m.submit('alice', 'Try a blocked command', [], lambda _m: next(replies))
         row = self.wait(m, tid)
-        self.assertIn(row['status'], ('completed', 'completed_unverified'))
+        # A refused command is a tool failure, and the harness never certifies a task
+        # whose only tool failed as done: the model's word is not evidence.
+        self.assertEqual(row['status'], 'needs_input')
         self.assertEqual(backend.calls, [])
         self.assertTrue(any(e['type'] == 'tool' and 'Refused' in e['text']
                             for e in m.events(tid, 'alice')))
@@ -200,7 +202,7 @@ class DurableShellTests(unittest.TestCase):
         tid = m.submit('alice', 'Try the shell', [], lambda _m: next(replies))
         row = self.wait(m, tid)
         self.assertIn('AGENTIC_TASK_SHELL', json.dumps(m.events(tid, 'alice'), ensure_ascii=False))
-        self.assertIn(row['status'], ('completed', 'completed_unverified'))
+        self.assertEqual(row['status'], 'needs_input')
 
 
 if __name__ == '__main__':
