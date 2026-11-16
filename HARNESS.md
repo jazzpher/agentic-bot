@@ -48,6 +48,26 @@ Existing artifacts may satisfy a check without a new write. Checks verify presen
 content, not authorship, quality, correctness of arbitrary calculations, or an
 immutable historical source. Download and independently review important results.
 
+## Shell (opt-in)
+
+`{"action":"run_command","command":"python -m pytest -q"}` runs a shell command with
+cwd = the session workspace and the network **off**, through the configured sandbox
+backend (subprocess or docker) — never a shell the model controls. It is **off by
+default** (`AGENTIC_TASK_SHELL=on`), because the durable loop has no approval prompt,
+so the model cannot grant it to itself; that is the same rule as
+`AGENTIC_BROWSER_INTERACT`. Always-refused commands are rejected before anything
+starts. The timeout is `AGENTIC_COMMAND_TIMEOUT` (default 120s), clamped further to
+the task's remaining elapsed budget. Stop kills the process group. A command that ran
+clears the read-back set, so an earlier `read_file` no longer counts as verification
+and the completion gate asks for a fresh read. Command output is untrusted data and
+consumes the output budget like any other tool result.
+
+This is bounded execution, not a security boundary beyond the backend: with the
+subprocess backend the command runs as the host's own user, so use the container (or
+`AGENTIC_SANDBOX_BACKEND=docker`) for untrusted work. Owner-supplied `command`
+acceptance checks are separate and always run, with or without this flag, because the
+owner wrote them and the model did not.
+
 ## API
 
 - `POST /task` JSON: `message`, optional `requirements` text (8 KB), optional `checks`, optional lower `budgets`, optional `result_schema` (list of at most 16 required result field names; the task cannot complete until the final `done` action carries a `result` object with every field, with nonempty text values; strict providers receive the exact requested field names, other provider responses are matched case- and punctuation-insensitively; names must contain an ASCII letter or digit; schema-rejected completions are refunded, not counted as steps, up to 3 retries); 202

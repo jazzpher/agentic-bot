@@ -25,7 +25,10 @@
 - **Web search without a key** scrapes DuckDuckGo HTML, which is best-effort and may break; set `TAVILY_API_KEY`,
   `BRAVE_API_KEY`, or `AGENTIC_SEARXNG_URL` for reliable results.
 - **Durable background tasks still use the legacy JSON harness** (`/task`), not the new agent loop. They are
-  resumable across restarts but do not get native tool calling, the sandbox policy or web tools yet.
+  resumable across restarts but do not get native tool calling, the approval prompt or web tools yet.
+  `run_command` is available only with `AGENTIC_TASK_SHELL=on`, always with the network off and with no
+  approval prompt, so the sandbox backend is the only boundary: run the container, or use the Docker backend,
+  before letting a durable task near an untrusted repository.
 - **The run log is a debug aid, not an audit trail.** `.runlog.jsonl` is local, rotated by
   size, and records tool names/durations/errors, not full arguments or outputs.
 - **Cancellation is fast, not instant.** Stop interrupts a hung stream or running command in

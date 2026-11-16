@@ -793,6 +793,7 @@ const ROW_VERBS = {
   write_file: ['Created', 'path'], write_docx: ['Created', 'path'], save_skill: ['Saved', 'path'],
   copy_file: ['Copied', 'path'], compare_files: ['Compared', 'path'], calculate: ['Calculated', 'code'],
   list_files: ['Listed', 'files'], list_skills: ['Listed', 'skills'], browse_close: ['Closed', 'browser'],
+  run_command: ['Ran', 'code'],
 };
 function iconSvg() {
   const s = el('span', 'aicon');

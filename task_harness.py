@@ -628,6 +628,7 @@ class TaskManager:
         workspace = None
         try:
             workspace = Workspace(self.workspaces / owner)
+            workspace.stop = self.stops.get(tid)
             workspace.written = {workspace.path(name).relative_to(workspace.root).as_posix()
                                  for name in state['written']}
             workspace.checked = {workspace.path(name).relative_to(workspace.root).as_posix()
@@ -749,8 +750,13 @@ class TaskManager:
                     arg = (a.get('source_path') or '') + ' -> ' + (a.get('path') or '')
                 elif kind == 'calculate':
                     arg = a.get('expression') or ''
+                elif kind == 'run_command':
+                    arg = (a.get('command') or '')[:200]
                 self.save(tid, 'running', state, {'type': 'action', 'text': 'Executing ' + kind, 'arg': arg})
                 remaining_output = state['budgets']['output'] - state['output']
+                # A command may not outlive the task's own elapsed budget.
+                workspace.command_cap = max(1, state['budgets']['elapsed']
+                                            - (elapsed_before + time.monotonic() - started))
                 try:
                     if kind == 'save_skill':
                         status, detail = self._verify(row, state, workspace, gate=True)

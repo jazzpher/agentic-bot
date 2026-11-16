@@ -14,6 +14,13 @@ All notable changes to this project are documented here. The format follows
 - An empty model reply sends one error event (was a status and an error with the same text).
 
 ### Added
+- **Shell in durable tasks** (`run_command` in the `/task` action set, `AGENTIC_TASK_SHELL=on`): a long task can
+  now run its own tests and builds instead of only writing files, so "I wrote the code" can become "the tests
+  pass". Off by default, because the durable loop has no approval prompt and the model must not grant itself
+  shell; the same rule the browser tools already follow. Network is off for commands, the always-refused list is
+  rejected before anything starts, the timeout is clamped to the task's remaining elapsed budget, Stop kills the
+  process group, and a command clears the read-back set so the completion gate asks for a fresh read. The
+  container image enables it, because there the container itself is the boundary.
 - Independent grader (`agenticbot/grader.py`): before any normal request that changed files is accepted as done, a separate fresh-context model call (never the builder) writes 3-5 fixed pass/fail criteria, and the host checks them itself: A-Z sort is measured, mobile fit is rendered at 390 px and measured, tests are run by the grader (a builder that edits test files never passes), files must exist. Only judgement criteria go to a model, which reads the files, never the builder's reply.
 - Only failed criteria go back to the builder, at most 3 rounds (`AGENTIC_GRADER_ROUNDS`), and every round's files are kept under `~/.local/share/agenticbot/grader-runs` (`AGENTIC_GRADER_DIR`).
 - If the grader can't run, the turn stays `unverified`, never `completed`. `AGENTIC_GRADER=off` turns it off.

@@ -128,6 +128,11 @@ PREVIEW_IMAGES = _choice('AGENTIC_PREVIEW_IMAGES', 'on', ('on', 'off')) == 'on'
 BROWSER_ENABLED = _choice('AGENTIC_BROWSER_ENABLED', 'off', ('on', 'off')) == 'on'
 # click/type can act on pages; the task loop has no approval prompt, so they need their own opt-in.
 BROWSER_INTERACT = _choice('AGENTIC_BROWSER_INTERACT', 'off', ('on', 'off')) == 'on'
+# Durable task (/task) shell: run_command in agent_loop. The task loop has no approval prompt either,
+# so this is opt-in by the same rule as AGENTIC_BROWSER_INTERACT. Network stays off regardless; the
+# sandbox backend (subprocess or docker) and the always-refused command list still apply. A container
+# deployment should keep this on, because the container itself is the boundary.
+TASK_SHELL = _choice('AGENTIC_TASK_SHELL', 'off', ('on', 'off')) == 'on'
 BROWSER_HEADLESS = _choice('AGENTIC_BROWSER_HEADLESS', 'yes', ('yes', 'no')) == 'yes'
 BROWSER_EXECUTABLE = env_get('AGENTIC_BROWSER_EXECUTABLE', '')
 BROWSER_ARGS = [a for a in env_get('AGENTIC_BROWSER_ARGS', '').split(',') if a]
