@@ -12,6 +12,10 @@ RUN mkdir -p /data && chown -R agent:agent /app /data
 USER agent
 # Requests arrive from the Docker bridge, not loopback, so the app must run in exposed mode with a password.
 ENV AGENTIC_WORKSPACE_DIR=/data/workspaces AGENTIC_DEPLOYMENT_MODE=exposed AGENTIC_SANDBOX_BACKEND=subprocess AGENTIC_IN_CONTAINER=1
+# Provider defaults for a bare `docker run`: NVIDIA NIM, whose key arrives as AGENTIC_API_KEY. Every value is
+# overridable at run time (-e, compose, Cloud Run env), and the UI's own provider settings win over all of them.
+ENV AGENTIC_API_URL=https://integrate.api.nvidia.com/v1/chat/completions \
+    AGENTIC_MODEL=nvidia/nemotron-3-ultra-550b-a55b
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s CMD python -c "import os,urllib.request;urllib.request.urlopen('http://127.0.0.1:' + os.environ.get('PORT', '8080') + '/key_status')" || exit 1
 # Platform hosts (Cloud Run, Fly, FreeMilk) route to $PORT, so the server must listen there; 8080
