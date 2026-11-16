@@ -35,6 +35,33 @@ GOAL = ('Compute 17 * 23 with the calculate action, write the result into sum.tx
 SHELL_GOAL = ("Use the run_command action to create answer.txt containing exactly 391, for example: "
               'python3 -c "open(\'answer.txt\',\'w\').write(\'391\')". Then read answer.txt back with '
               'read_file and call done stating what you checked.')
+
+# A real debug cycle: the module is wrong in two independent ways, so one command
+# run cannot reveal everything and a single blind edit cannot pass the gate.
+DEBUG_SOURCE = ('def average(values):\n'
+                '    total = 0\n'
+                '    for v in values:\n'
+                '        total += v\n'
+                '    return total / len(values) + 1\n')
+DEBUG_TESTS = ('import unittest\n'
+               'from calc import average\n'
+               '\n'
+               'class AverageTests(unittest.TestCase):\n'
+               '    def test_whole_numbers(self):\n'
+               '        self.assertEqual(average([2, 4, 6]), 4)\n'
+               '\n'
+               '    def test_single(self):\n'
+               '        self.assertEqual(average([10]), 10)\n'
+               '\n'
+               '    def test_empty_is_zero(self):\n'
+               '        self.assertEqual(average([]), 0)\n'
+               '\n'
+               'if __name__ == "__main__":\n'
+               '    unittest.main()\n')
+DEBUG_GOAL = ('The tests in this workspace fail. Fix calc.py so that "python -m unittest -q test_calc" '
+              'passes. Run the tests first to see the failures, then fix, then run them again. There is more '
+              'than one bug. Do not edit test_calc.py: it is the specification and its content is a hard check. '
+              'Report the failures you saw and what you changed.')
 EXPECTED = '391'
 TRANSCRIPT = ('action', 'tool', 'check', 'verification', 'done', 'result', 'error', 'blocked')
 
@@ -203,6 +230,51 @@ def phase_shell(cfg, root):
             pass
 
 
+def phase_debug(cfg, root, elapsed_budget=300):
+    """A real debug cycle: failing tests, a shell, and a gate the harness runs itself.
+
+    The workspace starts broken in two ways, so the model has to run the tests,
+    read the failures, fix one thing, run again, fix the rest, and run until the
+    suite is green. The gate is a command check the harness executes with the
+    sandbox backend, plus a file_text check pinning the test file so a rewritten
+    specification cannot pass.
+    """
+    m = TaskManager(root / 'tasks.db', root / 'workspaces')
+    ws = m.workspaces / 'nim'
+    ws.mkdir(parents=True, exist_ok=True)
+    (ws / 'calc.py').write_text(DEBUG_SOURCE, encoding='utf-8')
+    (ws / 'test_calc.py').write_text(DEBUG_TESTS, encoding='utf-8')
+    started = time.monotonic()
+    try:
+        tid = m.submit('nim', DEBUG_GOAL, [], task_call(cfg),
+                       checks=[{'type': 'command', 'command': 'python -m unittest -q test_calc',
+                                'expect_exit': 0, 'timeout': 60},
+                               {'type': 'file_text', 'path': 'test_calc.py', 'text': DEBUG_TESTS}],
+                       budgets={'steps': 12, 'elapsed': elapsed_budget})
+        row = wait_for(m, tid, timeout=elapsed_budget + 120)
+        elapsed = time.monotonic() - started
+        events = m.events(tid, 'nim')
+        for event in events:
+            kind = event.get('type')
+            if kind not in TRANSCRIPT:
+                continue
+            text = ' '.join(str(event.get('text', '')).split())
+            print('    %-12s %s' % (kind, text[:240]))
+        commands = [str(e.get('arg', ''))[:120] for e in events
+                    if e.get('type') == 'action' and 'run_command' in str(e.get('text', ''))]
+        fixed = (ws / 'calc.py').read_text(encoding='utf-8', errors='replace')
+        # The decisive check, run here rather than trusted from the task status:
+        # does the artifact actually pass the acceptance command now?
+        from agenticbot import sandbox
+        gate = sandbox.get_backend().run('python -m unittest -q test_calc', ws, 60, network=False)
+        return row, elapsed, fixed, commands, gate
+    finally:
+        try:
+            m.close()
+        except Exception:  # noqa: BLE001 - teardown must not hide the result
+            pass
+
+
 def main():
     cfg = config()
     print('NVIDIA NIM live check -> %s' % cfg[1])
@@ -263,6 +335,31 @@ def main():
             except Exception as exc:  # noqa: BLE001
                 print('  FAILED: %s: %s' % (type(exc).__name__, exc))
                 failures.append('shell task')
+
+        print('\nphase 4: real debug cycle - failing tests, fix, re-run until green')
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                row, elapsed, fixed, commands, gate = phase_debug(cfg, pathlib.Path(tmp))
+                state = row['state']
+                print('  status: %s in %.1fs (%d step(s))'
+                      % (row['status'], elapsed, state.get('steps', 0)))
+                print('  run_command calls: %d' % len(commands))
+                for command in commands:
+                    print('    $ %s' % command)
+                print('  final calc.py:')
+                for line in fixed.splitlines() or ['(missing)']:
+                    print('    | ' + line)
+                print('  acceptance command now: exit %s' % gate.exit_code)
+                if gate.render().strip():
+                    for line in gate.render().strip().splitlines()[-6:]:
+                        print('    > ' + line)
+                if row['status'] != 'completed':
+                    failures.append('debug cycle (%s)' % row['status'])
+                elif len(commands) < 2:
+                    print('  NOTE: completed with fewer than two test runs; the cycle was not exercised.')
+            except Exception as exc:  # noqa: BLE001
+                print('  FAILED: %s: %s' % (type(exc).__name__, exc))
+                failures.append('debug cycle')
 
     print()
     if failures:
