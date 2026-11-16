@@ -43,6 +43,22 @@ DEBUG_SOURCE = ('def average(values):\n'
                 '    for v in values:\n'
                 '        total += v\n'
                 '    return total / len(values) + 1\n')
+DEBUG_COMMAND = 'python -m unittest -q test_calc'
+# The correct module: the offset is gone and the empty list returns 0.
+DEBUG_FIXED = ('def average(values):\n'
+               '    if not values:\n'
+               '        return 0\n'
+               '    total = 0\n'
+               '    for v in values:\n'
+               '        total += v\n'
+               '    return total / len(values)\n')
+# A half fix: the offset is gone, but the empty list still divides by zero. The
+# harness's own command check must reject it, which is what proves the gate bites.
+DEBUG_HALF_FIXED = ('def average(values):\n'
+                    '    total = 0\n'
+                    '    for v in values:\n'
+                    '        total += v\n'
+                    '    return total / len(values)\n')
 DEBUG_TESTS = ('import unittest\n'
                'from calc import average\n'
                '\n'
@@ -230,7 +246,7 @@ def phase_shell(cfg, root):
             pass
 
 
-def phase_debug(cfg, root, elapsed_budget=300):
+def phase_debug(cfg, root, elapsed_budget=300, call_model=None):
     """A real debug cycle: failing tests, a shell, and a gate the harness runs itself.
 
     The workspace starts broken in two ways, so the model has to run the tests,
@@ -238,6 +254,9 @@ def phase_debug(cfg, root, elapsed_budget=300):
     suite is green. The gate is a command check the harness executes with the
     sandbox backend, plus a file_text check pinning the test file so a rewritten
     specification cannot pass.
+
+    ``call_model`` overrides the provider, which is how test_live_smoke.py drives
+    this end to end in CI without a key.
     """
     m = TaskManager(root / 'tasks.db', root / 'workspaces')
     ws = m.workspaces / 'nim'
@@ -246,8 +265,8 @@ def phase_debug(cfg, root, elapsed_budget=300):
     (ws / 'test_calc.py').write_text(DEBUG_TESTS, encoding='utf-8')
     started = time.monotonic()
     try:
-        tid = m.submit('nim', DEBUG_GOAL, [], task_call(cfg),
-                       checks=[{'type': 'command', 'command': 'python -m unittest -q test_calc',
+        tid = m.submit('nim', DEBUG_GOAL, [], call_model or task_call(cfg),
+                       checks=[{'type': 'command', 'command': DEBUG_COMMAND,
                                 'expect_exit': 0, 'timeout': 60},
                                {'type': 'file_text', 'path': 'test_calc.py', 'text': DEBUG_TESTS}],
                        budgets={'steps': 12, 'elapsed': elapsed_budget})
@@ -266,7 +285,7 @@ def phase_debug(cfg, root, elapsed_budget=300):
         # The decisive check, run here rather than trusted from the task status:
         # does the artifact actually pass the acceptance command now?
         from agenticbot import sandbox
-        gate = sandbox.get_backend().run('python -m unittest -q test_calc', ws, 60, network=False)
+        gate = sandbox.get_backend().run(DEBUG_COMMAND, ws, 60, network=False)
         return row, elapsed, fixed, commands, gate
     finally:
         try:
