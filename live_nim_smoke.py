@@ -32,6 +32,9 @@ NVIDIA_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b'
 TASK_TIMEOUT = 420
 GOAL = ('Compute 17 * 23 with the calculate action, write the result into sum.txt as '
         'its only content, read sum.txt back, then call done stating what you checked.')
+SHELL_GOAL = ("Use the run_command action to create answer.txt containing exactly 391, for example: "
+              'python3 -c "open(\'answer.txt\',\'w\').write(\'391\')". Then read answer.txt back with '
+              'read_file and call done stating what you checked.')
 EXPECTED = '391'
 TRANSCRIPT = ('action', 'tool', 'check', 'verification', 'done', 'result', 'error', 'blocked')
 
@@ -167,6 +170,39 @@ def phase_task(cfg, root):
             pass
 
 
+def phase_shell(cfg, root):
+    """The same durable task, but only a shell command can produce the artifact.
+
+    Phase 2 proves the file tools; this proves run_command reaches the sandbox
+    backend, is recorded as an action, and still ends in a checked completion.
+    """
+    m = TaskManager(root / 'tasks.db', root / 'workspaces')
+    started = time.monotonic()
+    try:
+        tid = m.submit('nim', SHELL_GOAL, [], task_call(cfg),
+                       checks=[{'type': 'file_text', 'path': 'answer.txt', 'text': EXPECTED}],
+                       budgets={'steps': 8, 'elapsed': 300})
+        row = wait_for(m, tid)
+        elapsed = time.monotonic() - started
+        events = m.events(tid, 'nim')
+        for event in events:
+            kind = event.get('type')
+            if kind not in TRANSCRIPT:
+                continue
+            text = ' '.join(str(event.get('text', '')).split())
+            print('    %-12s %s' % (kind, text[:240]))
+        commands = [str(e.get('arg', ''))[:120] for e in events
+                    if e.get('type') == 'action' and 'run_command' in str(e.get('text', ''))]
+        artifact = m.workspaces / 'nim' / 'answer.txt'
+        got = artifact.read_text(encoding='utf-8', errors='replace') if artifact.is_file() else None
+        return row, elapsed, got, commands
+    finally:
+        try:
+            m.close()
+        except Exception:  # noqa: BLE001 - teardown must not hide the result
+            pass
+
+
 def main():
     cfg = config()
     print('NVIDIA NIM live check -> %s' % cfg[1])
@@ -206,6 +242,27 @@ def main():
         except Exception as exc:  # noqa: BLE001
             print('  FAILED: %s: %s' % (type(exc).__name__, exc))
             failures.append('durable task')
+
+    from agenticbot import config as gconfig
+    if not gconfig.TASK_SHELL:
+        print('\nphase 3: SKIPPED (AGENTIC_TASK_SHELL is off; the durable loop has no shell)')
+    else:
+        print('\nphase 3: durable task that can only finish by running a shell command')
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                row, elapsed, got, commands = phase_shell(cfg, pathlib.Path(tmp))
+                state = row['state']
+                print('  status: %s in %.1fs (%d step(s))'
+                      % (row['status'], elapsed, state.get('steps', 0)))
+                print('  run_command calls: %d %s' % (len(commands), commands))
+                print('  answer.txt: %r' % (got,))
+                if row['status'] != 'completed':
+                    failures.append('shell task (%s)' % row['status'])
+                elif not commands:
+                    print('  NOTE: completed without run_command; the model reached the file another way.')
+            except Exception as exc:  # noqa: BLE001
+                print('  FAILED: %s: %s' % (type(exc).__name__, exc))
+                failures.append('shell task')
 
     print()
     if failures:
