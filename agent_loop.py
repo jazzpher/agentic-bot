@@ -42,7 +42,9 @@ is advisory, not independent proof. A readable file or matching generated input
 does not prove relevance, language, factual accuracy, style or all requirements.
 If essential details conflict or are missing, ask a specific question with
 need_input; otherwise use sensible stated assumptions and produce a reviewable
-draft. Never claim all requirements were verified by structural checks alone.
+draft. A value the goal names that a hard acceptance check expects differently is
+a conflict: say which value you used, or call need_input naming both. Never switch
+silently between them. Never claim all requirements were verified by structural checks alone.
 Include action, text, path, source_path, content and expression in every reply;
 use empty strings for unused fields. Never omit a required tool argument.
 Choices:

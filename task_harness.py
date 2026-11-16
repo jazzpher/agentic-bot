@@ -17,10 +17,13 @@ import hashlib
 import inspect
 from urllib.parse import urlparse
 
+from agenticbot.env import env_get
+
 from agent_loop import RULES, ACTION_FIELDS, Workspace, ToolError, is_upload_path, parse_action, INVALID_HELP, MAX_INVALID, build_docx, extract_text
 
 MAX_SCHEMA_REJECTS = 3
 MAX_SELF_VERIFY = 1  # one autonomous self-verification round before done is accepted
+MAX_DONE_REPEATS = 2  # identical rejected completion claims, with nothing to show for them
 CHECK_TYPES = ('file_text', 'exact_copy', 'pixel_diff', 'command')
 CHECK_COMMAND_TIMEOUT = (5, 120)      # seconds, min/max for command checks
 CHECK_NOTE_MAX = 300
@@ -30,6 +33,73 @@ RESUMABLE = ('stopped', 'interrupted', 'needs_input', 'blocked')
 MAX_RETRIES = 3
 RETRY_DELAY = 1.0
 DEFAULT_BUDGETS = {'steps': 12, 'elapsed': 300, 'output': 128000, 'context': 24000}
+
+
+def _ceiling(name, default, highest=86400):
+    try:
+        return max(1, min(int(env_get(name, '') or default), highest))
+    except ValueError:
+        return default
+
+
+def _fingerprint(workspace):
+    """Tree fingerprint for the repeat guard; None when it cannot be measured.
+
+    Imported lazily so this module stays importable on hosts that load it without
+    the agent loop. Ignored directories and __pycache__ are skipped, so running the
+    tests in the workspace does not look like the model changing something.
+    """
+    try:
+        from agenticbot.loopguard import workspace_fingerprint
+        return workspace_fingerprint(workspace.root)
+    except Exception:  # noqa: BLE001 - a guard that cannot measure must not fail the task
+        return None
+
+
+# Clients may only lower a budget, except that an operator can raise the elapsed
+# ceiling: a real debug cycle (run tests, read the failures, fix, run again) does
+# not fit in the 300 s default, and a task that runs out of time before the model
+# can say done used to lose work it had already finished.
+BUDGET_CEILINGS = dict(DEFAULT_BUDGETS, elapsed=_ceiling('AGENTIC_TASK_MAX_ELAPSED', DEFAULT_BUDGETS['elapsed']))
+
+# Quoted literals and ALL-CAPS words: the shapes a user writes when naming a value.
+GOAL_LITERAL = re.compile(r'"([^"\n]{1,40})"|\'([^\'\n]{1,40})\'|`([^`\n]{1,40})`|\b([A-Z][A-Z0-9_-]{1,39})\b')
+
+
+def goal_literals(goal):
+    """Short values a goal names: quoted text or ALL-CAPS words, in order, unique."""
+    found = []
+    for match in GOAL_LITERAL.finditer(goal or ''):
+        value = next((g for g in match.groups() if g), '')
+        if value and value not in found:
+            found.append(value)
+    return found
+
+
+def contract_conflicts(goal, checks):
+    """Goal values that a deterministic check expects differently.
+
+    Deliberately narrow, and never a rejection: it compares short file_text
+    expectations against quoted or ALL-CAPS values named in the goal. The check
+    still owns the artifact — the harness must not overrule either side — but a
+    silent switch between two different values is exactly what this surfaces, so
+    the model is asked to say what it did and the result repeats the discrepancy.
+    """
+    literals = goal_literals(goal)
+    if not literals:
+        return []
+    notes = []
+    for check in checks or []:
+        if check.get('type') != 'file_text':
+            continue
+        expected, path = check.get('text'), check.get('path') or ''
+        if not isinstance(expected, str) or not 0 < len(expected) <= 40 or expected in (goal or ''):
+            continue
+        clashes = [v for v in literals if v != expected and v not in expected and v not in path]
+        if clashes:
+            notes.append('the goal names %s but the %s check expects %s'
+                         % (', '.join(clashes[:3]), path, expected))
+    return notes
 
 
 def is_transient(exc):
@@ -311,7 +381,7 @@ class TaskManager:
                 raise ValueError('Unknown budget.')
             limits.update(budgets)
         for key, value in limits.items():
-            if type(value) not in (int, float) or not 0 < value <= DEFAULT_BUDGETS[key]:
+            if type(value) not in (int, float) or not 0 < value <= BUDGET_CEILINGS[key]:
                 raise ValueError('Budgets must be positive and cannot exceed server limits.')
         if type(limits['steps']) is not int or type(limits['context']) is not int or limits['context'] < 4000:
             raise ValueError('Steps/context must be integers; context minimum is 4000 characters.')
@@ -326,7 +396,8 @@ class TaskManager:
         state = {'steps': 0, 'attempts': 0, 'requirements': requirements, 'messages': [{'role': 'system', 'content': context_rules + '\n' + workspace.skills.index_context(goal) + project + '\n' + RULES},
                   *past, {'role': 'user', 'content': goal}], 'written': [], 'checked': [],
                  'pending': None, 'budgets': limits, 'elapsed': 0, 'output': 0, 'retry_streak': 0, 'usage': None,
-                 'failure_signature': None, 'failure_count': 0, 'result_schema': result_schema}
+                 'failure_signature': None, 'failure_count': 0, 'result_schema': result_schema,
+                 'contract_conflicts': contract_conflicts(goal, checks)}
         now = time.time()
         with self.lock, self.db:
             if self.closed or self.closing or self.busy(owner) or sum(t.is_alive() for t in self.threads.values()) >= 4:
@@ -337,6 +408,12 @@ class TaskManager:
                 self.db.execute('INSERT INTO events(task,payload) VALUES(?,?)',
                                 (tid, json.dumps({'type': 'context', 'text': 'Loaded project instructions from ' + project_name
                                                   + '; they cannot grant new permissions.'})))
+            if state['contract_conflicts']:
+                self.db.execute('INSERT INTO events(task,payload) VALUES(?,?)',
+                                (tid, json.dumps({'type': 'context', 'text': 'Possible conflict between the goal and the '
+                                                  'acceptance checks: ' + ' '.join(state['contract_conflicts'])
+                                                  + '. The check still owns the artifact; the task assistant must say '
+                                                    'which value it used instead of silently choosing one.'})))
             self._start(tid, owner, call_model)
         return tid
 
@@ -531,8 +608,12 @@ class TaskManager:
                 missing.append(field)
         return missing
 
-    def _verify(self, row, state, workspace, gate=False):
-        if workspace.written - workspace.checked:
+    def _verify(self, row, state, workspace, gate=False, final=False):
+        # final=True is the budget boundary: nobody can ask the model to read its own
+        # output back any more, so the owner's artifact checks decide on their own.
+        # Without it a finished artifact was discarded just because it was never
+        # read back before the clock ran out.
+        if not final and workspace.written - workspace.checked:
             return 'check', 'Read these written files first: ' + ', '.join(sorted(workspace.written - workspace.checked))
         if not row['checks']:
             # Preview screenshots are verification aids, not user artifacts.
@@ -607,10 +688,15 @@ class TaskManager:
             if p.read_bytes() != expected:
                 return 'check', 'Artifact verification failed: ' + c['path']
         detail = (' ' + ' '.join(passed)) if passed else ''
+        # Repeat a detected goal/check discrepancy on the result, so a silent switch
+        # by the model is still visible to the person reading the task.
+        conflict = ((' Noted conflict: ' + ' '.join(state.get('contract_conflicts') or [])
+                     + ' The artifact matches the check; review whether that is what you asked for.')
+                    if state.get('contract_conflicts') else '')
         return 'completed', ('Explicit artifact checks passed: ' + json.dumps(row['checks'], ensure_ascii=False)
                              + '.' + detail
                              + ' Only these checks were verified; language, style, relevance and factual '
-                             'quality are not independently verified.')
+                             'quality are not independently verified.' + conflict)
 
     def _run(self, tid, owner, call_model):
         row = self.get(tid, owner)
@@ -625,6 +711,28 @@ class TaskManager:
             state['elapsed'] = elapsed_before + time.monotonic() - started
             return (state['elapsed'] >= state['budgets']['elapsed']
                     or state['output'] >= state['budgets']['output'])
+        def finish_at_budget(reason):
+            """Run the acceptance checks once more before giving up on a budget.
+
+            A task can finish its work and run out of time in the same step: the
+            last command may have turned the tests green while the loop stopped
+            before the model could claim done. Re-verifying turns a wasted budget
+            into a checked result. Only an explicit, owner-written check may
+            complete here -- never a model claim, never an unverified summary, and
+            never after a Stop.
+            """
+            if row['checks'] and workspace is not None and not self.stops[tid].is_set():
+                try:
+                    status, text = self._verify(row, state, workspace, final=True)
+                except Exception:  # noqa: BLE001 - a check that cannot run must not mask the budget stop
+                    status, text = 'check', 'Acceptance checks could not run at the budget boundary.'
+                if status == 'completed':
+                    state['elapsed'] = elapsed_before + time.monotonic() - started
+                    self.save(tid, 'completed', state,
+                              {'type': 'verification', 'text': text, 'step': state['steps']},
+                              [{'type': 'result', 'text': text, 'step': state['steps']}])
+                    return
+            finish('budget_exhausted', reason)
         workspace = None
         try:
             workspace = Workspace(self.workspaces / owner)
@@ -641,7 +749,7 @@ class TaskManager:
                 if self.stops[tid].is_set():
                     finish('stopped', 'Stopped by you.'); return
                 if over_budget():
-                    finish('budget_exhausted', 'Elapsed/output budget exhausted.'); return
+                    finish_at_budget('Elapsed/output budget exhausted; the acceptance checks were re-run first.'); return
                 context = self._context(tid, state, row['goal'], row['checks'])
                 if context is None:
                     finish('budget_exhausted', 'Original goal and rules exceed context budget.'); return
@@ -668,7 +776,8 @@ class TaskManager:
                         return
                     state['output'] += raw_size
                     if over_budget():
-                        finish('budget_exhausted', 'Elapsed/output budget exhausted before action.'); return
+                        finish_at_budget('Elapsed/output budget exhausted before the action ran; '
+                                         'the acceptance checks were re-run first.'); return
                     a = parse_action(raw)
                     state['retry_streak'] = 0
                 except OutputBudgetExceeded:
@@ -721,6 +830,21 @@ class TaskManager:
                         # only check-backed completions get a result event.
                         result_events = [{'type': 'result', 'text': text, 'step': state['steps']}] if status == 'completed' else []
                         self.save(tid, final, state, {'type': 'verification', 'text': text, 'step': state['steps']}, result_events)
+                        return
+                    # A rejected completion claim is not progress. Count identical
+                    # repeats so a model that resends the same claim instead of
+                    # changing anything is stopped with a reason, instead of
+                    # burning the whole step budget on one sentence.
+                    if state.get('done_reject_text') == text and state.get('done_reject_fingerprint') == _fingerprint(workspace):
+                        state['done_rejects'] = state.get('done_rejects', 0) + 1
+                    else:
+                        state['done_rejects'], state['done_reject_text'] = 1, text
+                        state['done_reject_fingerprint'] = _fingerprint(workspace)
+                    if state['done_rejects'] > MAX_DONE_REPEATS:
+                        finish('blocked', 'The same completion claim was rejected %d times and nothing in the '
+                                          'workspace changed between attempts, so it is not accepted. The gate said: '
+                                          '%s Fix the artifact or the checks, or report the blocker with need_input, '
+                                          'then press Resume.' % (state['done_rejects'], text[:400]))
                         return
                     state['messages'].append({'role': 'user', 'content': text})
                     self.save(tid, 'running', state, {'type': 'check', 'text': text}); continue
@@ -789,6 +913,8 @@ class TaskManager:
                     state['failure_signature'] = signature
                 else:
                     state['failure_signature'], state['failure_count'] = None, 0
+                    # Real progress: the previous rejected completion claim is no longer a stall.
+                    state['done_rejects'], state['done_reject_text'] = 0, None
                 state['pending'] = None
                 state['output'] += output_size
                 state['written'] = sorted(workspace.written)
@@ -802,7 +928,7 @@ class TaskManager:
                     extra = [{'type': 'file', 'text': n} for n in workspace.shots[emitted:]]
                     state['shots_emitted'] = len(workspace.shots)
                 self.save(tid, 'running', state, {'type': 'tool', 'text': output[:4000], 'step': state['steps']}, extra)
-            finish('budget_exhausted', 'Step budget exhausted; not complete.')
+            finish_at_budget('Step budget exhausted; not complete.')
         except ToolError as exc:
             finish('blocked', str(exc))
         except Exception:
@@ -813,12 +939,18 @@ class TaskManager:
 
     def _context(self, tid, state, goal, checks=None):
         """Deterministic view compaction; immutable full evidence remains in SQLite."""
+        conflict = (('\nPossible conflict between the goal and the acceptance checks: '
+                     + ' '.join(state['contract_conflicts'])
+                     + '. If they are the same thing said differently, say which value you used. If they truly '
+                       'disagree, call need_input naming both values. Never silently pick one.')
+                    if state.get('contract_conflicts') else '')
         contract = {'role': 'user', 'content': 'Original user instruction: ' + goal
                     + '\nGeneration requirements/preferences (not deterministic proof): '
                     + state.get('requirements', '')
                     + '\nUser clarifications: ' + state.get('clarification', '')
                     + '\nHard acceptance checks (enforced by harness): '
                     + json.dumps(checks or [], ensure_ascii=False)
+                    + conflict
                     + (('\nRequired result fields: when the goal is complete, call done with a "result" object containing nonempty text values under these exact field names (use empty text values on other actions): '
                         + json.dumps(state['result_schema'], ensure_ascii=False)) if state.get('result_schema') else '')}
         messages = [state['messages'][0], contract, *state['messages'][1:]]

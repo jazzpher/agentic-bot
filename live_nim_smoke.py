@@ -25,7 +25,7 @@ import requests
 
 from agent_loop import ACTION_SCHEMA
 from agenticbot import providers
-from task_harness import TaskManager
+from task_harness import BUDGET_CEILINGS, TaskManager
 
 NVIDIA_URL = 'https://integrate.api.nvidia.com/v1/chat/completions'
 NVIDIA_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b'
@@ -358,7 +358,14 @@ def main():
         print('\nphase 4: real debug cycle - failing tests, fix, re-run until green')
         with tempfile.TemporaryDirectory() as tmp:
             try:
-                row, elapsed, fixed, commands, gate = phase_debug(cfg, pathlib.Path(tmp))
+                # A debug cycle needs room: the 300 s default cut a run that had
+                # already fixed both bugs. The operator raises the ceiling with
+                # AGENTIC_TASK_MAX_ELAPSED; never ask for more than it allows.
+                budget = min(600, BUDGET_CEILINGS['elapsed'])
+                print('  elapsed budget: %ss (ceiling %ss; raise it with AGENTIC_TASK_MAX_ELAPSED)'
+                      % (budget, BUDGET_CEILINGS['elapsed']))
+                row, elapsed, fixed, commands, gate = phase_debug(cfg, pathlib.Path(tmp),
+                                                                 elapsed_budget=budget)
                 state = row['state']
                 print('  status: %s in %.1fs (%d step(s))'
                       % (row['status'], elapsed, state.get('steps', 0)))

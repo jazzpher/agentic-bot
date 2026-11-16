@@ -379,7 +379,11 @@ class HarnessTests(unittest.TestCase):
         m=self.manager()
         tid=m.submit('alice','Write hello',[],lambda _: action('done',text='already done'),
                      checks=[{'type':'file_text','path':'out.txt','text':'hello'}], budgets={'steps':3})
-        self.assertEqual(self.wait(m,tid)['status'],'budget_exhausted')
+        # Three identical rejected claims with no artifact: a stall, not progress.
+        row=self.wait(m,tid)
+        self.assertEqual(row['status'],'blocked')
+        self.assertIn('rejected 3 times',
+                      [e['text'] for e in m.events(tid,'alice') if e['type']=='blocked'][-1])
 
     def test_failure_fingerprint_ignores_unused_fields(self):
         m=self.manager(); calls=[]

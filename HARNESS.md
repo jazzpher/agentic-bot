@@ -62,6 +62,23 @@ clears the read-back set, so an earlier `read_file` no longer counts as verifica
 and the completion gate asks for a fresh read. Command output is untrusted data and
 consumes the output budget like any other tool result.
 
+## Budgets and the elapsed ceiling
+
+`steps` 12, `elapsed` 300 s, `output` 128 000 bytes and `context` 24 000 characters are
+the defaults, and a client may only lower them. An operator can raise the **elapsed**
+ceiling with `AGENTIC_TASK_MAX_ELAPSED` (seconds): a real debug cycle — run the tests,
+read the failures, fix, run again — does not fit in 300 s, and a run that hit the cap
+with the work already finished used to be discarded. When a budget is exhausted, the
+owner's acceptance checks are re-run once before the task is called `budget_exhausted`,
+and a task completes only if they pass; a model's claim never completes at that
+boundary, and the read-back prompt is skipped there because nobody can act on it. If
+those checks pass, the task is `completed` with a `result` event, not a loss.
+
+A `done` whose checks fail is not progress: the same claim, with an unchanged
+workspace, is refused up to twice and the third is `blocked` with the gate's reason, so
+a model cannot burn the step budget by resending one sentence. Any real tool result
+resets that count.
+
 This is bounded execution, not a security boundary beyond the backend: with the
 subprocess backend the command runs as the host's own user, so use the container (or
 `AGENTIC_SANDBOX_BACKEND=docker`) for untrusted work. Owner-supplied `command`
