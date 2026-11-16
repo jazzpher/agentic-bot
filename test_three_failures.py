@@ -54,6 +54,42 @@ class Base(unittest.TestCase):
         return path
 
 
+class ProviderFailureRerunTests(Base):
+    """A provider that dies after the work is done must not throw the result away."""
+
+    def run_with(self, content, checks):
+        import requests
+        m = self.manager()
+        self.ws()
+        calls = []
+
+        def provider(messages, max_output_bytes=4000):
+            calls.append(1)
+            if len(calls) == 1:
+                return action('write_file', path='answer.txt', content=content)
+            raise requests.ConnectionError('provider went away')
+
+        with mock.patch('task_harness.RETRY_DELAY', 0):
+            tid = m.submit('alice', 'Write 391 to answer.txt', [], provider, checks=checks,
+                           budgets={'steps': 10, 'elapsed': 60})
+            return m, tid, self.wait(m, tid)
+
+    def test_a_passing_check_completes_when_the_provider_fails(self):
+        m, tid, row = self.run_with('391', [{'type': 'file_text', 'path': 'answer.txt', 'text': '391'}])
+        self.assertEqual(row['status'], 'completed', [e['text'] for e in m.events(tid, 'alice')][-3:])
+        self.assertTrue(any(e['type'] == 'result' and 'Explicit artifact checks passed' in e['text']
+                            for e in m.events(tid, 'alice')))
+
+    def test_a_failing_check_still_pauses_on_a_provider_failure(self):
+        m, tid, row = self.run_with('390', [{'type': 'file_text', 'path': 'answer.txt', 'text': '391'}])
+        self.assertEqual(row['status'], 'blocked')
+        self.assertIn('Press Resume', [e['text'] for e in m.events(tid, 'alice')][-1])
+
+    def test_no_checks_still_pauses_on_a_provider_failure(self):
+        m, tid, row = self.run_with('391', [])
+        self.assertEqual(row['status'], 'blocked')
+
+
 class BudgetRerunTests(Base):
     def test_a_correct_fix_is_completed_not_lost_at_the_time_cap(self):
         # The model writes the right file and reads it back, then the budget runs out
