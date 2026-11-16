@@ -5,6 +5,7 @@ appends results, compacts context when needed and stops on completion, user
 stop, step budget or unrecoverable provider error. It emits plain dict events
 so the web UI, the durable worker and the CLI can all render the same stream.
 """
+import copy
 import concurrent.futures
 import dataclasses
 import datetime
@@ -492,9 +493,11 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
              *, max_steps=None, context_tokens=None, tool_mode=None, model_label='', system_extra='',
              summarizer: Optional[Callable[[List[dict]], str]] = None, previous_summary='', stream_fn=None,
              requirements=None, completion_verifier=None, completion_resume=False, verify_request=False,
-             grader_fn=None) -> TurnResult:
+             grader_fn=None, checkpoint=None) -> TurnResult:
     """Run one user turn to completion. ``messages`` is the conversation without the system prompt
-    and already includes the newest user message. Returns the updated conversation."""
+    and already includes the newest user message. Returns the updated conversation.
+    ``checkpoint(messages, summary)``, when given, synchronously persists a detached, valid copy of the
+    history mid-turn. A failing checkpoint raises before more tools run. Pending tools are never replayed."""
     max_steps = max_steps or config.MAX_STEPS
     context_tokens = context_tokens or config.DEFAULT_CONTEXT_TOKENS
     tool_mode = tool_mode or config.TOOL_MODE
@@ -562,7 +565,14 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
             last_error['text'] = str(event.get('text') or '')
         emit(event)
 
+    def save_checkpoint(history=None):
+        if checkpoint is not None:
+            saved = copy.deepcopy(convo if history is None else history)
+            scrub_preview_images(saved)
+            checkpoint(saved, summary)
+
     try:
+        save_checkpoint()
         while True:
             if ctx.stop.is_set():
                 status = 'stopped'
@@ -578,6 +588,7 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                 before = compaction.estimate_tokens(request_messages)
                 convo, summary, method = compaction.compact(convo, summarizer, previous_summary=summary)
                 request_messages = [{'role': 'system', 'content': system}, *convo]
+                save_checkpoint()
                 send({'type': 'compaction', 'before_tokens': before, 'after_tokens': compaction.estimate_tokens(request_messages), 'method': method})
             tools = None if json_mode else registry.openai_tools(ctx)
             text_parts, calls, finish = [], [], None
@@ -767,6 +778,22 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
             # a call it blocks never reaches the budget guard, so it is not counted as run.
             early = progress.check_batch(calls, registry) if progress else [None] * len(calls)
             denials = [block or guard.reserve(call, registry) for block, call in zip(early, calls)]
+            # Persist intent BEFORE tools can have side effects. Each call is paired with an explicit
+            # "outcome unknown" result so recovered native history stays valid. This is not an
+            # execution queue: after a restart the model must reconcile state, never replay.
+            if checkpoint is not None:
+                pending = list(convo)
+                for call in calls:
+                    body = ('HARNESS: interrupted tool batch; outcome unknown for ' + call['name']
+                            + '. The process stopped while this batch ran: the call may not have run, may have '
+                            'failed, or may have succeeded. Do not repeat a side effect blindly. Reconcile the '
+                            'actual state with read-only tools, and ask the user if it cannot be established.')
+                    if json_mode:
+                        pending.append({'role': 'user', 'content': body})
+                    else:
+                        pending.append({'role': 'tool', 'tool_call_id': call['id'],
+                                        'name': call['name'], 'content': body})
+                save_checkpoint(pending)
             results = _execute_calls(registry, ctx, calls, send, denials=denials)
             tool_count += len(results)
             notes = progress.observe(calls, results, denials) if progress else [''] * len(calls)
@@ -790,6 +817,7 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                     convo.append({'role': 'user', '_preview_image': True, 'content': [
                         {'type': 'text', 'text': _screenshot_note(call['name'])},
                         {'type': 'image_url', 'image_url': {'url': img['data_url'], 'detail': 'auto'}}]})
+            save_checkpoint()
             if ctx.stop.is_set():
                 status = 'stopped'
                 break
@@ -828,6 +856,7 @@ def run_turn(messages: List[dict], registry: ToolRegistry, ctx: ToolContext, cfg
                 send({'type': 'skill_saved', 'name': saved['name'], 'revision': saved['revision']})
             except (ValueError, OSError) as exc:
                 send({'type': 'status', 'text': 'Skill was not saved: ' + str(exc)})
+    save_checkpoint()
     result = TurnResult(status, final_text, convo, steps, tool_count, usage_total, summary)
     try:
         from agenticbot import plugins
