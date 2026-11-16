@@ -1,5 +1,4 @@
 {
-  "README.md": "46b4f97c930a90e886fc2f6938e4878ecf07c0699a86af9b72122f434300e940",
   "groq/groq-browser-gptoss20b-fix5-summary.json": "a067b149789f10831f16207689c8c7a2dcc8812d605b043e4ef18f57a3bfe5a9",
   "groq/groq-browser-gptoss20b-fix5.jsonl": "4b7287d13a4889969cdd91d11871db18e95f083b181b7cdf51d6b5e203d72e2d",
   "groq/groq-browser-gptoss20b-fix5.out": "464f41f12a306283bf09f189e235075450f0e39d38379c94cd170fb1ced56918",
@@ -16,9 +15,6 @@
   "nvidia/events.jsonl": "61bb652ce5ddce7abb924c93df619f6a79fda880d941c8ee1e075a92fe1f54d5",
   "nvidia/requirements.txt": "5c7bdf8352991008a6d02cd707128aab1d0623968f69dae0ea95cb20b214ef4a",
   "nvidia/runner.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "nvidia/snapshot-build.tar.gz": "033372423db17bfd61e39738de7d06a24d7209a48ec03c9c0c249510a12c05b4",
-  "nvidia/snapshot-evolve.tar.gz": "186f3ab3c0e0a78554429fbe8b5de70b1365401a23d10253312549838e13a24d",
-  "nvidia/snapshot-resume.tar.gz": "531f7b64838b179df26f06fe8a393384c75f4b14d101cd780abf0a333f161c40",
   "nvidia/summary.json": "f306e79346ac6b454d019176710ea465d84fde18490b7985ac19f0ab1c314f08",
   "nvidia/taskforge/README.md": "97d7aaf0489fffe54e946a5cbc74fa1400ed17d24a975f9d67053fcfa18341ed",
   "nvidia/taskforge/docs/API.md": "9b39c40541c55053307e0f54662bda3322b0c01d82ab950d8d1b07341d85456e",

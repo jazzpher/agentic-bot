@@ -12,7 +12,7 @@ The original November 6 task/harness was lost. This is explicitly a RECONSTRUCTE
 The acceptance callback supplies independent checks to the completion gate. This validates the gate with an external verifier, not an autonomous oracle able to infer all requirements without one.
 
 ## Contents and reproduction
-nvidia/requirements.txt contains exact reconstructed prompts; summary.json has phase outcomes; events.jsonl has redacted/truncated event records; conversation files and per-phase compressed code snapshots are retained. Final generated source is in nvidia/taskforge/.
+nvidia/requirements.txt contains exact reconstructed prompts; summary.json has phase outcomes; events.jsonl has redacted/truncated event records; conversation files are retained. Final generated source is in nvidia/taskforge/. The per-phase compressed code snapshots (snapshot-build/evolve/resume.tar.gz) are NOT stored in this tree: the web app publisher refuses .gz files, and they are reproducible output of harness/nim_taskforge.py (see its snapshot step), so .gitignore excludes them. SHA256SUMS.json therefore lists the artifacts still present, minus this README, which was edited after the run.
 harness/nim_acceptance.py ROOT evolve reruns independent checks. From nvidia/taskforge, python -m unittest discover runs generated tests.
 The live harnesses use absolute Codespace paths and require adaptation of workspace paths and an independently provisioned API key. Keys are NOT included. No paid provider access was purchased.
 Groq fix5 artifacts record browser open, text-only fallback after image rejection, takeover/Done and recovery through five rate-limit waits. This is a bounded integration test, not long-horizon Groq evidence.
