@@ -294,13 +294,17 @@ class HarnessTests(unittest.TestCase):
 
     def test_budgets_and_compaction_retain_original_evidence(self):
         m = self.manager()
+        # The fixed head is the rules plus the goal contract, so the budget is derived
+        # from the rules: a longer prompt must not silently turn this into a no-op.
+        from agent_loop import RULES
+        context_budget = len(json.dumps([{'role': 'user', 'content': RULES}])) + 3000
         tid = m.submit('alice', 'Wait', [], lambda _: action('plan', text='x'*2000),
-                       budgets={'steps': 4, 'context': 6000})
+                       budgets={'steps': 4, 'context': context_budget})
         row = self.wait(m, tid)
         self.assertEqual(row['status'], 'budget_exhausted')
         self.assertEqual(row['state']['steps'], 4)
         self.assertTrue(any(e['type'] == 'compaction' for e in m.events(tid, 'alice')))
-        self.assertGreater(len(json.dumps(row['state']['messages'])), 6000)
+        self.assertGreater(len(json.dumps(row['state']['messages'])), context_budget)
         tid = m.submit('bob', 'Wait', [], lambda _: 'x'*10000, budgets={'output': 1000})
         row = self.wait(m, tid, 'bob')
         self.assertEqual(row['status'], 'budget_exhausted')
@@ -375,7 +379,11 @@ class HarnessTests(unittest.TestCase):
         m=self.manager()
         tid=m.submit('alice','Write hello',[],lambda _: action('done',text='already done'),
                      checks=[{'type':'file_text','path':'out.txt','text':'hello'}], budgets={'steps':3})
-        self.assertEqual(self.wait(m,tid)['status'],'budget_exhausted')
+        # Three identical rejected claims with no artifact: a stall, not progress.
+        row=self.wait(m,tid)
+        self.assertEqual(row['status'],'blocked')
+        self.assertIn('rejected 3 times',
+                      [e['text'] for e in m.events(tid,'alice') if e['type']=='blocked'][-1])
 
     def test_failure_fingerprint_ignores_unused_fields(self):
         m=self.manager(); calls=[]

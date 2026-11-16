@@ -48,6 +48,52 @@ Existing artifacts may satisfy a check without a new write. Checks verify presen
 content, not authorship, quality, correctness of arbitrary calculations, or an
 immutable historical source. Download and independently review important results.
 
+## Shell (opt-in)
+
+`{"action":"run_command","command":"python -m pytest -q"}` runs a shell command with
+cwd = the session workspace and the network **off**, through the configured sandbox
+backend (subprocess or docker) — never a shell the model controls. It is **off by
+default** (`AGENTIC_TASK_SHELL=on`), because the durable loop has no approval prompt,
+so the model cannot grant it to itself; that is the same rule as
+`AGENTIC_BROWSER_INTERACT`. Always-refused commands are rejected before anything
+starts. The timeout is `AGENTIC_COMMAND_TIMEOUT` (default 120s), clamped further to
+the task's remaining elapsed budget. Stop kills the process group. A command that ran
+clears the read-back set, so an earlier `read_file` no longer counts as verification
+and the completion gate asks for a fresh read. Command output is untrusted data and
+consumes the output budget like any other tool result.
+
+## Budgets and the elapsed ceiling
+
+`steps` 12, `elapsed` 300 s, `output` 128 000 bytes and `context` 24 000 characters are
+the defaults, and a client may only lower them. An operator can raise the **elapsed**
+ceiling with `AGENTIC_TASK_MAX_ELAPSED` (seconds): a real debug cycle — run the tests,
+read the failures, fix, run again — does not fit in 300 s, and a run that hit the cap
+with the work already finished used to be discarded. When a budget is exhausted, the
+owner's acceptance checks are re-run once before the task is called `budget_exhausted`,
+and a task completes only if they pass; a model's claim never completes at that
+boundary, and the read-back prompt is skipped there because nobody can act on it. If
+those checks pass, the task is `completed` with a `result` event, not a loss.
+
+A `done` whose checks fail is not progress: the same claim, with an unchanged
+workspace, is refused up to twice and the third is `blocked` with the gate's reason, so
+a model cannot burn the step budget by resending one sentence. Any real tool result
+resets that count.
+
+When a goal names a value (quoted text or an ALL-CAPS word) that a check expects
+differently, the disagreement is recorded as a context event, repeated in front of the
+model on every step with "never silently pick one", and repeated again on the result.
+It covers a `file_text` expectation and a command check's `expect_output`; both sides
+must be word-shaped, so a goal that mentions API or JSON does not clash with a check
+that expects a document. It never rejects the artifact — the check still owns that —
+because the harness must not overrule either side. What it refuses to allow is a silent
+switch, where the model quietly picks one value and reports success.
+
+This is bounded execution, not a security boundary beyond the backend: with the
+subprocess backend the command runs as the host's own user, so use the container (or
+`AGENTIC_SANDBOX_BACKEND=docker`) for untrusted work. Owner-supplied `command`
+acceptance checks are separate and always run, with or without this flag, because the
+owner wrote them and the model did not.
+
 ## API
 
 - `POST /task` JSON: `message`, optional `requirements` text (8 KB), optional `checks`, optional lower `budgets`, optional `result_schema` (list of at most 16 required result field names; the task cannot complete until the final `done` action carries a `result` object with every field, with nonempty text values; strict providers receive the exact requested field names, other provider responses are matched case- and punctuation-insensitively; names must contain an ASCII letter or digit; schema-rejected completions are refunded, not counted as steps, up to 3 retries); 202
@@ -153,7 +199,14 @@ from PR #3 remain. The password is single-owner access, not multi-user accounts.
 ```sh
 python -m unittest discover -v
 python -m py_compile bot.py agent_loop.py webui.py task_harness.py
+python benchmark.py        # task reliability and Stop latency, scripted provider
+python bench_harness.py    # harness overhead: checkpoints, events, compaction, file tools
 ```
+
+`bench_harness.py` exits non-zero when a measured value crosses its ceiling, so a
+harness regression fails the Benchmark workflow instead of hiding inside model
+latency. Ceilings are loose on purpose (an order of magnitude, not 20%); read a
+run against another run on the same runner, not as an absolute guarantee.
 
 Tests exercise real SQLite reopen/thread workers; HTTP server disconnect and
 restart with same cookie; subprocess kill/restart against a dummy local HTTP

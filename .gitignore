@@ -11,3 +11,9 @@ build/
 .coverage
 .coverage.*
 htmlcov/
+
+
+# Acceptance snapshots are compressed blobs, and the web app publisher refuses
+# .gz files: regenerate them with acceptance/*/harness/nim_taskforge.py instead
+# of keeping them in the tree.
+acceptance/**/*.tar.gz

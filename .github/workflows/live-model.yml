@@ -1,0 +1,44 @@
+name: Live model
+# One real-model end-to-end check, kept out of the correctness suite: it costs
+# provider quota and needs a key, so it runs only when NVIDIA_API_KEY exists as a
+# repository secret. Without the secret the job stays green and says how to add it.
+on:
+  workflow_dispatch:
+  # Not every push: a live model call costs quota. Run it when the pieces it tests change.
+  push:
+    paths:
+      - live_nim_smoke.py
+      - .github/workflows/live-model.yml
+      - agenticbot/providers.py
+      - agent_loop.py
+      - task_harness.py
+      - requirements.txt
+jobs:
+  nvidia-nim:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    env:
+      # Accept the key from either name, and from an Actions variable as well as a
+      # secret: a key pasted into the Variables tab is a common mistake, and this
+      # keeps the check useful instead of silently skipping.
+      NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY || secrets.AGENTIC_API_KEY || vars.NVIDIA_API_KEY }}
+      # Phase 3 only runs when the durable loop may use the shell.
+      AGENTIC_TASK_SHELL: 'on'
+      # Phase 4 is a real debug cycle (run tests, fix, run again): 159-329 s live, so
+      # the 300 s default would cut it. This is the operator raising the ceiling.
+      AGENTIC_TASK_MAX_ELAPSED: '600'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python -m py_compile live_nim_smoke.py
+      - name: live NVIDIA NIM end-to-end
+        if: env.NVIDIA_API_KEY != ''
+        run: python live_nim_smoke.py
+      - name: no key secret yet, skipped
+        if: env.NVIDIA_API_KEY == ''
+        run: |
+          echo "::notice::No key found. Add NVIDIA_API_KEY under Settings -> Secrets and variables -> Actions -> Secrets (a Repository secret, not a Variable and not an Environment secret)."
+          python live_nim_smoke.py || test $? -eq 2
