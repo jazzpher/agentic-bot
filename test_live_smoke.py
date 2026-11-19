@@ -20,13 +20,17 @@ from agenticbot import config
 
 
 # The commands in live_nim_smoke.py say plain "python", which is what the live
-# model is told to run. A runner with only python3 on PATH would fail these
-# offline tests for that reason alone, so they run the same commands with the
-# interpreter running the tests.
+# model is told to run. A host with only python3 on PATH would fail these
+# offline tests for that reason alone, so when commands run on this host they
+# use the interpreter running the tests. The docker backend brings its own
+# python, and the host's path does not exist inside it, so it is left alone.
 PYTHON = '"%s"' % sys.executable if ' ' in sys.executable else sys.executable
 
 
 def use_this_python(test, smoke, *names):
+    from agenticbot import sandbox
+    if sandbox.get_backend().name != 'subprocess':
+        return
     for name in names:
         command = getattr(smoke, name)
         assert command.startswith('python '), command
