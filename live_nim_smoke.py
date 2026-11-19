@@ -10,7 +10,14 @@ available:
 Phase 1 goes through agenticbot.providers.stream_chat, the interactive agent's
 path, and prints the model's own reply. Phase 2 submits a real durable task through
 task_harness.TaskManager with a deterministic file_text check, so the model has to
-calculate, write the file, read it back and pass the gate.
+calculate, write the file, read it back and pass the gate. Phase 3 forces the work
+through run_command. Phase 4 is a debug cycle: failing tests, a fix, a re-run until
+the suite is green. Phase 5 is the longest task the durable loop can run — four
+independent bugs plus a file that does not exist yet, under the harness's own step
+ceiling.
+
+Phases 3-5 need AGENTIC_TASK_SHELL=on, and phase 4-5 need room, so raise the ceiling
+with AGENTIC_TASK_MAX_ELAPSED (the 300 s default cuts a cycle that already finished).
 
 Exit codes: 0 passed, 1 failed, 2 skipped (no key). The key is never printed.
 """

@@ -125,13 +125,16 @@ class LongHorizonTests(unittest.TestCase):
                                      call_model=scripted(replies))
 
     def test_a_full_solution_passes_all_three_gates(self):
+        # The read-backs come after the last run_command on purpose: a command
+        # invalidates earlier reads, so a model that reads before its final test
+        # run has to read again. The live model does exactly this.
         row, _elapsed, commands, tests_gate, report_gate = self.run_phase([
-            action('run_command', command=self.smoke.LONG_COMMAND),
             action('write_file', path='stats.py', content=self.smoke.LONG_FIXED),
-            action('read_file', path='stats.py'),
+            action('run_command', command=self.smoke.LONG_COMMAND),
             action('write_file', path='report.py', content=self.smoke.LONG_REPORT_SOURCE),
-            action('read_file', path='report.py'),
             action('run_command', command=self.smoke.LONG_REPORT),
+            action('read_file', path='stats.py'),
+            action('read_file', path='report.py'),
             action('done', text='Fixed four bugs in stats.py, wrote report.py, tests are green.'),
         ])
         self.assertEqual(row['status'], 'completed', row.get('state', {}).get('messages'))
