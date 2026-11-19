@@ -11,11 +11,28 @@ gate is proven to bite rather than merely to pass.
 """
 import json
 import pathlib
+import sys
 import tempfile
 import unittest
 from unittest import mock
 
 from agenticbot import config
+
+
+# The commands in live_nim_smoke.py say plain "python", which is what the live
+# model is told to run. A runner with only python3 on PATH would fail these
+# offline tests for that reason alone, so they run the same commands with the
+# interpreter running the tests.
+PYTHON = '"%s"' % sys.executable if ' ' in sys.executable else sys.executable
+
+
+def use_this_python(test, smoke, *names):
+    for name in names:
+        command = getattr(smoke, name)
+        assert command.startswith('python '), command
+        patch = mock.patch.object(smoke, name, PYTHON + command[len('python'):])
+        patch.start()
+        test.addCleanup(patch.stop)
 
 
 def action(kind, **kw):
@@ -38,6 +55,7 @@ class DebugCycleTests(unittest.TestCase):
     def setUp(self):
         import live_nim_smoke
         self.smoke = live_nim_smoke
+        use_this_python(self, live_nim_smoke, 'DEBUG_COMMAND')
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = pathlib.Path(self.tmp.name)
@@ -112,6 +130,7 @@ class LongHorizonTests(unittest.TestCase):
     def setUp(self):
         import live_nim_smoke
         self.smoke = live_nim_smoke
+        use_this_python(self, live_nim_smoke, 'LONG_COMMAND', 'LONG_REPORT')
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = pathlib.Path(self.tmp.name)
