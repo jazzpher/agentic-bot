@@ -102,6 +102,66 @@ class DebugCycleTests(unittest.TestCase):
         self.assertIn('FAILED', gate.render())
 
 
+class LongHorizonTests(unittest.TestCase):
+    """The long-horizon phase, offline: four bugs, a new file, three gates.
+
+    The gates are the point. A run that fixes stats.py but never creates report.py
+    must not reach completed, and the starting workspace must really be red.
+    """
+
+    def setUp(self):
+        import live_nim_smoke
+        self.smoke = live_nim_smoke
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = pathlib.Path(self.tmp.name)
+        on = mock.patch.object(config, 'TASK_SHELL', True)
+        on.start()
+        self.addCleanup(on.stop)
+
+    def run_phase(self, replies):
+        return self.smoke.phase_long(('fake', 'https://example.invalid/v1', 'fake-model'),
+                                     self.root, elapsed_budget=60,
+                                     call_model=scripted(replies))
+
+    def test_a_full_solution_passes_all_three_gates(self):
+        row, _elapsed, commands, tests_gate, report_gate = self.run_phase([
+            action('run_command', command=self.smoke.LONG_COMMAND),
+            action('write_file', path='stats.py', content=self.smoke.LONG_FIXED),
+            action('read_file', path='stats.py'),
+            action('write_file', path='report.py', content=self.smoke.LONG_REPORT_SOURCE),
+            action('read_file', path='report.py'),
+            action('run_command', command=self.smoke.LONG_REPORT),
+            action('done', text='Fixed four bugs in stats.py, wrote report.py, tests are green.'),
+        ])
+        self.assertEqual(row['status'], 'completed', row.get('state', {}).get('messages'))
+        self.assertEqual(tests_gate.exit_code, 0, tests_gate.render())
+        self.assertEqual(report_gate.exit_code, 0, report_gate.render())
+        self.assertIn(self.smoke.LONG_OUTPUT, report_gate.render())
+        self.assertIn(self.smoke.LONG_COMMAND, commands, 'the model must actually run the tests')
+
+    def test_a_missing_report_py_is_rejected(self):
+        row, _elapsed, _commands, _tests_gate, report_gate = self.run_phase([
+            action('write_file', path='stats.py', content=self.smoke.LONG_FIXED),
+            action('read_file', path='stats.py'),
+            action('done', text='Fixed stats.py.'),
+            action('done', text='Fixed stats.py.'),
+            action('need_input', text='Stuck: report.py was never created.'),
+        ])
+        self.assertNotEqual(row['status'], 'completed',
+                            'the second file is missing, so done must not be accepted')
+        self.assertNotEqual(report_gate.exit_code, 0)
+
+    def test_the_starting_workspace_really_fails(self):
+        from agenticbot import sandbox
+        ws = self.root / 'seed'
+        ws.mkdir(parents=True, exist_ok=True)
+        (ws / 'stats.py').write_text(self.smoke.LONG_SOURCE, encoding='utf-8')
+        (ws / 'test_stats.py').write_text(self.smoke.LONG_TESTS, encoding='utf-8')
+        gate = sandbox.get_backend().run(self.smoke.LONG_COMMAND, ws, 60, network=False)
+        self.assertNotEqual(gate.exit_code, 0, 'the task is pointless unless the tests start red')
+
+
 class NoKeyTests(unittest.TestCase):
     def test_config_prefers_the_nvidia_variable(self):
         with mock.patch.dict('os.environ', {'NVIDIA_API_KEY': 'nvapi-x', 'AGENTIC_API_KEY': 'other'}):

@@ -79,6 +79,81 @@ DEBUG_GOAL = ('The tests in this workspace fail. Fix calc.py so that "python -m 
               'than one bug. Do not edit test_calc.py: it is the specification and its content is a hard check. '
               'Report the failures you saw and what you changed.')
 EXPECTED = '391'
+
+# Phase 5: the longest task the durable loop can actually run. Four independent
+# bugs in one module (empty input, an odd/even mistake, a wrong mode, a missing
+# square root), plus a second file that does not exist yet and must produce an
+# exact line. One reading of the failures cannot fix all of it, so the task has to
+# sequence work instead of repeating one edit.
+LONG_SOURCE = ('def mean(values):\n'
+               '    return sum(values) / len(values)\n'
+               '\n'
+               'def median(values):\n'
+               '    values = sorted(values)\n'
+               '    return values[len(values) // 2]\n'
+               '\n'
+               'def mode(values):\n'
+               '    return values[0]\n'
+               '\n'
+               'def stdev(values):\n'
+               '    m = mean(values)\n'
+               '    return sum((v - m) ** 2 for v in values) / len(values)\n')
+LONG_TESTS = ('import unittest\n'
+              'from stats import mean, median, mode, stdev\n'
+              '\n'
+              'class StatsTests(unittest.TestCase):\n'
+              '    def test_mean(self):\n'
+              '        self.assertEqual(mean([2, 4, 6]), 4)\n'
+              '\n'
+              '    def test_mean_empty_is_zero(self):\n'
+              '        self.assertEqual(mean([]), 0)\n'
+              '\n'
+              '    def test_median_odd(self):\n'
+              '        self.assertEqual(median([3, 1, 2]), 2)\n'
+              '\n'
+              '    def test_median_even(self):\n'
+              '        self.assertEqual(median([4, 1, 3, 2]), 2.5)\n'
+              '\n'
+              '    def test_mode(self):\n'
+              '        self.assertEqual(mode([1, 2, 2, 3]), 2)\n'
+              '\n'
+              '    def test_stdev(self):\n'
+              '        self.assertAlmostEqual(stdev([2, 4, 4, 4, 5, 5, 7, 9]), 2.0)\n'
+              '\n'
+              'if __name__ == "__main__":\n'
+              '    unittest.main()\n')
+LONG_COMMAND = 'python -m unittest -q test_stats'
+LONG_REPORT = 'python report.py'
+LONG_OUTPUT = 'mean=5.00 median=4.50 mode=4 stdev=2.00'
+# A correct solution and the report.py that produces LONG_OUTPUT. test_live_smoke.py
+# drives this phase with them offline, and they document what "done" means here.
+LONG_FIXED = ('def mean(values):\n'
+              '    return sum(values) / len(values) if values else 0\n'
+              '\n'
+              'def median(values):\n'
+              '    values = sorted(values)\n'
+              '    middle = len(values) // 2\n'
+              '    if len(values) % 2:\n'
+              '        return values[middle]\n'
+              '    return (values[middle - 1] + values[middle]) / 2\n'
+              '\n'
+              'def mode(values):\n'
+              '    return max(sorted(set(values)), key=values.count)\n'
+              '\n'
+              'def stdev(values):\n'
+              '    m = mean(values)\n'
+              '    return (sum((v - m) ** 2 for v in values) / len(values)) ** 0.5\n')
+LONG_REPORT_SOURCE = ('from stats import mean, median, mode, stdev\n'
+                      'data = [2, 4, 4, 4, 5, 5, 7, 9]\n'
+                      'print("mean=%.2f median=%.2f mode=%d stdev=%.2f"\n'
+                      '      % (mean(data), median(data), mode(data), stdev(data)))\n')
+LONG_GOAL = ('The tests in this workspace fail. Fix stats.py so that "python -m unittest -q test_stats" passes '
+             '- there is more than one bug. Then create report.py: running "python report.py" must print exactly '
+             'this one line, for the data [2, 4, 4, 4, 5, 5, 7, 9] (use %.2f for the floats and %d for the mode):\n'
+             + LONG_OUTPUT + '\n'
+             'Build report.py on the functions in stats.py. Do not edit test_stats.py: it is the specification and '
+             'its content is a hard check. Run the tests before and after your fix, then run report.py, and report '
+             'what you changed.')
 TRANSCRIPT = ('action', 'tool', 'check', 'verification', 'done', 'result', 'error', 'blocked')
 
 
@@ -294,6 +369,53 @@ def phase_debug(cfg, root, elapsed_budget=300, call_model=None):
             pass
 
 
+def phase_long(cfg, root, elapsed_budget=300, call_model=None):
+    """A long-horizon task: several bugs, a file that must be created, an exact output.
+
+    Three gates, all run by the harness and none by the model: the pinned test file
+    (so the specification cannot be rewritten), the test command, and a command
+    whose exact output the new report.py has to produce. The step budget is the
+    harness's own ceiling, which is what makes this the longest task it can run.
+
+    ``call_model`` overrides the provider, which is how a scripted model can drive
+    the same task offline.
+    """
+    m = TaskManager(root / 'tasks.db', root / 'workspaces')
+    ws = m.workspaces / 'nim'
+    ws.mkdir(parents=True, exist_ok=True)
+    (ws / 'stats.py').write_text(LONG_SOURCE, encoding='utf-8')
+    (ws / 'test_stats.py').write_text(LONG_TESTS, encoding='utf-8')
+    started = time.monotonic()
+    try:
+        tid = m.submit('nim', LONG_GOAL, [], call_model or task_call(cfg),
+                       checks=[{'type': 'command', 'command': LONG_COMMAND, 'expect_exit': 0, 'timeout': 60},
+                               {'type': 'file_text', 'path': 'test_stats.py', 'text': LONG_TESTS},
+                               {'type': 'command', 'command': LONG_REPORT, 'expect_output': LONG_OUTPUT,
+                                'timeout': 60}],
+                       budgets={'steps': BUDGET_CEILINGS['steps'], 'elapsed': elapsed_budget})
+        row = wait_for(m, tid, timeout=elapsed_budget + 180)
+        elapsed = time.monotonic() - started
+        events = m.events(tid, 'nim')
+        for event in events:
+            kind = event.get('type')
+            if kind not in TRANSCRIPT:
+                continue
+            text = ' '.join(str(event.get('text', '')).split())
+            print('    %-12s %s' % (kind, text[:200]))
+        commands = [str(e.get('arg', ''))[:120] for e in events
+                    if e.get('type') == 'action' and 'run_command' in str(e.get('text', ''))]
+        from agenticbot import sandbox
+        backend = sandbox.get_backend()
+        tests_gate = backend.run(LONG_COMMAND, ws, 60, network=False)
+        report_gate = backend.run(LONG_REPORT, ws, 60, network=False)
+        return row, elapsed, commands, tests_gate, report_gate
+    finally:
+        try:
+            m.close()
+        except Exception:  # noqa: BLE001 - teardown must not hide the result
+            pass
+
+
 def main():
     cfg = config()
     print('NVIDIA NIM live check -> %s' % cfg[1])
@@ -386,6 +508,40 @@ def main():
             except Exception as exc:  # noqa: BLE001
                 print('  FAILED: %s: %s' % (type(exc).__name__, exc))
                 failures.append('debug cycle')
+
+        print('\nphase 5: long-horizon task - four bugs, a new file, an exact output')
+        print('  step ceiling: %d (the harness hard-caps steps; only elapsed is operator-raisable)'
+              % BUDGET_CEILINGS['steps'])
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                budget = min(600, BUDGET_CEILINGS['elapsed'])
+                row, elapsed, commands, tests_gate, report_gate = phase_long(
+                    cfg, pathlib.Path(tmp), elapsed_budget=budget)
+                state = row['state']
+                used = state.get('steps', 0)
+                print('  status: %s in %.1fs (%d of %d step(s) used)'
+                      % (row['status'], elapsed, used, BUDGET_CEILINGS['steps']))
+                if state.get('usage'):
+                    print('  tokens: prompt=%s completion=%s'
+                          % (state['usage'].get('prompt_tokens'), state['usage'].get('completion_tokens')))
+                print('  run_command calls: %d' % len(commands))
+                for command in commands:
+                    print('    $ %s' % command)
+                print('  tests gate now: exit %s' % tests_gate.exit_code)
+                print('  report gate now: exit %s' % report_gate.exit_code)
+                for line in report_gate.render().strip().splitlines()[-4:]:
+                    print('    > ' + line)
+                if row['status'] != 'completed':
+                    failures.append('long-horizon task (%s after %d steps)' % (row['status'], used))
+                elif tests_gate.exit_code != 0 or report_gate.exit_code != 0:
+                    # The task said completed but the gates disagree: that is a false
+                    # completion, which is worse than a budget stop.
+                    failures.append('long-horizon task claimed done but the gates fail')
+                if used >= BUDGET_CEILINGS['steps']:
+                    print('  NOTE: it used every step of the ceiling; anything longer cannot run today.')
+            except Exception as exc:  # noqa: BLE001
+                print('  FAILED: %s: %s' % (type(exc).__name__, exc))
+                failures.append('long-horizon task')
 
     print()
     if failures:
