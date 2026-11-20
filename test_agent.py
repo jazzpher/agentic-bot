@@ -294,7 +294,7 @@ class WebTests(unittest.TestCase):
         for headers in ({}, {'Content-Length': '1'}):
             with self.subTest(headers=headers):
                 class Reply:
-                    def __init__(self): self.headers = headers
+                    def __init__(self, headers=headers): self.headers = headers
                     def iter_content(self, chunk_size):
                         yield b'12345678'
                         yield b'90!'

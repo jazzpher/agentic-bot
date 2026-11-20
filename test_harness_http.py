@@ -1,5 +1,4 @@
 """Real HTTP lifecycle regression: disconnect, worker, ownership and restart."""
-import io
 import json
 import pathlib
 import tempfile

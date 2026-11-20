@@ -1,5 +1,4 @@
 """Offline tests for the agenticbot tool registry, file/shell tools, sandbox heuristics, netguard and compaction."""
-import json
 import os
 import tempfile
 import threading

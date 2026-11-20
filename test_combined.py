@@ -38,7 +38,7 @@ class CombinedTests(unittest.TestCase):
                 class Reply:
                     def __enter__(self): return self
                     def __exit__(self,*a): pass
-                    def iter_content(self, chunk_size):
+                    def iter_content(self, chunk_size, reason=reason):
                         yield b'data: {"choices":[{"delta":{"content":"partial"}}]}\n'
                         yield ('data: '+json.dumps({'choices':[{'delta':{},'finish_reason':reason}]})+'\n').encode()
                         yield b'data: [DONE]\n'
@@ -52,7 +52,7 @@ class CombinedTests(unittest.TestCase):
                 headers = {}
                 def __enter__(self):return self
                 def __exit__(self,*a):pass
-                def iter_content(self,chunk_size):
+                def iter_content(self,chunk_size,reason=reason):
                     yield json.dumps({'choices':[{'message':{'content':'{"action":"done","text":"partial"}'},'finish_reason':reason}]}).encode()
             with patch.object(webui,'model_reply',lambda *a,**k:Reply()):
                 with self.assertRaises(ValueError):webui.task_provider()([],10000)

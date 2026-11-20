@@ -11,7 +11,6 @@ import sys
 import tempfile
 import threading
 import unittest
-import urllib.parse
 from unittest import mock
 
 from agenticbot import agent_browser, config

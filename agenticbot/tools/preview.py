@@ -8,11 +8,10 @@ Read-only: it never writes to the workspace, so it needs no approval even in
 on-request mode. The browser is killed when the turn ends.
 """
 import base64
-import dataclasses
 import threading
 
 from agenticbot import config, evidence
-from agenticbot.preview import MAX_IMAGE_BYTES, PreviewError, PreviewSession, format_capture, resolve_html_path
+from agenticbot.preview import PreviewError, PreviewSession, format_capture, resolve_html_path
 from agenticbot.tools import ToolError, ToolResult
 
 _TURN_LOCAL = threading.local()

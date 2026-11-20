@@ -4,7 +4,6 @@ from agenticbot.env import env_get
 import argparse
 import atexit
 import collections
-import dataclasses
 import hmac
 import io
 import ipaddress
@@ -12,7 +11,7 @@ import json
 import os
 import re
 import secrets
-import socket
+import socket  # noqa: F401  (tests patch webui.socket.getaddrinfo for SSRF checks)
 import threading
 import time
 import zipfile
@@ -20,7 +19,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 import requests
 from flask import Flask, Response, request, render_template, render_template_string, session, redirect, send_file
-from agent_loop import ACTION_SCHEMA, result_action_schema, Workspace, run_loop
+from agent_loop import ACTION_SCHEMA, result_action_schema, Workspace
 from documents import extract_text, MAX_UPLOAD
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from werkzeug.utils import secure_filename
@@ -153,7 +152,7 @@ def _session_secret():
                 if saved:
                     return saved
                 time.sleep(0.02)
-            raise OSError('session secret file stayed empty')
+            raise OSError('session secret file stayed empty') from None
         with os.fdopen(fd, 'w') as fh:
             secret = secrets.token_hex(32)
             fh.write(secret)
@@ -1061,7 +1060,7 @@ UNATTENDED_NOTE = ('This is an unattended scheduled run: nobody can answer quest
 
 
 def _close_stores():
-    for store in (MEMORY, SCHEDULER, CONVERSATIONS):
+    for store in (MEMORY, SCHEDULER, CONVERSATIONS, TASKS):
         try:
             if store is not None:
                 store.close()

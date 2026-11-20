@@ -66,7 +66,7 @@ def _check_db(path):
         finally:
             conn.close()
     except sqlite3.DatabaseError as exc:
-        raise BackupError('Database %s is not a readable SQLite database (%s).' % (path.name, exc))
+        raise BackupError('Database %s is not a readable SQLite database (%s).' % (path.name, exc)) from exc
     if not rows or rows[0][0] != 'ok':
         raise BackupError('Database %s failed its integrity check: %s' % (path.name, rows[:1]))
 
@@ -139,8 +139,8 @@ def read_manifest(zip_path):
             if bad:
                 raise BackupError('Backup archive is corrupt (first bad file: %s).' % bad)
             return json.loads(zf.read(MANIFEST).decode('utf-8')), names
-    except zipfile.BadZipFile:
-        raise BackupError('Backup archive is corrupt (not a readable zip): %s' % zip_path)
+    except zipfile.BadZipFile as exc:
+        raise BackupError('Backup archive is corrupt (not a readable zip): %s' % zip_path) from exc
 
 
 def restore_backup(zip_path, data_dir, keep_old=True):

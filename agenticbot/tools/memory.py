@@ -1,6 +1,5 @@
 """Memory and conversation-history tools. Available when the host attaches the stores to the context:
 ``ctx.extras['memory']`` (MemoryStore), ``ctx.extras['conversations']`` (ConversationStore), ``ctx.extras['owner']``."""
-import json
 
 from agenticbot.tools import ToolError
 

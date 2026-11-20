@@ -16,7 +16,6 @@ from agenticbot.env import env_get
 
 import importlib
 import logging
-import os
 import threading
 
 log = logging.getLogger('agenticbot.plugins')

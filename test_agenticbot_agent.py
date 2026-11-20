@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from agent_loop import Workspace
 from agenticbot import agent as agent_core, providers
-from agenticbot.approvals import ApprovalBroker, SandboxPolicy
+from agenticbot.approvals import SandboxPolicy
 from agenticbot.conversations import ConversationStore
 from agenticbot.tools import ToolContext, default_registry
 
@@ -379,8 +379,15 @@ class AgentHTTPTests(unittest.TestCase):
                         patch.dict(webui.settings, {}, clear=True), patch.dict(webui.clients, {}, clear=True)]
         for p in self.patches:
             p.start(); self.addCleanup(p.stop)
+        self.addCleanup(self._close_lazy_stores)  # runs before the patches are undone
         self.webui.APPROVALS.store = webui.POLICIES
         self.c = webui.app.test_client()
+
+    def _close_lazy_stores(self):
+        for name in ('TASKS', 'CONVERSATIONS'):
+            store = getattr(self.webui, name, None)
+            if store is not None:
+                store.close()
 
     def post(self, url, **kw):
         return self.c.post(url, base_url='http://localhost', **kw)

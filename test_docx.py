@@ -9,7 +9,7 @@ import zipfile
 
 from agent_loop import Workspace, ToolError, run_loop, INVALID_HELP, MAX_INVALID
 import shutil
-from documents import build_docx, extract_text, docx_paragraphs, render_doc_preview, render_doc_preview
+from documents import build_docx, extract_text, docx_paragraphs, render_doc_preview
 from task_harness import TaskManager
 
 LETTER = '# Office of the Mayor\nCity of Marisol, Republic of Veloria\n\nDear Ms. Lena Okafor,\nThanks & regards <fictional> "ok"\nHon. Rafael Dumont'
@@ -43,7 +43,6 @@ class BuildTests(unittest.TestCase):
         got = extract_text('x.docx', raw)
         self.assertIn(' | *** FBI OFFICIAL *** |', got)  # ascii art must not be touched
         self.assertNotIn('**important**', got)
-        import re
         xml = zipfile.ZipFile(io.BytesIO(raw)).read('word/document.xml').decode()
         # heading sizes: 16/14/12/11 pt, all bold
         for size in ('32', '28', '24', '22'):
