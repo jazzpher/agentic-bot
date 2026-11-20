@@ -64,6 +64,7 @@ class HardKillCheckpointTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             store = ConversationStore(root / 'conv.sqlite3')
+            self.addCleanup(store.close)
             cid = store.create('killtest', 'kill test')
             (root / 'cid').write_text(cid)
             child = root / 'child.py'
@@ -89,6 +90,7 @@ class HardKillCheckpointTest(unittest.TestCase):
             self.assertNotEqual(proc.returncode, 0)
 
             fresh = ConversationStore(root / 'conv.sqlite3')
+            self.addCleanup(fresh.close)
             context, _ = fresh.get_context(cid, 'killtest')
             roles = [m['role'] for m in context]
             self.assertEqual(roles, ['user', 'assistant', 'tool', 'assistant', 'tool'], context)

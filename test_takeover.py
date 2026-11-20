@@ -2,7 +2,6 @@
 tool's pause/resume contract with a fake browser session, the owner-scoped web routes, the UI wiring, and a
 real-Chromium pass (skips unless AGENTIC_LIVE_BROWSE_TESTS=1, like test_agent_browse.LiveChromiumTests)."""
 import html
-import http.server
 import shutil
 import threading
 import time

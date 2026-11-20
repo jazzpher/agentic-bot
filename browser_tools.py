@@ -7,7 +7,6 @@ is untrusted data and is truncated before it reaches the model.
 """
 import concurrent.futures
 import functools
-import ipaddress
 import urllib.parse
 
 from agenticbot import config as _cfg, netguard

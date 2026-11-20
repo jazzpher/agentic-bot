@@ -1,6 +1,5 @@
 """Harness fixes: owner acceptance check, kernel network-off, runtime-safe pip, needs_input, fetch_url hint."""
 import os
-import sys
 import tempfile
 import unittest
 from pathlib import Path

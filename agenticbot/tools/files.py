@@ -353,7 +353,7 @@ def register(registry):
         try:
             rx = re.compile(pattern, re.IGNORECASE if ignore_case else 0)
         except re.error as exc:
-            raise ToolError('Invalid regular expression: ' + str(exc))
+            raise ToolError('Invalid regular expression: ' + str(exc)) from exc
         base = _ws(ctx).root if not path or path in ('.', '/') else _ws(ctx).path(path)
         if not base.exists():
             raise ToolError('No such path: ' + path)

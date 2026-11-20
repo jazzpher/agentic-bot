@@ -9,7 +9,7 @@ import html
 import json
 import re
 from html.parser import HTMLParser
-from urllib.parse import quote_plus, urljoin, urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 

@@ -6,7 +6,6 @@ still bounded; operators can lower or raise them with the AGENTIC_* variables.
 """
 from agenticbot.env import env_get
 import ctypes
-import os
 import shutil
 import sys
 

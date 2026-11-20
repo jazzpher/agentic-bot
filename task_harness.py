@@ -511,7 +511,7 @@ class TaskManager:
                 if saved['content'].strip() != a['content'].strip() or saved['description'] != a['text'].strip():
                     raise ValueError('Different saved workflow')
             except (ValueError, OSError, UnicodeError):
-                raise ToolError('Interrupted skill save cannot be verified. No replay; inspect Skills and start a new task.')
+                raise ToolError('Interrupted skill save cannot be verified. No replay; inspect Skills and start a new task.') from None
         state['pending'] = None
         state['written'] = sorted(workspace.written)
         state['checked'] = sorted(workspace.checked)

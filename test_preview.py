@@ -2,20 +2,18 @@
 hand-off to the model, turn-end Chromium cleanup. Offline except the clearly
 marked real-Chromium class, which skips when Playwright is unavailable."""
 import base64
-import json
 import os
 import pathlib
 import shutil
 import socket
 import tempfile
-import threading
 import unittest
 import urllib.request
 import urllib.error
 from unittest import mock
 
 from agenticbot import config, preview
-from agenticbot.agent import run_turn, scrub_preview_images
+from agenticbot.agent import run_turn
 from agenticbot.tools import ToolContext, ToolRegistry, default_registry
 from agenticbot.tools import preview as preview_tool
 from agent_loop import Workspace

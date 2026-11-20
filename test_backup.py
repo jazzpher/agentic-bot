@@ -1,6 +1,5 @@
 """Backup/restore: consistent snapshots, verified restores, corrupt-archive rejection."""
 import json
-import os
 import sqlite3
 import tempfile
 import unittest

@@ -17,7 +17,7 @@ class CheckpointTests(RunTurnTests):
                 if mode == 'json':
                     events = text_events('{"tool":"write_file","arguments":{"path":"json.txt","content":"synthetic"}}')
                 result = self.turn(scripted([events, text_events('Finished writing.')]),
-                                   tool_mode=mode, checkpoint=lambda m, s: saved.append((m, s)),
+                                   tool_mode=mode, checkpoint=lambda m, s, saved=saved: saved.append((m, s)),
                                    previous_summary='earlier summary')
                 self.assertEqual(len(saved), 4)  # start, intent, completed batch, final
                 self.assertIn('outcome unknown', str(saved[1][0]))

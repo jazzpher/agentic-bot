@@ -1,5 +1,18 @@
 # Agentic Bot
 
+## Quickstart
+
+```sh
+pip install -r requirements.txt                 # Python 3.11+
+python -m agenticbot exec --mock "hello"        # offline smoke test, no key needed
+export AGENTIC_API_KEY='your-key' AGENTIC_API_URL='https://generativelanguage.googleapis.com/v1beta/openai/chat/completions' AGENTIC_MODEL='gemini-flash-latest'
+python -m agenticbot chat                       # terminal agent in the current directory
+python webui.py                                 # web UI on http://127.0.0.1:5000
+```
+
+Details: [Run locally](#run-locally), [docs/LIMITATIONS.md](docs/LIMITATIONS.md).
+
+
 A local, tool-using chat/coding agent with a web UI and a CLI, for any
 OpenAI-compatible provider (Gemini, xAI, NVIDIA NIM, OpenRouter, Groq, Cerebras,
 Mistral, DeepSeek, or a custom https endpoint). The name does not mean it runs

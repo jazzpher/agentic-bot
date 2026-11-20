@@ -269,11 +269,11 @@ def stream_chat(cfg, messages, tools=None, stop=None, timeout=DEFAULT_TIMEOUT, e
                             _merge_call_metadata(calls[('m', i)], tc)
                     finish = finish or 'stop'
                     complete = True
-    except (requests.RequestException, OSError):
+    except (requests.RequestException, OSError) as exc:
         if stop is not None and stop.is_set():
             return  # socket closed by the cancel watchdog: this is a user stop, not a provider error
         if deadline is not None and time.monotonic() > deadline:
-            raise ProviderError('Provider stream exceeded the total time limit (%d s).' % limit)
+            raise ProviderError('Provider stream exceeded the total time limit (%d s).' % limit) from exc
         raise
     finally:
         consumed.set()
@@ -306,8 +306,8 @@ def complete_once(cfg, messages, timeout=(10, 120), extra=None, max_tokens=None)
     data = res.json()
     try:
         content = data['choices'][0]['message']['content']
-    except (KeyError, IndexError, TypeError):
-        raise ProviderError('Provider returned no content.')
+    except (KeyError, IndexError, TypeError) as exc:
+        raise ProviderError('Provider returned no content.') from exc
     if isinstance(content, list):
         content = ''.join(p.get('text', '') for p in content if isinstance(p, dict))
     return content if isinstance(content, str) else ''

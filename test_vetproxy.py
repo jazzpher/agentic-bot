@@ -20,7 +20,7 @@ import unittest.mock
 
 from browser_tools import BrowserError
 
-from agenticbot import browser_isolation, vetproxy
+from agenticbot import browser_isolation
 from agenticbot.vetproxy import VettingProxy
 
 def _playwright_importable():
@@ -443,7 +443,7 @@ class LiveIsolatedBrowseTests(unittest.TestCase):
                 return [LOCAL]                    # pre-vetted test seam: maps fake public hosts to the test server
             return []
 
-        from agenticbot.agent_browser import AgentBrowserSession, BrowserError
+        from agenticbot.agent_browser import AgentBrowserSession
         self.session = AgentBrowserSession(resolver=resolver, allowed_ports=(80, 443, self.port),
                                            ip_check=_test_ip_check, isolation=_TEST_ISOLATION)
         self.addCleanup(self.session.close)

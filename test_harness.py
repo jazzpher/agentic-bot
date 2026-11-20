@@ -284,7 +284,7 @@ class HarnessTests(unittest.TestCase):
         self.assertNotIn('dummy credential', json.dumps(row))
         for status in (401, 403, 429, 400):
             attempts = []
-            def denied(messages):
+            def denied(messages, *, attempts=attempts, status=status):
                 attempts.append(1)
                 response = requests.Response(); response.status_code = status
                 raise requests.HTTPError('sensitive error', response=response)

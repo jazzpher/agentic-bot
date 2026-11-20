@@ -89,6 +89,7 @@ class AutomaticAcceptanceTests(unittest.TestCase):
         import webui
         from agenticbot.conversations import ConversationStore
         store = ConversationStore(Path(self.tmp.name) / 'conv.sqlite3')
+        self.addCleanup(store.close)
         with patch.dict(webui.app.config, {'MOCK': True, 'API_KEY': '', 'API_URL': '', 'MODEL': 'test'}), \
              patch.object(webui, 'conversation_store', return_value=store):
             cid = store.create('audit', 'audit')

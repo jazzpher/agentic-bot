@@ -20,8 +20,8 @@ os.environ.setdefault('AGENTIC_WORKSPACE_DIR', tempfile.mkdtemp(prefix='agenticb
 
 from agenticbot import scheduler as sched_mod, config as gconfig, plugins  # noqa: E402
 from agenticbot.memory import MemoryStore  # noqa: E402
-from agenticbot.mcp import MCPManager, MCPError, tool_name  # noqa: E402
-from agenticbot.tools import default_registry, ToolContext, ToolError  # noqa: E402
+from agenticbot.mcp import MCPManager, tool_name  # noqa: E402
+from agenticbot.tools import default_registry, ToolContext  # noqa: E402
 from agenticbot.approvals import SandboxPolicy  # noqa: E402
 from agenticbot.gateway.telegram import TelegramGateway  # noqa: E402
 from agent_loop import Workspace  # noqa: E402
