@@ -10,10 +10,13 @@ readme = "README.md"
 requires-python = ">=3.10"
 classifiers = ["License :: OSI Approved :: MIT License"]
 license = {file = "LICENSE"}
+# Bounded, and kept in step with requirements.txt: the app is installed both ways
+# (`pip install .`, and `pip install -r requirements.txt` for the Dockerfile and CI),
+# so a package listed in only one of them resolves differently in the container.
 dependencies = [
-  "requests",
-  "flask",
-  "itsdangerous>=2.1",
+  "requests>=2.31,<3",
+  "flask>=3.0,<4",
+  "itsdangerous>=2.1,<3",
   "pypdf>=6.0,<7",
   "defusedxml>=0.7,<1",
   "pillow>=10.0",
@@ -26,9 +29,27 @@ grokbot = "agenticbot.cli:main"
 grok-bot = "agenticbot.cli:main"
 
 [tool.setuptools]
-packages = ["agenticbot", "agenticbot.tools", "agenticbot.gateway", "grokbot"]
 py-modules = ["webui", "agent_loop", "task_harness", "skills", "documents", "model_discovery", "bot", "browser_tools"]
 include-package-data = true
 
+# Discovered rather than hand-listed: a new `agenticbot.*` subpackage used to need an
+# edit here or it silently stayed out of the wheel. `namespaces = false` keeps the
+# discovery identical to the old list (only directories with `__init__.py`), so the
+# data-only `static/` and `templates/` directories are not picked up as packages.
+[tool.setuptools.packages.find]
+include = ["agenticbot*", "grokbot*"]
+namespaces = false
+
 [tool.setuptools.package-data]
 "agenticbot" = ["templates/*.html", "static/*.css", "static/*.js", "static/*.svg", "static/*.webmanifest", "static/vendor/*"]
+
+[tool.ruff]
+target-version = "py310"
+# Acceptance evidence and the vendored browser libraries are not ours to lint.
+extend-exclude = ["acceptance", "agenticbot/static/vendor"]
+
+[tool.ruff.lint]
+# Ruff's default rule set (pycodestyle E4/E7/E9 plus pyflakes F): syntax-level errors,
+# undefined names and unused imports. The tree still has pre-existing findings, so the
+# CI job reports a baseline instead of gating; see .github/workflows/lint.yml.
+select = ["E4", "E7", "E9", "F"]
