@@ -369,6 +369,7 @@ strings. A stream ending without [DONE] is treated as interrupted.
 ```sh
 python -m unittest discover -v
 python -m py_compile webui.py agent_loop.py bot.py
+pip install -r requirements-dev.txt && ruff check .     # lint baseline (not a gate yet)
 ```
 
 The tests use scripted provider responses, not live credentials. They check
