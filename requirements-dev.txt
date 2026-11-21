@@ -1,0 +1,7 @@
+# Development extras. The app itself needs only requirements.txt.
+# The live browser suites install their own pinned Playwright range inside the
+# workflow that runs them (.github/workflows/tests.yml), so it is not repeated here.
+-r requirements.txt
+
+# Lint baseline: see [tool.ruff] in pyproject.toml and .github/workflows/lint.yml.
+ruff>=0.9,<1

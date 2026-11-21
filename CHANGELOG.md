@@ -24,6 +24,27 @@ All notable changes to this project are documented here. The format follows
   with "never silently pick one", and repeats it on the result. Both sides must be word-shaped, so a goal that
   merely mentions API or JSON never clashes with a check that expects a document. The check still owns the
   artifact; the person reading the task sees that the two disagreed.
+- Take-over refused-navigation recovery is one-shot per refusal. After any refused click, every later
+  `chrome-error://` page used to send the user back to the last approved page - including an unrelated
+  network error on an approved site. Now only the refusal's own late-committing error page does, and a
+  regression test simulates the late commit (no real Chromium needed).
+- Take-over refused-navigation recovery now expires. A refused click whose `chrome-error://` page never
+  committed left the recovery armed, so an unrelated error page minutes later (e.g. a network error on an
+  approved site) still sent the user back to the last approved page. The recovery now only applies within
+  `TAKEOVER_REFUSED_WINDOW` (2.5 seconds) of the refusal, in the loop and in the final check before the
+  snapshot; a failed put-back is retried while the window is open. Regression tests cover the expiry and
+  the retry.
+- Agent browser snapshots list the elements on screen first. The 40-element cap used to fill with links
+  from the top of the document, so after `browse_scroll` the buttons and links the screenshot showed were
+  often missing from the list and could not be clicked by index. Off-screen elements still fill the
+  remaining slots.
+- Docs: SECURITY.md still said redirect hops are not vetted and the agent browser should wait for a
+  vetting-proxy fix; the vetting proxy is in, and the row now matches LIMITATIONS.md.
+- Docs: LIMITATIONS.md now records the Python 3.14 GC deadlock a full `unittest discover` run hit while
+  `Workspace.__del__` closed its browser session, and says to run the suite on the CI version (3.11).
+- Docs: `preview_page`'s route guard does not see redirect hops (Playwright does not route them); it is safe
+  only because the preview server never answers 3xx. Its docstrings, docs/SECURITY.md and the README's web
+  browsing paragraph no longer claim per-hop checks.
 
 ### Changed
 - The independent grader is off by default (`AGENTIC_GRADER=on` to enable): it costs an extra model call per check.
@@ -43,8 +64,6 @@ All notable changes to this project are documented here. The format follows
 - Independent grader (`agenticbot/grader.py`): before any normal request that changed files is accepted as done, a separate fresh-context model call (never the builder) writes 3-5 fixed pass/fail criteria, and the host checks them itself: A-Z sort is measured, mobile fit is rendered at 390 px and measured, tests are run by the grader (a builder that edits test files never passes), files must exist. Only judgement criteria go to a model, which reads the files, never the builder's reply.
 - Only failed criteria go back to the builder, at most 3 rounds (`AGENTIC_GRADER_ROUNDS`), and every round's files are kept under `~/.local/share/agenticbot/grader-runs` (`AGENTIC_GRADER_DIR`).
 - If the grader can't run, the turn stays `unverified`, never `completed`. `AGENTIC_GRADER=off` turns it off.
-
-### Added
 
 - **Progress loop guard for small models** (`agenticbot/loopguard.py`). Per turn it watches for a call
   (tool + arguments) that gives the same result while the workspace is unchanged: the 2nd repeat gets a
@@ -72,11 +91,6 @@ All notable changes to this project are documented here. The format follows
   than the namespace (no OS sandbox), documented in docs/AGENT_BROWSER_VETPROXY.md. Process cleanup is
   cross-platform (`ps` on macOS, `taskkill /T` on Windows). Tests: `test_browser_platform.py`, the live
   suites in both modes (`GROK_TEST_BROWSER_ISOLATION=proxy`), and a Windows/macOS CI job.
-
-### Fixed
-
-- Docs: SECURITY.md still said redirect hops are not vetted and the agent browser should wait for a
-  vetting-proxy fix; the vetting proxy is in, and the row now matches LIMITATIONS.md.
 
 - **Browser take-over with a live view (`request_takeover`).** When a page needs a person
   (a login, a captcha, a payment, a consent screen) the agent can hand its browser to you: the turn
@@ -108,10 +122,6 @@ All notable changes to this project are documented here. The format follows
   (old rows are dated at `created`). Nothing is auto-superseded, pruned or
   deleted: `forget_memory` remains the only delete, now documented for wrong facts only.
 
-Verifiable agent loops: pixel-diff and command verifiers gate task completion.
-
-### Added
-
 - **Verifiable agent loops.** The durable harness gates `done` on two new deterministic
   check types alongside `file_text`/`exact_copy`: `pixel_diff` (Pillow pixel comparison of
   an output image or headlessly rendered HTML page against a ground-truth image; numeric
@@ -127,10 +137,6 @@ Verifiable agent loops: pixel-diff and command verifiers gate task completion.
   the mismatch percent and saving a highlighted diff image next to the output.
 - Pillow (`pillow>=10.0`) is now a dependency; image sides need nothing else, HTML rendering
   uses the existing Playwright setup.
-
-### Added (earlier, same unreleased cycle)
-
-Reliability pack: real cancellation, per-run log, backup/restore, optional edit review.
 
 - **Reliable cancellation.** Stop now interrupts a hung provider stream and a running shell
   command within about a second: a watchdog shuts the socket down (close alone does not wake a
@@ -153,26 +159,6 @@ Reliability pack: real cancellation, per-run log, backup/restore, optional edit 
   unattended schedules (their approval=never would deny every edit).
 - **benchmark.py**: 10 offline tasks (plain turns, file edits, commands, Stop latency, stream
   cap, backup/restore, run log) for before/after comparisons.
-
-### Fixed
-
-- Take-over refused-navigation recovery is one-shot per refusal. After any refused click, every later
-  `chrome-error://` page used to send the user back to the last approved page - including an unrelated
-  network error on an approved site. Now only the refusal's own late-committing error page does, and a
-  regression test simulates the late commit (no real Chromium needed).
-- Take-over refused-navigation recovery now expires. A refused click whose `chrome-error://` page never
-  committed left the recovery armed, so an unrelated error page minutes later (e.g. a network error on an
-  approved site) still sent the user back to the last approved page. The recovery now only applies within
-  `TAKEOVER_REFUSED_WINDOW` (2.5 seconds) of the refusal, in the loop and in the final check before the
-  snapshot; a failed put-back is retried while the window is open. Regression tests cover the expiry and
-  the retry.
-- Agent browser snapshots list the elements on screen first. The 40-element cap used to fill with links
-  from the top of the document, so after `browse_scroll` the buttons and links the screenshot showed were
-  often missing from the list and could not be clicked by index. Off-screen elements still fill the
-  remaining slots.
-- Docs: `preview_page`'s route guard does not see redirect hops (Playwright does not route them); it is safe
-  only because the preview server never answers 3xx. Its docstrings, docs/SECURITY.md and the README's web
-  browsing paragraph no longer claim per-hop checks.
 
 ## [0.9.3] - 2026-10-18
 

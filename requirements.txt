@@ -1,5 +1,9 @@
-requests
-flask
+# Runtime dependencies. Keep in step with [project].dependencies in pyproject.toml:
+# the Dockerfile installs from this file, so a package listed only in pyproject (or
+# only here) makes the container and `pip install .` resolve differently.
+requests>=2.31,<3
+flask>=3.0,<4
+itsdangerous>=2.1,<3
 pypdf>=6.0,<7
 defusedxml>=0.7,<1
 pillow>=10.0

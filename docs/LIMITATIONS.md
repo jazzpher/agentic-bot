@@ -92,3 +92,11 @@
   there is no server-side STT/TTS.
 - **No Discord/Slack/WhatsApp gateways or image generation** yet; the gateway runner
   interface (`run_owner_turn`) is platform-agnostic, so adding one is a thin adapter like `agenticbot/gateway/telegram.py`.
+
+- **A full test run on Python 3.14 can deadlock.** The rename acceptance run
+  (`acceptance/2026-11-07-agentic-bot/README.md`) found `Workspace.__del__` in
+  `agent_loop.py` closing its optional browser session from the garbage collector, which
+  hung `unittest discover` on 3.14. The same suite passes on the interpreter CI uses, and
+  the finalizer was left alone rather than changed blind: call `Workspace.close()`
+  explicitly in long-lived code, and run the suite on 3.11. `requires-python` says 3.10+,
+  but CI only proves 3.11.

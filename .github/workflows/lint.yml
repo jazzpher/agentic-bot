@@ -1,0 +1,22 @@
+name: Lint
+# Baseline report, not a gate. The tree still has pre-existing findings, so this job
+# prints them (and annotates the diff) without failing the build. When
+# `ruff check .` comes back clean, drop `continue-on-error` from the check step to
+# make it gate. Rules and exclusions live in [tool.ruff] in pyproject.toml.
+on: [push, pull_request]
+jobs:
+  ruff:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements-dev.txt
+      - name: ruff check (baseline)
+        continue-on-error: true
+        run: ruff check --output-format=concise .
+      - name: ruff statistics (baseline)
+        if: always()
+        run: ruff check --statistics . || true
