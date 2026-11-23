@@ -54,6 +54,20 @@ All notable changes to this project are documented here. The format follows
 - An empty model reply sends one error event (was a status and an error with the same text).
 
 ### Added
+- **A nightly end-to-end stress run** (`Stress` workflow, manual and nightly, never on a
+  pull request). `stress_http.py` drives the real Flask app on a threaded server with a
+  scripted provider: concurrent turns under separate owners, both approval answers, Stop
+  mid-turn, parallel durable tasks, owner isolation, and ceilings on p95 latency, 5xx
+  responses, leaked threads and leaked fds — output in the same table-and-ceilings shape as
+  `bench_harness.py`. `stress_docker.py` executes the Docker backend for the first time in
+  CI (no job had ever started a daemon for it): network off, read-only root, writable
+  workspace mount, Stop killing the container, plus the compose stack booting and answering.
+  `test_stress_http.py` runs a reduced version in the normal suite so the harness cannot rot
+  between load runs.
+- **The live model cycle is now a nightly soak, not only a push check** (`live-model.yml`).
+  One full cycle of `live_nim_smoke.py` phases 2-5 through the real NVIDIA NIM endpoint,
+  capped at 60 minutes, guarded by a `concurrency` group so a nightly and a push run cannot
+  overlap and spend double quota. Pushes that touch the provider or the durable loop still run it.
 - **Shell in durable tasks** (`run_command` in the `/task` action set, `AGENTIC_TASK_SHELL=on`): a long task can
   now run its own tests and builds instead of only writing files, so "I wrote the code" can become "the tests
   pass". Off by default, because the durable loop has no approval prompt and the model must not grant itself
