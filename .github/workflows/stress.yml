@@ -1,0 +1,73 @@
+name: Stress
+# Manual and nightly. Never on a pull request: this is load, sandbox and matrix work
+# that would slow every normal push. The push trigger is narrowed to the stress files
+# themselves, so a change to them is exercised on its own branch before the nightly.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 19 * * *'        # 19:17 UTC nightly
+  push:
+    paths:
+      - stress_http.py
+      - stress_docker.py
+      - test_stress_http.py
+      - .github/workflows/stress.yml
+
+concurrency:
+  group: stress
+  cancel-in-progress: false
+
+jobs:
+  http-stress:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: reduced stress inside the suite
+        run: python -m unittest -v test_stress_http
+      - name: full HTTP stress (six owners, two rounds)
+        run: python stress_http.py --owners 6 --rounds 2
+
+  docker-sandbox:
+    timeout-minutes: 25
+    runs-on: ubuntu-latest
+    # compose interpolates the whole file for every subcommand, including down and logs,
+    # so these belong to the job: with them scoped to one step, `docker compose down -v`
+    # failed with "required variable GROK_APP_PASSWORD is missing a value".
+    env:
+      AGENTIC_APP_PASSWORD: ci-only-not-a-secret
+      AGENTIC_SESSION_SECRET: ci-only-session-secret-0123456789abcdef
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: docker daemon present
+        run: docker info --format '{{.ServerVersion}}'
+      - name: sandbox backend properties (network off, read-only root, Stop)
+        run: python stress_docker.py
+      # The Dockerfile HEALTHCHECK probes /key_status, which sits behind the app password
+      # in exposed mode, so the container reports unhealthy here by design. This step
+      # therefore probes /login, which is the one route that answers without a session.
+      # Known gap: the healthcheck itself is not fixed in this change.
+      - name: compose stack boots and serves
+        run: |
+          docker compose up -d --build
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null -w '%{http_code}' http://127.0.0.1:5000/login | grep -q 200; then
+              echo "stack answered on /login"; break
+            fi
+            sleep 3
+          done
+          curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/login
+      - name: compose logs on failure
+        if: failure()
+        run: docker compose logs --no-color | tail -n 200
+      - name: tear down
+        if: always()
+        run: docker compose down -v --remove-orphans

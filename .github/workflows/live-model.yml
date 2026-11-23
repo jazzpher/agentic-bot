@@ -1,9 +1,14 @@
 name: Live model
-# One real-model end-to-end check, kept out of the correctness suite: it costs
+# One real-model end-to-end cycle, kept out of the correctness suite: it costs
 # provider quota and needs a key, so it runs only when NVIDIA_API_KEY exists as a
 # repository secret. Without the secret the job stays green and says how to add it.
 on:
   workflow_dispatch:
+  # Nightly soak: one full cycle of phases 2-5 through the real endpoint. This is the
+  # only automated proof that the provider path works end to end; everything else in
+  # this repository runs against a scripted provider.
+  schedule:
+    - cron: '41 18 * * *'
   # Not every push: a live model call costs quota. Run it when the pieces it tests change.
   push:
     paths:
@@ -13,9 +18,16 @@ on:
       - agent_loop.py
       - task_harness.py
       - requirements.txt
+# A nightly run and a push-triggered run must not overlap: two cycles at once spend
+# double the quota and can trip the same rate limit.
+concurrency:
+  group: live-model
+  cancel-in-progress: false
 jobs:
   nvidia-nim:
-    timeout-minutes: 20
+    # Phases 3-5 bound themselves (wait_for gives up at TASK_TIMEOUT = 420 s, phases 4
+    # and 5 cap elapsed at 600 s), so the worst case is about 40 minutes.
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     env:
       # Accept the key from either name, and from an Actions variable as well as a

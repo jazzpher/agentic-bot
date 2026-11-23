@@ -383,6 +383,8 @@ strings. A stream ending without [DONE] is treated as interrupted.
 python -m unittest discover -v
 python -m py_compile webui.py agent_loop.py bot.py
 pip install -r requirements-dev.txt && ruff check .     # lint baseline (not a gate yet)
+python stress_http.py                                   # offline HTTP load: turns, approvals, Stop
+python stress_docker.py                                 # Docker sandbox, needs a daemon
 ```
 
 The tests use scripted provider responses, not live credentials. They check
@@ -391,6 +393,20 @@ calculator restrictions, HTTP endpoints, auth and session isolation. For a
 real Gemini smoke test, run the example task above with your own configured
 free-tier key. --mock remains available for testing Chat without a key;
 Task mode reports that it needs a real key rather than faking completion.
+
+`stress_http.py` drives the real Flask app on a threaded server with a scripted
+provider: concurrent turns under separate owners, both approval answers, Stop
+mid-turn, parallel durable tasks, owner isolation, and ceilings on leaked threads,
+fds and 5xx responses. `test_stress_http.py` runs a reduced version inside the
+normal suite, so the harness cannot rot between load runs. `stress_docker.py`
+checks the four properties the sandbox documentation claims against a real
+container (network off, read-only root, writable workspace mount, Stop kills it)
+and exits 2 when no Docker daemon is available.
+
+Both run nightly and on demand in the `Stress` workflow, never on a pull request.
+The live-model cycle (`live_nim_smoke.py`, phases 2-5 through a real NVIDIA NIM
+endpoint) runs nightly too, capped at 60 minutes, and only when the
+`NVIDIA_API_KEY` repository secret exists.
 
 ## Uploads and visible history (next slice)
 
