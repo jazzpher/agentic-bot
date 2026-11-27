@@ -24,7 +24,10 @@ ENV AGENTIC_WORKSPACE_DIR=/data/workspaces AGENTIC_DEPLOYMENT_MODE=exposed AGENT
 ENV AGENTIC_API_URL=https://integrate.api.nvidia.com/v1/chat/completions \
     AGENTIC_MODEL=nvidia/nemotron-3-ultra-550b-a55b
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=5s CMD python -c "import os,urllib.request;urllib.request.urlopen('http://127.0.0.1:' + os.environ.get('PORT', '8080') + '/key_status')" || exit 1
+# /health is deliberately outside the password gate: the Docker/Cloud Run probe
+# carries no session cookie, so probing /key_status here used to follow a 302 to
+# /login and report success without checking the application at all.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s CMD python -c "import os,urllib.request;urllib.request.urlopen('http://127.0.0.1:' + os.environ.get('PORT', '8080') + '/health', timeout=3)" || exit 1
 # Platform hosts (Cloud Run, Fly, FreeMilk) route to $PORT, so the server must listen there; 8080
 # matches the EXPOSE above for a plain `docker run`/compose. `exec` keeps Flask as PID 1 for signals.
 CMD ["sh", "-c", "exec python webui.py --host 0.0.0.0 --port ${PORT:-8080}"]

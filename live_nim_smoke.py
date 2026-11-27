@@ -161,7 +161,26 @@ LONG_GOAL = ('The tests in this workspace fail. Fix stats.py so that "python -m 
              'Build report.py on the functions in stats.py. Do not edit test_stats.py: it is the specification and '
              'its content is a hard check. Run the tests before and after your fix, then run report.py, and report '
              'what you changed.')
-TRANSCRIPT = ('action', 'tool', 'check', 'verification', 'done', 'result', 'error', 'blocked')
+TRANSCRIPT = ('action', 'tool', 'check', 'verification', 'done', 'result', 'error', 'blocked', 'retry')
+
+
+def provider_outage(events):
+    """Classify a blocked task as a provider outage, with the reason and retries.
+
+    The durable loop pauses on a provider error with a friendly message ("Can't
+    reach The AI provider right now"); the nightly log used to show only the
+    status and the failing gates, so a quota/endpoint problem looked like a
+    broken agent. A retry event names the same provider message, so the count
+    here is what the harness actually tried before it paused.
+    """
+    blocked = [str(e.get('text', '')) for e in events if e.get('type') == 'blocked']
+    if not blocked:
+        return None
+    text = blocked[-1]
+    if not any(token in text for token in ('provider', 'AI provider', 'quota', 'reach', 'key', 'model')):
+        return None
+    retries = sum(1 for e in events if e.get('type') == 'retry' and 'retrying' in str(e.get('text', '')))
+    return '%s (%d automatic retry/retries)' % (text, retries)
 
 
 def config():
@@ -409,6 +428,11 @@ def phase_long(cfg, root, elapsed_budget=300, call_model=None):
                 continue
             text = ' '.join(str(event.get('text', '')).split())
             print('    %-12s %s' % (kind, text[:200]))
+        outage = provider_outage(events)
+        if outage:
+            # The failure stays a failure, but the nightly log now says whether
+            # the provider paused the task or the agent actually ran out of steps.
+            print('  PROVIDER OUTAGE: ' + outage)
         commands = [str(e.get('arg', ''))[:120] for e in events
                     if e.get('type') == 'action' and 'run_command' in str(e.get('text', ''))]
         from agenticbot import sandbox

@@ -51,20 +51,22 @@ jobs:
         run: docker info --format '{{.ServerVersion}}'
       - name: sandbox backend properties (network off, read-only root, Stop)
         run: python stress_docker.py
-      # The Dockerfile HEALTHCHECK probes /key_status, which sits behind the app password
-      # in exposed mode, so the container reports unhealthy here by design. This step
-      # therefore probes /login, which is the one route that answers without a session.
-      # Known gap: the healthcheck itself is not fixed in this change.
+      # The image HEALTHCHECK used to probe /key_status, which the password gate
+      # redirects to /login for a cookie-less probe. It now probes /health, an
+      # intentionally open liveness route; check it here too so a broken probe
+      # fails the compose step rather than silently reporting an unhealthy stack.
       - name: compose stack boots and serves
         run: |
           docker compose up -d --build
           for i in $(seq 1 60); do
-            if curl -fsS -o /dev/null -w '%{http_code}' http://127.0.0.1:5000/login | grep -q 200; then
-              echo "stack answered on /login"; break
+            if curl -fsS -o /dev/null -w '%{http_code}' http://127.0.0.1:5000/health | grep -q 200; then
+              echo "stack answered on /health"; break
             fi
             sleep 3
           done
-          curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/login
+          curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/health
+          # The probe used to follow a redirect to /login and call that health.
+          docker inspect --format '{{.State.Health.Status}}' $(docker compose ps -q agenticbot) | grep -q healthy
       - name: compose logs on failure
         if: failure()
         run: docker compose logs --no-color | tail -n 200

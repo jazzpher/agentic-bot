@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Fixed
+- **The container HEALTHCHECK no longer probes a route behind the password gate.** It followed the 302 from `/key_status` to `/login` and reported success without checking the application. A new open `/health` liveness route returns `{"status":"ok"}`, the image probes it, and the compose stress step asserts the container is actually `healthy`.
+- **A live soak paused by a provider outage now says why.** `live_nim_smoke.py` prints the durable loop's `blocked` and `retry` events and counts the automatic retries before the pause, so a quota/endpoint failure is not mistaken for a broken agent. The run still fails; it just explains itself.
 - **A finished durable task is no longer lost to the clock.** When a budget runs out, the owner's acceptance
   checks are re-run once before the task is called `budget_exhausted`, and it completes only if they pass. A live
   debug cycle had fixed both bugs and gone green, then was discarded at 318 s of a 300 s cap with the work already

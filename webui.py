@@ -18,7 +18,7 @@ import zipfile
 from pathlib import Path
 from urllib.parse import urlparse
 import requests
-from flask import Flask, Response, request, render_template, render_template_string, session, redirect, send_file
+from flask import Flask, Response, request, render_template, render_template_string, session, redirect, send_file, jsonify
 from agent_loop import ACTION_SCHEMA, result_action_schema, Workspace
 from documents import extract_text, MAX_UPLOAD
 from itsdangerous import BadSignature, URLSafeTimedSerializer
@@ -211,7 +211,10 @@ def protect():
         if (DEPLOYMENT_MODE != 'local' or not loopback or proxy_headers
                 or urlparse('http://' + request.host).hostname not in ('127.0.0.1', 'localhost', '::1')):
             return Response('Public access disabled. Use AGENTIC_DEPLOYMENT_MODE=exposed and AGENTIC_APP_PASSWORD for tunnels/proxies.', status=403)
-    if request.endpoint == 'login':
+    # A container health probe sends no session cookie; let it through so the
+    # image HEALTHCHECK works in exposed mode. /health opens no session and
+    # returns no application data.
+    if request.endpoint in ('login', 'health'):
         return None
     if PASSWORD and not session.get('authenticated'):
         return redirect('/login') if request.method == 'GET' else Response('Log in first.', status=401)
@@ -229,6 +232,13 @@ def headers(response):
     response.headers['Content-Security-Policy'] = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
                                                    "connect-src 'self'; frame-ancestors " + FRAME_ANCESTORS)
     return response
+
+
+@app.route('/health')
+def health():
+    """Process liveness for Docker/Cloud Run. Deliberately open in exposed mode."""
+    return jsonify({'status': 'ok'})
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
