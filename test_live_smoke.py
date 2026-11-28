@@ -188,6 +188,28 @@ class LongHorizonTests(unittest.TestCase):
         self.assertNotEqual(gate.exit_code, 0, 'the task is pointless unless the tests start red')
 
 
+class ProviderOutageTests(unittest.TestCase):
+    """The nightly log must say why a durable phase paused, and count real retries."""
+
+    def test_provider_block_is_reported_with_retries(self):
+        import live_nim_smoke
+        events = [
+            {'type': 'retry', 'text': "Can't reach The AI provider right now, retrying 1 of 3..."},
+            {'type': 'retry', 'text': "Can't reach The AI provider right now, retrying 2 of 3..."},
+            {'type': 'blocked', 'text': "Can't reach The AI provider right now. Task paused, nothing was lost. Press Resume to continue."},
+        ]
+        detail = live_nim_smoke.provider_outage(events)
+        self.assertIsNotNone(detail)
+        self.assertIn('Can\'t reach The AI provider', detail)
+        self.assertIn('2 automatic retries', detail)
+
+    def test_a_non_provider_block_is_not_mislabelled(self):
+        import live_nim_smoke
+        self.assertIsNone(live_nim_smoke.provider_outage(
+            [{'type': 'blocked', 'text': 'Repeated failed action; refine task or supply missing information.'}]))
+        self.assertIsNone(live_nim_smoke.provider_outage([]))
+
+
 class NoKeyTests(unittest.TestCase):
     def test_config_prefers_the_nvidia_variable(self):
         with mock.patch.dict('os.environ', {'NVIDIA_API_KEY': 'nvapi-x', 'AGENTIC_API_KEY': 'other'}):

@@ -53,6 +53,13 @@ class AuthRegressionTests(unittest.TestCase):
         with patch.object(webui, 'PASSWORD', ''):
             self.assertEqual(webui.app.test_client().get('/', base_url='http://localhost').status_code, 200)
 
+    def test_health_is_open_in_exposed_mode(self):
+        """The container HEALTHCHECK has no session cookie; /health must answer 200."""
+        with patch.object(webui, 'PASSWORD', 'test-password'):
+            response = webui.app.test_client().get('/health', base_url='http://localhost')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.get_json(), {'status': 'ok'})
+
     def test_password_login_maps_to_one_persistent_owner(self):
         with patch.object(webui, 'PASSWORD', 'test-password'):
             first, second = webui.app.test_client(), webui.app.test_client()
