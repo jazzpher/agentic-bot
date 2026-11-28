@@ -50,6 +50,12 @@ extend-exclude = ["acceptance", "agenticbot/static/vendor"]
 
 [tool.ruff.lint]
 # Ruff's default rule set (pycodestyle E4/E7/E9 plus pyflakes F): syntax-level errors,
-# undefined names and unused imports. The tree still has pre-existing findings, so the
-# CI job reports a baseline instead of gating; see .github/workflows/lint.yml.
+# undefined names and unused imports.
+#
+# E701/E702 (several statements on one line) are ignored deliberately: this tree writes
+# short guards as `if not ok: return None` in 380 places, and rewriting them is a style
+# change, not a review. Ignoring them also keeps the CI report readable, so the 36
+# findings left there are the real work; see .github/workflows/lint.yml.
 select = ["E4", "E7", "E9", "F"]
+ignore = ["E701", "E702"]
+

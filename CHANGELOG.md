@@ -49,6 +49,11 @@ All notable changes to this project are documented here. The format follows
   browsing paragraph no longer claim per-hop checks.
 
 ### Changed
+- **`ruff` now gates the failures that actually break code**: syntax errors, undefined names and
+  invalid `is` comparisons (`E9,F63,F7,F82`), which the tree was already clean of. The full default
+  set still reports 36 pre-existing findings and stays a report until those are fixed. `E701`/`E702`
+  (several statements on one line, 380 findings) are ignored in `[tool.ruff.lint]`, because writing
+  short guards that way is how this tree is written.
 - The independent grader is off by default (`AGENTIC_GRADER=on` to enable): it costs an extra model call per check.
 - Scheduled runs keep shell network off unless `AGENTIC_UNATTENDED_NETWORK=on`; this is now documented.
 - Notifications stay readable for 24 hours (was 1 hour).
