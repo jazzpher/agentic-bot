@@ -180,7 +180,7 @@ def provider_outage(events):
     if not any(token in text for token in ('provider', 'AI provider', 'quota', 'reach', 'key', 'model')):
         return None
     retries = sum(1 for e in events if e.get('type') == 'retry' and 'retrying' in str(e.get('text', '')))
-    return '%s (%d automatic retry/retries)' % (text, retries)
+    return '%s (%d automatic %s)' % (text, retries, 'retry' if retries == 1 else 'retries')
 
 
 def config():
